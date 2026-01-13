@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  member
+}
+
+enum MinuteItemStatus {
+  not_started
+  in_progress
+  completed
+  pending
+  cancelled
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String
+  role          UserRole  @default(member)
+  departmentId  String?   @map("department_id")
+  teamId        String?   @map("team_id")
+  isActive      Boolean   @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  department    Department? @relation(fields: [departmentId], references: [id])
+  team          Team?       @relation(fields: [teamId], references: [id])
+  
+  createdMeetings Meeting[]
+  createdMinutes  Minute[]
+  accessLogs      AccessLog[]
+
+  @@index([email])
+  @@index([departmentId])
+  @@index([teamId])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Department {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  teams        Team[]
+  users        User[]
+
+  @@index([displayOrder])
+  @@map("departments")
+}
+
+model Team {
+  id           String   @id @default(uuid())
+  departmentId String   @map("department_id")
+  name         String
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  meetings     Meeting[]
+  users        User[]
+
+  @@index([departmentId])
+  @@index([departmentId, displayOrder])
+  @@map("teams")
+}
+
+model Meeting {
+  id          String    @id @default(uuid())
+  teamId      String    @map("team_id")
+  name        String
+  description String?
+  isArchived  Boolean   @default(false) @map("is_archived")
+  archivedAt  DateTime? @map("archived_at")
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  creator     User      @relation(fields: [createdBy], references: [id])
+  minutes     Minute[]
+
+  @@index([teamId])
+  @@index([teamId, isArchived])
+  @@index([createdBy])
+  @@map("meetings")
+}
+
+model Minute {
+  id           String   @id @default(uuid())
+  meetingId    String   @map("meeting_id")
+  meetingDate  DateTime @map("meeting_date") @db.Date
+  title        String?
+  rawText      String?  @map("raw_text") @db.Text
+  createdBy    String   @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  meeting      Meeting       @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  creator      User          @relation(fields: [createdBy], references: [id])
+  items        MinuteItem[]
+
+  @@index([meetingId])
+  @@index([meetingId, meetingDate])
+  @@index([meetingDate])
+  @@index([createdBy])
+  @@map("minutes")
+}
+
+model MinuteItem {
+  id          String           @id @default(uuid())
+  minuteId    String           @map("minute_id")
+  rowOrder    Int              @default(0) @map("row_order")
+  agenda      String?          @db.Text
+  decision    String?          @db.Text
+  issue       String?          @db.Text
+  deadline    DateTime?        @db.Date
+  assignee    String?
+  actionItem  String?          @map("action_item") @db.Text
+  reason      String?          @db.Text
+  status      MinuteItemStatus @default(not_started)
+  otherInfo   String?          @map("other_info") @db.Text
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  minute      Minute           @relation(fields: [minuteId], references: [id], onDelete: Cascade)
+
+  @@index([minuteId])
+  @@index([minuteId, rowOrder])
+  @@index([deadline])
+  @@index([assignee])
+  @@index([status])
+  @@map("minute_items")
+}
+
+model AccessLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([resourceType, resourceId])
+  @@map("access_logs")
+}
