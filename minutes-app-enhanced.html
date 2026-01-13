@@ -262,6 +262,7 @@
                 console.log('✅ contentArea found, adding click listener...');
                 
                 // イベント委譲: contentArea内のクリックを監視
+                // ★ アロー関数を使用してthisをバインド
                 contentArea.addEventListener('click', (e) => {
                     console.log('contentArea clicked!', e.target);
                     
@@ -273,7 +274,14 @@
                         
                         if (meetingItem.dataset.meetingId) {
                             console.log('✅ Calling showMeetingView with:', meetingItem.dataset.meetingId);
-                            this.showMeetingView(meetingItem.dataset.meetingId);
+                            console.log('this:', this);
+                            console.log('this.showMeetingView:', this.showMeetingView);
+                            
+                            try {
+                                this.showMeetingView(meetingItem.dataset.meetingId);
+                            } catch (error) {
+                                console.error('❌ Error calling showMeetingView:', error);
+                            }
                             return;
                         } else {
                             console.error('❌ No meeting ID found on meeting item');
