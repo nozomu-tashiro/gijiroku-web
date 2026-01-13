@@ -599,9 +599,8 @@
                 html += '<div class="meeting-list">';
                 
                 meetings.forEach(meeting => {
-                    // onclick属性を使用（確実に動作する）
                     html += `
-                        <div class="meeting-item" onclick="window.app.showMeetingView('${meeting.id}'); return false;" style="cursor: pointer;">
+                        <div class="meeting-item" id="meeting-${meeting.id}" style="cursor: pointer;">
                             <div class="meeting-title">${meeting.name}</div>
                             <div class="meeting-meta">
                                 <div>📅 ${meeting.date}</div>
@@ -614,6 +613,19 @@
                 
                 html += '</div></div>';
                 content.innerHTML = html;
+                
+                // ★ 動的に生成された後、各要素にイベントを直接バインド
+                setTimeout(() => {
+                    meetings.forEach(meeting => {
+                        const element = document.getElementById(`meeting-${meeting.id}`);
+                        if (element) {
+                            element.onclick = () => {
+                                console.log('Meeting clicked (direct binding):', meeting.id);
+                                this.showMeetingView(meeting.id);
+                            };
+                        }
+                    });
+                }, 0);
             },
             
             showDepartmentView(deptId) {
@@ -680,7 +692,7 @@
                     html += '<div class="meeting-list">';
                     meetings.forEach(meeting => {
                         html += `
-                            <div class="meeting-item" onclick="window.app.showMeetingView('${meeting.id}'); return false;" style="cursor: pointer;">
+                            <div class="meeting-item" id="meeting-${meeting.id}" style="cursor: pointer;">
                                 <div class="meeting-title">${meeting.name}</div>
                                 <div class="meeting-meta">
                                     <div>📅 ${meeting.date}</div>
@@ -695,6 +707,21 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+                
+                // ★ 動的に生成された後、各要素にイベントを直接バインド
+                if (meetings.length > 0) {
+                    setTimeout(() => {
+                        meetings.forEach(meeting => {
+                            const element = document.getElementById(`meeting-${meeting.id}`);
+                            if (element) {
+                                element.onclick = () => {
+                                    console.log('Meeting clicked (direct binding):', meeting.id);
+                                    this.showMeetingView(meeting.id);
+                                };
+                            }
+                        });
+                    }, 0);
+                }
             },
             
             showMeetingView(meetingId) {
