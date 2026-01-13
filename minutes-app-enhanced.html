@@ -215,6 +215,7 @@
     </div>
 
     <script>
+        console.log('=== Script Loading Started ===');
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
         
         const app = {
@@ -958,11 +959,22 @@
             }
         });
         
+        console.log('=== Setting window.app ===');
         // Make app globally accessible for onclick handlers
         window.app = app;
+        console.log('window.app is now:', window.app);
+        console.log('window.app.showMeetingView:', typeof window.app.showMeetingView);
         
         // Initialize app
-        window.addEventListener('load', () => app.init());
+        console.log('=== Initializing app ===');
+        window.addEventListener('load', () => {
+            console.log('DOM loaded, calling app.init()');
+            app.init();
+        });
+        
+        // Immediate check
+        console.log('=== Script Loading Completed ===');
+        console.log('You can now use window.app from console');
     </script>
 </body>
 </html>
