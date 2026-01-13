@@ -483,6 +483,9 @@
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 document.getElementById('headerUserName').textContent = this.currentUser.name;
+                
+                // ★ 組織ビューを表示（これがないと何も表示されない！）
+                this.showOrganizationView();
                 document.getElementById('headerUserDept').textContent = 
                     `${this.currentUser.department.name} / ${this.currentUser.team.name}`;
                 this.showOrganizationView();
