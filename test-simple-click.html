@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>シンプルクリックテスト</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; }
+        .meeting { background: #667eea; color: white; padding: 20px; margin: 10px 0; border-radius: 8px; cursor: pointer; }
+        .meeting:hover { background: #5568d3; }
+        #result { margin-top: 20px; padding: 20px; background: #f0f0f0; border-radius: 8px; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 会議クリックテスト（超シンプル版）</h1>
+    
+    <div class="meeting" onclick="testClick('meeting-1')">
+        📅 定例会議 1 をクリック
+    </div>
+    
+    <div class="meeting" onclick="testClick('meeting-2')">
+        📅 幹部会議 2 をクリック
+    </div>
+    
+    <div class="meeting" onclick="window.testGlobal('meeting-3')">
+        📅 経営会議 3 をクリック（window経由）
+    </div>
+    
+    <div id="result">結果がここに表示されます</div>
+    
+    <script>
+        // Test 1: 通常の関数
+        function testClick(meetingId) {
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h3>✅ クリック成功！</h3>
+                <p>会議ID: <strong>${meetingId}</strong></p>
+                <p>時刻: ${new Date().toLocaleTimeString()}</p>
+            `;
+            console.log('testClick called with:', meetingId);
+        }
+        
+        // Test 2: windowオブジェクト経由
+        window.testGlobal = function(meetingId) {
+            const result = document.getElementById('result');
+            result.innerHTML = `
+                <h3>✅ window経由でクリック成功！</h3>
+                <p>会議ID: <strong>${meetingId}</strong></p>
+                <p>時刻: ${new Date().toLocaleTimeString()}</p>
+            `;
+            console.log('window.testGlobal called with:', meetingId);
+        };
+        
+        // Test 3: appオブジェクトをシミュレート
+        const app = {
+            showMeetingView(meetingId) {
+                const result = document.getElementById('result');
+                result.innerHTML = `
+                    <h3>✅ app.showMeetingView が動作！</h3>
+                    <p>会議ID: <strong>${meetingId}</strong></p>
+                    <p>時刻: ${new Date().toLocaleTimeString()}</p>
+                `;
+                console.log('app.showMeetingView called with:', meetingId);
+            }
+        };
+        
+        // グローバルに設定
+        window.app = app;
+        
+        // 初期メッセージ
+        document.getElementById('result').innerHTML = `
+            <h3>準備完了</h3>
+            <p>上の会議をクリックしてテストしてください</p>
+            <hr>
+            <p><strong>確認項目:</strong></p>
+            <ul>
+                <li>window.app が存在: ${typeof window.app !== 'undefined' ? '✅' : '❌'}</li>
+                <li>app.showMeetingView が存在: ${typeof window.app.showMeetingView === 'function' ? '✅' : '❌'}</li>
+            </ul>
+        `;
+        
+        console.log('=== テスト準備完了 ===');
+        console.log('window.app:', window.app);
+        console.log('window.app.showMeetingView:', window.app.showMeetingView);
+    </script>
+</body>
+</html>

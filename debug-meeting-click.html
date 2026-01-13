@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デバッグ診断ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }
+        h1 { color: #333; }
+        .test-box { background: white; padding: 20px; margin: 15px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .test-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; color: #667eea; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d1e7dd; color: #0f5132; border: 1px solid #a3cfbb; }
+        .error { background: #f8d7da; color: #842029; border: 1px solid #f1aeb5; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin: 5px; }
+        button:hover { background: #5568d3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .click-test { background: #667eea; color: white; padding: 20px; border-radius: 8px; cursor: pointer; text-align: center; margin: 10px 0; }
+        .click-test:hover { background: #5568d3; }
+    </style>
+</head>
+<body>
+    <h1>🔍 会議クリック問題 - デバッグ診断</h1>
+    
+    <div class="test-box">
+        <div class="test-title">1. window.app の存在確認</div>
+        <button onclick="checkWindowApp()">チェック実行</button>
+        <div id="result1"></div>
+    </div>
+    
+    <div class="test-box">
+        <div class="test-title">2. app.showMeetingView の存在確認</div>
+        <button onclick="checkShowMeetingView()">チェック実行</button>
+        <div id="result2"></div>
+    </div>
+    
+    <div class="test-box">
+        <div class="test-title">3. onclick 動作テスト</div>
+        <div class="click-test" onclick="testOnClick()">
+            ここをクリックしてテスト
+        </div>
+        <div id="result3"></div>
+    </div>
+    
+    <div class="test-box">
+        <div class="test-title">4. 実際の会議データで動作テスト</div>
+        <button onclick="testActualMeeting()">テスト実行</button>
+        <div id="result4"></div>
+    </div>
+    
+    <div class="test-box">
+        <div class="test-title">5. iframeで実アプリをロード</div>
+        <button onclick="loadActualApp()">アプリをロード</button>
+        <div id="result5"></div>
+        <div id="iframeContainer"></div>
+    </div>
+
+    <script>
+        function checkWindowApp() {
+            const result = document.getElementById('result1');
+            if (typeof window.app !== 'undefined') {
+                result.innerHTML = '<div class="result success">✅ window.app が存在します</div>';
+                console.log('window.app:', window.app);
+            } else {
+                result.innerHTML = '<div class="result error">❌ window.app が存在しません<br>原因: グローバルスコープに設定されていない可能性があります</div>';
+            }
+        }
+        
+        function checkShowMeetingView() {
+            const result = document.getElementById('result2');
+            if (typeof window.app !== 'undefined' && typeof window.app.showMeetingView === 'function') {
+                result.innerHTML = '<div class="result success">✅ app.showMeetingView が存在します（関数型）</div>';
+                console.log('app.showMeetingView:', window.app.showMeetingView);
+            } else if (typeof window.app !== 'undefined') {
+                result.innerHTML = '<div class="result error">❌ app.showMeetingView が関数ではありません</div>';
+                console.log('app:', window.app);
+            } else {
+                result.innerHTML = '<div class="result error">❌ window.app が存在しないため確認できません</div>';
+            }
+        }
+        
+        function testOnClick() {
+            const result = document.getElementById('result3');
+            result.innerHTML = '<div class="result success">✅ onclick が正常に動作しています！</div>';
+            console.log('onclick test: success');
+        }
+        
+        function testActualMeeting() {
+            const result = document.getElementById('result4');
+            result.innerHTML = '<div class="result warning">⏳ テスト中...</div>';
+            
+            // Simulate meeting ID
+            const testMeetingId = 'meeting-board-1-0';
+            
+            if (typeof window.app !== 'undefined' && typeof window.app.showMeetingView === 'function') {
+                try {
+                    console.log('Calling app.showMeetingView with:', testMeetingId);
+                    // Don't actually call it as we're not in the app context
+                    result.innerHTML = `<div class="result success">✅ app.showMeetingView は呼び出し可能です<br>
+                    テストID: ${testMeetingId}<br>
+                    <strong>次のステップ:</strong> 実際のアプリで会議をクリックしてください</div>`;
+                } catch (e) {
+                    result.innerHTML = `<div class="result error">❌ エラーが発生しました<br><pre>${e.message}</pre></div>`;
+                    console.error('Error:', e);
+                }
+            } else {
+                result.innerHTML = '<div class="result error">❌ このページには app が存在しません<br>実際のアプリページで確認する必要があります</div>';
+            }
+        }
+        
+        function loadActualApp() {
+            const result = document.getElementById('result5');
+            const container = document.getElementById('iframeContainer');
+            
+            result.innerHTML = '<div class="result warning">⏳ アプリをロード中...</div>';
+            
+            const iframe = document.createElement('iframe');
+            iframe.src = '/minutes-app-enhanced.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '600px';
+            iframe.style.border = '1px solid #ddd';
+            iframe.style.borderRadius = '8px';
+            iframe.style.marginTop = '10px';
+            
+            iframe.onload = () => {
+                result.innerHTML = '<div class="result success">✅ アプリがロードされました<br>ログインして会議をクリックしてください</div>';
+                
+                // Try to check app in iframe (will likely fail due to cross-origin)
+                try {
+                    if (iframe.contentWindow.app) {
+                        result.innerHTML += '<div class="result success">✅ iframe内の window.app が確認できました！</div>';
+                    }
+                } catch (e) {
+                    result.innerHTML += '<div class="result warning">⚠️ クロスオリジン制約により iframe 内部の確認はできません<br>直接アプリで動作確認してください</div>';
+                }
+            };
+            
+            container.innerHTML = '';
+            container.appendChild(iframe);
+        }
+        
+        // Auto-run first two checks on load
+        window.addEventListener('load', () => {
+            checkWindowApp();
+            checkShowMeetingView();
+        });
+    </script>
+</body>
+</html>
