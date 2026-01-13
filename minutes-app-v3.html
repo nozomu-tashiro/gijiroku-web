@@ -37,14 +37,6 @@
         .org-item-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
         .org-item-count { font-size: 13px; opacity: 0.9; }
         
-        /* Hierarchical Organization Tree */
-        .org-hierarchy { display: flex; flex-direction: column; gap: 25px; }
-        .org-level { margin-bottom: 15px; }
-        .org-level-title { font-size: 14px; font-weight: 600; color: #667eea; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea; text-transform: uppercase; letter-spacing: 0.5px; }
-        .org-section { margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .org-section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 15px; padding-left: 10px; border-left: 4px solid #667eea; }
-        .sub-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; padding-left: 20px; }
-        
         /* Meeting List */
         .meeting-list { display: flex; flex-direction: column; gap: 12px; }
         .meeting-item { background: #f8f9fa; padding: 18px; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.2s; border-left: 4px solid #667eea; }
@@ -463,45 +455,30 @@
                 
                 const content = document.getElementById('contentArea');
                 let html = '<div class="card">';
-                html += '<div class="card-title">🏢 組織階層一覧 - 全社の会議・議事録を管理</div>';
-                html += '<div class="org-hierarchy">';
+                html += '<div class="card-title">🏢 組織一覧 - 部門を選択してください</div>';
+                html += '<div class="org-tree">';
                 
-                // Board level
-                html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏛️ 経営層（ボード）</div>';
+                // Add Board level
                 html += `
-                    <div class="org-item" onclick="app.showBoardView()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px;">
+                    <div class="org-item" onclick="app.showBoardView()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);">
                         <div class="org-item-title">👔 ${this.demoData.board.name}</div>
                         <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
                     </div>
                 `;
-                html += '</div>';
-                
-                // Department and Team levels
-                html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏢 部門・チーム一覧</div>';
                 
                 this.demoData.departments.forEach(dept => {
                     const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
-                    html += '<div class="org-section">';
-                    html += `<div class="org-section-title" onclick="app.showDepartmentView('${dept.id}')" style="cursor: pointer;">
-                        ${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span>
-                    </div>`;
-                    html += '<div class="sub-items">';
-                    
-                    dept.teams.forEach(team => {
-                        html += `
-                            <div class="org-item" onclick="app.showTeamView('${team.id}')" style="padding: 15px;">
-                                <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
-                                <div class="org-item-count">${team.meetingCount}件の会議</div>
+                    html += `
+                        <div class="org-item" onclick="app.showDepartmentView('${dept.id}')">
+                            <div class="org-item-title">${dept.name}</div>
+                            <div class="org-item-count">
+                                ${dept.teams.length}チーム・${totalMeetings}件の会議
                             </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
+                        </div>
+                    `;
                 });
                 
-                html += '</div></div></div>';
+                html += '</div></div>';
                 content.innerHTML = html;
             },
             
@@ -624,35 +601,17 @@
             showMeetingView(meetingId) {
                 // Find meeting
                 let meeting = null;
-                const parts = meetingId.split('-');
-                const entityType = parts[1];
+                const entityId = meetingId.split('-')[1];
                 
-                if (entityType === 'board') {
+                if (entityId === 'board') {
                     const meetings = this.demoData.generateMeetings('board-1');
                     meeting = meetings.find(m => m.id === meetingId);
                 } else {
-                    // Find team from meetingId
-                    let foundTeam = null;
-                    for (const dept of this.demoData.departments) {
-                        const team = dept.teams.find(t => meetingId.includes(t.id));
-                        if (team) {
-                            foundTeam = team;
-                            this.currentTeam = team;
-                            this.currentDepartment = dept;
-                            break;
-                        }
-                    }
-                    
-                    if (foundTeam) {
-                        const meetings = this.demoData.generateMeetings(foundTeam.id);
-                        meeting = meetings.find(m => m.id === meetingId);
-                    }
+                    const meetings = this.demoData.generateMeetings(this.currentTeam.id);
+                    meeting = meetings.find(m => m.id === meetingId);
                 }
                 
-                if (!meeting) {
-                    console.error('Meeting not found:', meetingId);
-                    return;
-                }
+                if (!meeting) return;
                 
                 this.currentView = 'meeting';
                 this.currentMeeting = meeting;

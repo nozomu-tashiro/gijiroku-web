@@ -3,149 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>会議議事録管理システム - Enhanced</title>
+    <title>会議議事録管理システム</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; }
         
-        /* Header */
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .header h1 { font-size: 20px; }
         .user-section { display: flex; align-items: center; gap: 15px; }
         .user-info { text-align: right; font-size: 13px; }
-        .logout-btn { padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; cursor: pointer; font-size: 14px; transition: background 0.3s; }
-        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .logout-btn { padding: 8px 16px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 5px; cursor: pointer; font-size: 14px; }
         
-        /* Container */
         .container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
-        
-        /* Breadcrumb */
         .breadcrumb { display: flex; gap: 10px; margin-bottom: 20px; font-size: 14px; color: #666; flex-wrap: wrap; }
-        .breadcrumb-item { cursor: pointer; transition: color 0.3s; }
+        .breadcrumb-item { cursor: pointer; }
         .breadcrumb-item:hover { color: #667eea; }
-        .breadcrumb-item.active { color: #333; font-weight: 600; }
         .breadcrumb-separator { color: #999; }
         
-        /* Card */
         .card { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 25px; margin-bottom: 20px; }
-        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #333; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Organization Tree */
-        .org-tree { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .org-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .org-item:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); }
-        .org-item-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-        .org-item-count { font-size: 13px; opacity: 0.9; }
+        /* Full Organization Tree */
+        .org-full-tree { display: flex; flex-direction: column; gap: 20px; }
+        .org-level { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+        .org-level-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #333; }
+        .org-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .org-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 6px; cursor: pointer; transition: transform 0.2s; }
+        .org-item:hover { transform: translateY(-2px); }
+        .org-item.board { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); }
+        .org-item-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+        .org-item-count { font-size: 12px; opacity: 0.9; }
         
-        /* Hierarchical Organization Tree */
-        .org-hierarchy { display: flex; flex-direction: column; gap: 25px; }
-        .org-level { margin-bottom: 15px; }
-        .org-level-title { font-size: 14px; font-weight: 600; color: #667eea; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #667eea; text-transform: uppercase; letter-spacing: 0.5px; }
-        .org-section { margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .org-section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 15px; padding-left: 10px; border-left: 4px solid #667eea; }
-        .sub-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 15px; padding-left: 20px; }
-        
-        /* Meeting List */
         .meeting-list { display: flex; flex-direction: column; gap: 12px; }
-        .meeting-item { background: #f8f9fa; padding: 18px; border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.2s; border-left: 4px solid #667eea; }
-        .meeting-item:hover { background: #e9ecef; transform: translateX(5px); }
+        .meeting-item { background: #f8f9fa; padding: 18px; border-radius: 8px; cursor: pointer; border-left: 4px solid #667eea; }
+        .meeting-item:hover { background: #e9ecef; }
         .meeting-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 8px; }
-        .meeting-meta { display: flex; gap: 20px; font-size: 13px; color: #666; flex-wrap: wrap; }
+        .meeting-meta { display: flex; gap: 20px; font-size: 13px; color: #666; }
         
-        /* Minutes Table */
         .minutes-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        .minutes-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; color: #333; border-bottom: 2px solid #dee2e6; }
+        .minutes-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
         .minutes-table td { padding: 12px; border-bottom: 1px solid #e9ecef; }
-        .minutes-table tr { cursor: pointer; transition: background 0.2s; }
         .minutes-table tbody tr:hover { background: #f8f9fa; }
         
-        /* Status Badge */
         .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .badge-pending { background: #fff3cd; color: #856404; }
         .badge-progress { background: #cfe2ff; color: #084298; }
         .badge-completed { background: #d1e7dd; color: #0f5132; }
         .badge-overdue { background: #f8d7da; color: #842029; }
-        .badge-archived { background: #6c757d; color: white; }
         
-        /* Buttons */
-        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: background 0.3s; font-weight: 600; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
         .btn-primary { background: #667eea; color: white; }
-        .btn-primary:hover { background: #5568d3; }
         .btn-secondary { background: #6c757d; color: white; }
-        .btn-secondary:hover { background: #5a6268; }
         .btn-danger { background: #dc3545; color: white; }
-        .btn-danger:hover { background: #c82333; }
-        .btn-success { background: #28a745; color: white; }
-        .btn-success:hover { background: #218838; }
         .back-btn { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 20px; }
         .action-btns { display: flex; gap: 10px; }
         
-        /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
         .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 10px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: white; border-radius: 10px; padding: 30px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
         .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
         .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; font-family: inherit; }
         .form-group textarea { min-height: 100px; resize: vertical; }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #667eea; }
         .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         
-        /* Detail View */
         .detail-section { margin-bottom: 25px; }
-        .detail-section-title { font-size: 14px; font-weight: 600; color: #667eea; margin-bottom: 10px; text-transform: uppercase; }
-        .detail-content { background: #f8f9fa; padding: 15px; border-radius: 6px; line-height: 1.6; }
+        .detail-section-title { font-size: 14px; font-weight: 600; color: #667eea; margin-bottom: 10px; }
+        .detail-content { background: #f8f9fa; padding: 15px; border-radius: 6px; }
         .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .detail-item { display: flex; flex-direction: column; gap: 5px; }
         .detail-label { font-size: 12px; color: #666; font-weight: 600; }
         .detail-value { font-size: 14px; color: #333; }
         
-        /* Login Page */
-        .login-container { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
-        .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 400px; }
-        .login-title { text-align: center; font-size: 24px; margin-bottom: 10px; color: #333; }
-        .login-subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
-        .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
-        .login-btn:hover:not(:disabled) { background: #5568d3; }
-        .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
+        .login-container { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-box { background: white; padding: 40px; border-radius: 10px; width: 100%; max-width: 400px; }
+        .login-title { text-align: center; font-size: 24px; margin-bottom: 10px; }
+        .login-btn { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; }
         .alert-error { background: #fee; border: 1px solid #fcc; color: #c33; }
         .alert-success { background: #efe; border: 1px solid #cfc; color: #3c3; }
-        .demo-info { text-align: center; margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; font-size: 13px; color: #666; }
-        .demo-info code { background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
-        
-        /* Empty State */
-        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
-        .empty-state-icon { font-size: 48px; margin-bottom: 15px; }
+        .demo-info { text-align: center; margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; font-size: 13px; }
     </style>
 </head>
 <body>
-    <!-- Login Page -->
     <div id="loginPage" class="login-container">
         <div class="login-box">
             <h1 class="login-title">会議議事録管理システム</h1>
-            <p class="login-subtitle">全社ナレッジ共有プラットフォーム</p>
             <div id="loginAlert"></div>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="email">メールアドレス</label>
+                    <label>メールアドレス</label>
                     <input type="email" id="email" value="admin@example.com" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">パスワード</label>
+                    <label>パスワード</label>
                     <input type="password" id="password" value="Admin@123" required>
                 </div>
-                <button type="submit" class="login-btn" id="loginBtn">ログイン</button>
+                <button type="submit" class="login-btn">ログイン</button>
             </form>
             <div class="demo-info">
-                <p><strong>デモアカウント:</strong></p>
-                <p><code>admin@example.com</code> / <code>Admin@123</code></p>
+                <p><strong>デモアカウント:</strong> admin@example.com / Admin@123</p>
             </div>
         </div>
     </div>
 
-    <!-- Main App -->
     <div id="mainApp" style="display: none;">
         <div class="header">
             <h1>📋 会議議事録管理システム</h1>
@@ -154,51 +116,49 @@
                     <div id="headerUserName"></div>
                     <div id="headerUserDept"></div>
                 </div>
-                <button class="logout-btn" onclick="app.logout()">ログアウト</button>
+                <button class="logout-btn" id="logoutBtn">ログアウト</button>
             </div>
         </div>
-
         <div class="container">
             <div class="breadcrumb" id="breadcrumb"></div>
             <div id="contentArea"></div>
         </div>
     </div>
 
-    <!-- Edit/Add Minute Modal -->
     <div id="minuteModal" class="modal">
         <div class="modal-content">
             <h2 class="modal-title" id="modalTitle">議事録を追加</h2>
             <form id="minuteForm">
                 <div class="form-group">
-                    <label for="minuteTopic">議題 *</label>
+                    <label>議題 *</label>
                     <input type="text" id="minuteTopic" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteDecision">決定事項 *</label>
+                    <label>決定事項 *</label>
                     <textarea id="minuteDecision" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="minuteIssue">課題</label>
+                    <label>課題</label>
                     <textarea id="minuteIssue"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="minuteAssignee">担当者 *</label>
+                    <label>担当者 *</label>
                     <input type="text" id="minuteAssignee" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteDueDate">期日 *</label>
+                    <label>期日 *</label>
                     <input type="date" id="minuteDueDate" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteAction">実行内容 *</label>
+                    <label>実行内容 *</label>
                     <textarea id="minuteAction" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="minuteReason">理由・背景</label>
+                    <label>理由・背景</label>
                     <textarea id="minuteReason"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="minuteStatus">ステータス *</label>
+                    <label>ステータス *</label>
                     <select id="minuteStatus" required>
                         <option value="pending">未着手</option>
                         <option value="progress">進行中</option>
@@ -207,7 +167,7 @@
                     </select>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="app.closeModal()">キャンセル</button>
+                    <button type="button" class="btn btn-secondary" id="modalCancelBtn">キャンセル</button>
                     <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
@@ -227,8 +187,8 @@
             currentMinute: null,
             editingMinuteId: null,
             demoData: null,
-            minutesData: {}, // Store minutes data in memory
-            archivedMinutes: [], // Store archived minutes
+            minutesData: {},
+            archivedMinutes: [],
             
             init() {
                 this.loadDemoData();
@@ -241,17 +201,13 @@
                     e.preventDefault();
                     this.saveMinute();
                 });
+                document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
+                document.getElementById('modalCancelBtn').addEventListener('click', () => this.closeModal());
             },
             
             loadDemoData() {
                 this.demoData = {
-                    // 経営（ボード）レベル
-                    board: {
-                        id: 'board-1',
-                        name: '経営（ボード）',
-                        meetingCount: 12
-                    },
-                    
+                    board: { id: 'board-1', name: '経営（ボード）', meetingCount: 12 },
                     departments: [
                         {
                             id: 'dept-1',
@@ -312,7 +268,6 @@
                         for (let i = 0; i < count; i++) {
                             const date = new Date();
                             date.setDate(date.getDate() - Math.floor(Math.random() * 60));
-                            
                             meetings.push({
                                 id: `meeting-${entityId}-${i}`,
                                 entityId: entityId,
@@ -322,7 +277,6 @@
                                 participants: Math.floor(Math.random() * 8) + 3
                             });
                         }
-                        
                         return meetings.sort((a, b) => new Date(b.date) - new Date(a.date));
                     },
                     
@@ -330,24 +284,9 @@
                         if (this.minutesData[meetingId]) {
                             return this.minutesData[meetingId].filter(m => !m.archived);
                         }
-                        
                         const minutes = [];
                         const count = Math.floor(Math.random() * 8) + 3;
-                        const topics = [
-                            '新規プロジェクト提案',
-                            '予算見直し',
-                            'システム改善',
-                            '人員配置検討',
-                            '顧客対応方針',
-                            '業務効率化施策',
-                            '四半期目標設定',
-                            'リスク管理体制',
-                            '契約条件見直し',
-                            '営業戦略立案',
-                            '経営方針決定',
-                            '中期経営計画',
-                            '組織再編検討'
-                        ];
+                        const topics = ['新規プロジェクト提案', '予算見直し', 'システム改善', '人員配置検討', '顧客対応方針', '業務効率化施策', '四半期目標設定', 'リスク管理体制', '契約条件見直し', '営業戦略立案', '経営方針決定', '中期経営計画', '組織再編検討'];
                         const statuses = ['pending', 'progress', 'completed'];
                         const members = ['田中太郎', '鈴木花子', '佐藤次郎', '高橋美咲', '伊藤健太', '山田花子', '渡辺太郎'];
                         
@@ -355,22 +294,20 @@
                             const dueDate = new Date();
                             dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30));
                             const isOverdue = Math.random() < 0.2;
-                            
                             minutes.push({
                                 id: `minute-${meetingId}-${i}-${Date.now()}`,
                                 meetingId: meetingId,
                                 topic: topics[Math.floor(Math.random() * topics.length)],
-                                decision: `決定事項の詳細内容がここに入ります。会議で合意された方針や決定事項を記録します。`,
-                                issue: `課題や問題点がここに記載されます。解決すべき事項や検討が必要な内容を記述します。`,
+                                decision: '決定事項の詳細内容がここに入ります。',
+                                issue: '課題や問題点がここに記載されます。',
                                 dueDate: isOverdue ? '2025-12-' + String(Math.floor(Math.random() * 28) + 1).padStart(2, '0') : dueDate.toISOString().split('T')[0],
                                 assignee: members[Math.floor(Math.random() * members.length)],
-                                action: `実行すべきアクションの内容。担当者が具体的に何をするかを明確に記載します。`,
-                                reason: `この決定に至った理由や背景。なぜこの決定をしたのか、判断の根拠を記録します。`,
+                                action: '実行すべきアクションの内容。',
+                                reason: 'この決定に至った理由や背景。',
                                 status: isOverdue ? 'overdue' : statuses[Math.floor(Math.random() * statuses.length)],
                                 archived: false
                             });
                         }
-                        
                         this.minutesData[meetingId] = minutes;
                         return minutes;
                     }
@@ -408,8 +345,7 @@
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 document.getElementById('headerUserName').textContent = this.currentUser.name;
-                document.getElementById('headerUserDept').textContent = 
-                    `${this.currentUser.department.name} / ${this.currentUser.team.name}`;
+                document.getElementById('headerUserDept').textContent = `${this.currentUser.department.name} / ${this.currentUser.team.name}`;
                 this.showOrganizationView();
             },
             
@@ -421,34 +357,45 @@
             
             updateBreadcrumb() {
                 const breadcrumb = document.getElementById('breadcrumb');
-                let html = '<span class="breadcrumb-item" onclick="app.showOrganizationView()">🏢 全組織</span>';
+                let html = '<span class="breadcrumb-item" data-action="showOrganizationView">🏢 全組織</span>';
                 
                 if (this.currentBoard) {
                     html += '<span class="breadcrumb-separator">›</span>';
-                    html += `<span class="breadcrumb-item" onclick="app.showBoardView()">${this.currentBoard.name}</span>`;
+                    html += `<span class="breadcrumb-item" data-action="showBoardView">${this.currentBoard.name}</span>`;
                 }
-                
                 if (this.currentDepartment) {
                     html += '<span class="breadcrumb-separator">›</span>';
-                    html += `<span class="breadcrumb-item" onclick="app.showDepartmentView('${this.currentDepartment.id}')">${this.currentDepartment.name}</span>`;
+                    html += `<span class="breadcrumb-item" data-action="showDepartmentView" data-id="${this.currentDepartment.id}">${this.currentDepartment.name}</span>`;
                 }
-                
                 if (this.currentTeam) {
                     html += '<span class="breadcrumb-separator">›</span>';
-                    html += `<span class="breadcrumb-item" onclick="app.showTeamView('${this.currentTeam.id}')">${this.currentTeam.name}</span>`;
+                    html += `<span class="breadcrumb-item" data-action="showTeamView" data-id="${this.currentTeam.id}">${this.currentTeam.name}</span>`;
                 }
-                
                 if (this.currentMeeting) {
                     html += '<span class="breadcrumb-separator">›</span>';
-                    html += `<span class="breadcrumb-item" onclick="app.showMeetingView('${this.currentMeeting.id}')">${this.currentMeeting.name}</span>`;
+                    html += `<span class="breadcrumb-item" data-action="showMeetingView" data-id="${this.currentMeeting.id}">${this.currentMeeting.name}</span>`;
                 }
-                
                 if (this.currentMinute) {
                     html += '<span class="breadcrumb-separator">›</span>';
-                    html += `<span class="breadcrumb-item active">${this.currentMinute.topic}</span>`;
+                    html += `<span class="breadcrumb-item">${this.currentMinute.topic}</span>`;
                 }
                 
                 breadcrumb.innerHTML = html;
+                this.attachBreadcrumbEvents();
+            },
+            
+            attachBreadcrumbEvents() {
+                document.querySelectorAll('.breadcrumb-item[data-action]').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const action = item.getAttribute('data-action');
+                        const id = item.getAttribute('data-id');
+                        if (action === 'showOrganizationView') this.showOrganizationView();
+                        else if (action === 'showBoardView') this.showBoardView();
+                        else if (action === 'showDepartmentView') this.showDepartmentView(id);
+                        else if (action === 'showTeamView') this.showTeamView(id);
+                        else if (action === 'showMeetingView') this.showMeetingView(id);
+                    });
+                });
             },
             
             showOrganizationView() {
@@ -458,51 +405,51 @@
                 this.currentTeam = null;
                 this.currentMeeting = null;
                 this.currentMinute = null;
-                
                 this.updateBreadcrumb();
                 
                 const content = document.getElementById('contentArea');
-                let html = '<div class="card">';
-                html += '<div class="card-title">🏢 組織階層一覧 - 全社の会議・議事録を管理</div>';
-                html += '<div class="org-hierarchy">';
+                let html = '<div class="card"><div class="card-title">🏢 全組織 - チームを選択してください</div>';
+                html += '<div class="org-full-tree">';
                 
                 // Board level
                 html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏛️ 経営層（ボード）</div>';
-                html += `
-                    <div class="org-item" onclick="app.showBoardView()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px;">
-                        <div class="org-item-title">👔 ${this.demoData.board.name}</div>
-                        <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
-                    </div>
-                `;
-                html += '</div>';
+                html += '<div class="org-level-title">👔 経営層</div>';
+                html += '<div class="org-items">';
+                html += `<div class="org-item board" data-action="showBoardView">
+                    <div class="org-item-title">${this.demoData.board.name}</div>
+                    <div class="org-item-count">${this.demoData.board.meetingCount}件の会議</div>
+                </div>`;
+                html += '</div></div>';
                 
-                // Department and Team levels
-                html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏢 部門・チーム一覧</div>';
-                
+                // Departments and teams
                 this.demoData.departments.forEach(dept => {
-                    const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
-                    html += '<div class="org-section">';
-                    html += `<div class="org-section-title" onclick="app.showDepartmentView('${dept.id}')" style="cursor: pointer;">
-                        ${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span>
-                    </div>`;
-                    html += '<div class="sub-items">';
-                    
+                    html += '<div class="org-level">';
+                    html += `<div class="org-level-title">📁 ${dept.name}</div>`;
+                    html += '<div class="org-items">';
                     dept.teams.forEach(team => {
-                        html += `
-                            <div class="org-item" onclick="app.showTeamView('${team.id}')" style="padding: 15px;">
-                                <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
-                                <div class="org-item-count">${team.meetingCount}件の会議</div>
-                            </div>
-                        `;
+                        html += `<div class="org-item" data-action="showTeamView" data-id="${team.id}" data-dept="${dept.id}">
+                            <div class="org-item-title">${team.name}</div>
+                            <div class="org-item-count">${team.meetingCount}件の会議</div>
+                        </div>`;
                     });
-                    
                     html += '</div></div>';
                 });
                 
-                html += '</div></div></div>';
+                html += '</div></div>';
                 content.innerHTML = html;
+                this.attachOrgItemEvents();
+            },
+            
+            attachOrgItemEvents() {
+                document.querySelectorAll('.org-item[data-action]').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const action = item.getAttribute('data-action');
+                        const id = item.getAttribute('data-id');
+                        const deptId = item.getAttribute('data-dept');
+                        if (action === 'showBoardView') this.showBoardView();
+                        else if (action === 'showTeamView') this.showTeamView(id);
+                    });
+                });
             },
             
             showBoardView() {
@@ -511,65 +458,28 @@
                 this.currentDepartment = null;
                 this.currentTeam = null;
                 this.currentMeeting = null;
-                this.currentMinute = null;
-                
                 this.updateBreadcrumb();
                 
                 const meetings = this.demoData.generateMeetings('board-1');
-                
                 const content = document.getElementById('contentArea');
-                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
-                html += '<div class="card">';
-                html += `<div class="card-title">📅 ${this.currentBoard.name} の会議一覧</div>`;
+                let html = '<button class="btn btn-secondary back-btn" data-action="showOrganizationView">← 戻る</button>';
+                html += '<div class="card"><div class="card-title">📅 '+this.currentBoard.name+' の会議一覧</div>';
                 html += '<div class="meeting-list">';
                 
                 meetings.forEach(meeting => {
-                    html += `
-                        <div class="meeting-item" onclick="app.showMeetingView('${meeting.id}')">
-                            <div class="meeting-title">${meeting.name}</div>
-                            <div class="meeting-meta">
-                                <div>📅 ${meeting.date}</div>
-                                <div>📝 ${meeting.minutesCount}件の議事録</div>
-                                <div>👥 ${meeting.participants}名参加</div>
-                            </div>
+                    html += `<div class="meeting-item" data-action="showMeetingView" data-id="${meeting.id}">
+                        <div class="meeting-title">${meeting.name}</div>
+                        <div class="meeting-meta">
+                            <div>📅 ${meeting.date}</div>
+                            <div>📝 ${meeting.minutesCount}件の議事録</div>
+                            <div>👥 ${meeting.participants}名参加</div>
                         </div>
-                    `;
+                    </div>`;
                 });
                 
                 html += '</div></div>';
                 content.innerHTML = html;
-            },
-            
-            showDepartmentView(deptId) {
-                const dept = this.demoData.departments.find(d => d.id === deptId);
-                if (!dept) return;
-                
-                this.currentView = 'department';
-                this.currentBoard = null;
-                this.currentDepartment = dept;
-                this.currentTeam = null;
-                this.currentMeeting = null;
-                this.currentMinute = null;
-                
-                this.updateBreadcrumb();
-                
-                const content = document.getElementById('contentArea');
-                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
-                html += '<div class="card">';
-                html += `<div class="card-title">👥 ${dept.name} のチーム一覧</div>`;
-                html += '<div class="org-tree">';
-                
-                dept.teams.forEach(team => {
-                    html += `
-                        <div class="org-item" onclick="app.showTeamView('${team.id}')">
-                            <div class="org-item-title">${team.name}</div>
-                            <div class="org-item-count">${team.meetingCount}件の会議</div>
-                        </div>
-                    `;
-                });
-                
-                html += '</div></div>';
-                content.innerHTML = html;
+                this.attachMeetingEvents();
             },
             
             showTeamView(teamId) {
@@ -587,106 +497,74 @@
                 this.currentBoard = null;
                 this.currentTeam = team;
                 this.currentMeeting = null;
-                this.currentMinute = null;
-                
                 this.updateBreadcrumb();
                 
                 const meetings = this.demoData.generateMeetings(teamId);
-                
                 const content = document.getElementById('contentArea');
-                let html = `<button class="btn btn-secondary back-btn" onclick="app.showDepartmentView('${this.currentDepartment.id}')">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title">📅 ${team.name} の会議一覧</div>`;
+                let html = '<button class="btn btn-secondary back-btn" data-action="showOrganizationView">← 戻る</button>';
+                html += '<div class="card"><div class="card-title">📅 '+team.name+' の会議一覧</div>';
+                html += '<div class="meeting-list">';
                 
-                if (meetings.length === 0) {
-                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
-                } else {
-                    html += '<div class="meeting-list">';
-                    meetings.forEach(meeting => {
-                        html += `
-                            <div class="meeting-item" onclick="app.showMeetingView('${meeting.id}')">
-                                <div class="meeting-title">${meeting.name}</div>
-                                <div class="meeting-meta">
-                                    <div>📅 ${meeting.date}</div>
-                                    <div>📝 ${meeting.minutesCount}件の議事録</div>
-                                    <div>👥 ${meeting.participants}名参加</div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                }
+                meetings.forEach(meeting => {
+                    html += `<div class="meeting-item" data-action="showMeetingView" data-id="${meeting.id}">
+                        <div class="meeting-title">${meeting.name}</div>
+                        <div class="meeting-meta">
+                            <div>📅 ${meeting.date}</div>
+                            <div>📝 ${meeting.minutesCount}件の議事録</div>
+                            <div>👥 ${meeting.participants}名参加</div>
+                        </div>
+                    </div>`;
+                });
                 
-                html += '</div>';
+                html += '</div></div>';
                 content.innerHTML = html;
+                this.attachMeetingEvents();
+            },
+            
+            attachMeetingEvents() {
+                document.querySelectorAll('[data-action="showOrganizationView"]').forEach(btn => {
+                    btn.addEventListener('click', () => this.showOrganizationView());
+                });
+                document.querySelectorAll('.meeting-item[data-action="showMeetingView"]').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const meetingId = item.getAttribute('data-id');
+                        this.showMeetingView(meetingId);
+                    });
+                });
             },
             
             showMeetingView(meetingId) {
-                // Find meeting
                 let meeting = null;
-                const parts = meetingId.split('-');
-                const entityType = parts[1];
+                const entityId = meetingId.split('-')[1];
                 
-                if (entityType === 'board') {
+                if (entityId === 'board') {
                     const meetings = this.demoData.generateMeetings('board-1');
                     meeting = meetings.find(m => m.id === meetingId);
                 } else {
-                    // Find team from meetingId
-                    let foundTeam = null;
-                    for (const dept of this.demoData.departments) {
-                        const team = dept.teams.find(t => meetingId.includes(t.id));
-                        if (team) {
-                            foundTeam = team;
-                            this.currentTeam = team;
-                            this.currentDepartment = dept;
-                            break;
-                        }
-                    }
-                    
-                    if (foundTeam) {
-                        const meetings = this.demoData.generateMeetings(foundTeam.id);
-                        meeting = meetings.find(m => m.id === meetingId);
-                    }
+                    const meetings = this.demoData.generateMeetings(this.currentTeam.id);
+                    meeting = meetings.find(m => m.id === meetingId);
                 }
                 
-                if (!meeting) {
-                    console.error('Meeting not found:', meetingId);
-                    return;
-                }
+                if (!meeting) return;
                 
                 this.currentView = 'meeting';
                 this.currentMeeting = meeting;
                 this.currentMinute = null;
-                
                 this.updateBreadcrumb();
                 
                 const minutes = this.demoData.generateMinutes(meetingId);
-                
                 const content = document.getElementById('contentArea');
-                let backAction = this.currentBoard ? 'app.showBoardView()' : `app.showTeamView('${this.currentTeam.id}')`;
-                let html = `<button class="btn btn-secondary back-btn" onclick="${backAction}">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title">
-                    <span>📝 ${meeting.name} の議事録一覧（${meeting.date}）</span>
-                    <button class="btn btn-primary" onclick="app.openAddMinuteModal('${meetingId}')">+ 議事録を追加</button>
-                </div>`;
+                let backAction = this.currentBoard ? 'showBoardView' : 'showTeamView';
+                let html = `<button class="btn btn-secondary back-btn" data-action="${backAction}">← 戻る</button>`;
+                html += '<div class="card"><div class="card-title">';
+                html += `<span>📝 ${meeting.name} の議事録一覧（${meeting.date}）</span>`;
+                html += `<button class="btn btn-primary" data-action="addMinute" data-meeting="${meetingId}">+ 議事録を追加</button>`;
+                html += '</div>';
                 
                 if (minutes.length === 0) {
-                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
+                    html += '<p>議事録がまだありません</p>';
                 } else {
-                    html += '<table class="minutes-table">';
-                    html += `
-                        <thead>
-                            <tr>
-                                <th>議題</th>
-                                <th>担当者</th>
-                                <th>期日</th>
-                                <th>ステータス</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    `;
+                    html += '<table class="minutes-table"><thead><tr><th>議題</th><th>担当者</th><th>期日</th><th>ステータス</th><th>操作</th></tr></thead><tbody>';
                     
                     minutes.forEach(minute => {
                         const statusMap = {
@@ -697,20 +575,18 @@
                         };
                         const status = statusMap[minute.status];
                         
-                        html += `
-                            <tr>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.topic}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.assignee}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.dueDate}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;"><span class="badge ${status.class}">${status.text}</span></td>
-                                <td>
-                                    <div class="action-btns">
-                                        <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="event.stopPropagation(); app.openEditMinuteModal('${minute.id}')">編集</button>
-                                        <button class="btn btn-danger" style="padding: 6px 12px;" onclick="event.stopPropagation(); app.archiveMinute('${minute.id}')">アーカイブ</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
+                        html += `<tr>
+                            <td data-action="showMinuteDetail" data-id="${minute.id}" style="cursor:pointer">${minute.topic}</td>
+                            <td>${minute.assignee}</td>
+                            <td>${minute.dueDate}</td>
+                            <td><span class="badge ${status.class}">${status.text}</span></td>
+                            <td>
+                                <div class="action-btns">
+                                    <button class="btn btn-secondary" style="padding:6px 12px" data-action="editMinute" data-id="${minute.id}">編集</button>
+                                    <button class="btn btn-danger" style="padding:6px 12px" data-action="archiveMinute" data-id="${minute.id}">アーカイブ</button>
+                                </div>
+                            </td>
+                        </tr>`;
                     });
                     
                     html += '</tbody></table>';
@@ -718,21 +594,54 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+                this.attachMinuteEvents();
+            },
+            
+            attachMinuteEvents() {
+                document.querySelectorAll('[data-action="showBoardView"]').forEach(btn => {
+                    btn.addEventListener('click', () => this.showBoardView());
+                });
+                document.querySelectorAll('[data-action="showTeamView"]').forEach(btn => {
+                    btn.addEventListener('click', () => this.showTeamView(this.currentTeam.id));
+                });
+                document.querySelectorAll('[data-action="addMinute"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const meetingId = btn.getAttribute('data-meeting');
+                        this.openAddMinuteModal(meetingId);
+                    });
+                });
+                document.querySelectorAll('[data-action="editMinute"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const minuteId = btn.getAttribute('data-id');
+                        this.openEditMinuteModal(minuteId);
+                    });
+                });
+                document.querySelectorAll('[data-action="archiveMinute"]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const minuteId = btn.getAttribute('data-id');
+                        this.archiveMinute(minuteId);
+                    });
+                });
+                document.querySelectorAll('[data-action="showMinuteDetail"]').forEach(td => {
+                    td.addEventListener('click', () => {
+                        const minuteId = td.getAttribute('data-id');
+                        this.showMinuteDetail(minuteId);
+                    });
+                });
             },
             
             showMinuteDetail(minuteId) {
-                // Find minute
                 let minute = null;
                 for (const meetingId in this.minutesData) {
                     minute = this.minutesData[meetingId].find(m => m.id === minuteId);
                     if (minute) break;
                 }
-                
                 if (!minute) return;
                 
                 this.currentView = 'minute';
                 this.currentMinute = minute;
-                
                 this.updateBreadcrumb();
                 
                 const statusMap = {
@@ -744,76 +653,55 @@
                 const status = statusMap[minute.status];
                 
                 const content = document.getElementById('contentArea');
-                let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title">
-                    <span>📄 議事録詳細</span>
-                    <div class="action-btns">
-                        <button class="btn btn-primary" onclick="app.openEditMinuteModal('${minute.id}')">編集</button>
-                        <button class="btn btn-danger" onclick="app.archiveMinute('${minute.id}')">アーカイブ</button>
-                    </div>
-                </div>`;
+                let html = '<button class="btn btn-secondary back-btn" data-action="backToMeeting">← 戻る</button>';
+                html += '<div class="card"><div class="card-title"><span>📄 議事録詳細</span><div class="action-btns">';
+                html += `<button class="btn btn-primary" data-action="editMinute" data-id="${minute.id}">編集</button>`;
+                html += `<button class="btn btn-danger" data-action="archiveMinute" data-id="${minute.id}">アーカイブ</button>`;
+                html += '</div></div>';
                 
-                html += '<div class="detail-section">';
-                html += '<div class="detail-section-title">基本情報</div>';
-                html += '<div class="detail-grid">';
+                html += '<div class="detail-section"><div class="detail-section-title">基本情報</div><div class="detail-grid">';
                 html += `<div class="detail-item"><div class="detail-label">議題</div><div class="detail-value">${minute.topic}</div></div>`;
                 html += `<div class="detail-item"><div class="detail-label">担当者</div><div class="detail-value">${minute.assignee}</div></div>`;
                 html += `<div class="detail-item"><div class="detail-label">期日</div><div class="detail-value">${minute.dueDate}</div></div>`;
                 html += `<div class="detail-item"><div class="detail-label">ステータス</div><div class="detail-value"><span class="badge ${status.class}">${status.text}</span></div></div>`;
                 html += '</div></div>';
                 
-                html += '<div class="detail-section">';
-                html += '<div class="detail-section-title">決定事項</div>';
-                html += `<div class="detail-content">${minute.decision}</div>`;
+                html += `<div class="detail-section"><div class="detail-section-title">決定事項</div><div class="detail-content">${minute.decision}</div></div>`;
+                html += `<div class="detail-section"><div class="detail-section-title">課題</div><div class="detail-content">${minute.issue}</div></div>`;
+                html += `<div class="detail-section"><div class="detail-section-title">実行内容</div><div class="detail-content">${minute.action}</div></div>`;
+                html += `<div class="detail-section"><div class="detail-section-title">理由・背景</div><div class="detail-content">${minute.reason}</div></div>`;
                 html += '</div>';
                 
-                html += '<div class="detail-section">';
-                html += '<div class="detail-section-title">課題</div>';
-                html += `<div class="detail-content">${minute.issue}</div>`;
-                html += '</div>';
-                
-                html += '<div class="detail-section">';
-                html += '<div class="detail-section-title">実行内容</div>';
-                html += `<div class="detail-content">${minute.action}</div>`;
-                html += '</div>';
-                
-                html += '<div class="detail-section">';
-                html += '<div class="detail-section-title">理由・背景</div>';
-                html += `<div class="detail-content">${minute.reason}</div>`;
-                html += '</div>';
-                
-                html += '</div>';
                 content.innerHTML = html;
+                document.querySelector('[data-action="backToMeeting"]').addEventListener('click', () => this.showMeetingView(this.currentMeeting.id));
+                document.querySelectorAll('[data-action="editMinute"]').forEach(btn => {
+                    btn.addEventListener('click', () => this.openEditMinuteModal(btn.getAttribute('data-id')));
+                });
+                document.querySelectorAll('[data-action="archiveMinute"]').forEach(btn => {
+                    btn.addEventListener('click', () => this.archiveMinute(btn.getAttribute('data-id')));
+                });
             },
             
             openAddMinuteModal(meetingId) {
                 this.editingMinuteId = null;
                 document.getElementById('modalTitle').textContent = '議事録を追加';
                 document.getElementById('minuteForm').reset();
-                
-                // Set default due date (30 days from now)
                 const dueDate = new Date();
                 dueDate.setDate(dueDate.getDate() + 30);
                 document.getElementById('minuteDueDate').value = dueDate.toISOString().split('T')[0];
-                
                 document.getElementById('minuteModal').classList.add('active');
             },
             
             openEditMinuteModal(minuteId) {
-                // Find minute
                 let minute = null;
                 for (const meetingId in this.minutesData) {
                     minute = this.minutesData[meetingId].find(m => m.id === minuteId);
                     if (minute) break;
                 }
-                
                 if (!minute) return;
                 
                 this.editingMinuteId = minuteId;
                 document.getElementById('modalTitle').textContent = '議事録を編集';
-                
-                // Fill form with current data
                 document.getElementById('minuteTopic').value = minute.topic;
                 document.getElementById('minuteDecision').value = minute.decision;
                 document.getElementById('minuteIssue').value = minute.issue;
@@ -822,7 +710,6 @@
                 document.getElementById('minuteAction').value = minute.action;
                 document.getElementById('minuteReason').value = minute.reason;
                 document.getElementById('minuteStatus').value = minute.status;
-                
                 document.getElementById('minuteModal').classList.add('active');
             },
             
@@ -845,32 +732,22 @@
                 };
                 
                 if (this.editingMinuteId) {
-                    // Edit existing minute
                     for (const meetingId in this.minutesData) {
                         const index = this.minutesData[meetingId].findIndex(m => m.id === this.editingMinuteId);
                         if (index !== -1) {
-                            this.minutesData[meetingId][index] = {
-                                ...this.minutesData[meetingId][index],
-                                ...formData
-                            };
+                            this.minutesData[meetingId][index] = { ...this.minutesData[meetingId][index], ...formData };
                             break;
                         }
                     }
                 } else {
-                    // Add new minute
                     const meetingId = this.currentMeeting.id;
-                    if (!this.minutesData[meetingId]) {
-                        this.minutesData[meetingId] = [];
-                    }
-                    
-                    const newMinute = {
+                    if (!this.minutesData[meetingId]) this.minutesData[meetingId] = [];
+                    this.minutesData[meetingId].push({
                         id: `minute-${meetingId}-${Date.now()}`,
                         meetingId: meetingId,
                         ...formData,
                         archived: false
-                    };
-                    
-                    this.minutesData[meetingId].push(newMinute);
+                    });
                 }
                 
                 this.closeModal();
@@ -878,11 +755,8 @@
             },
             
             archiveMinute(minuteId) {
-                if (!confirm('この議事録をアーカイブしますか？アーカイブした議事録は一覧に表示されなくなります。')) {
-                    return;
-                }
+                if (!confirm('この議事録をアーカイブしますか？')) return;
                 
-                // Find and archive minute
                 for (const meetingId in this.minutesData) {
                     const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
                     if (minute) {
@@ -892,12 +766,8 @@
                     }
                 }
                 
-                // Refresh view
-                if (this.currentView === 'meeting') {
-                    this.showMeetingView(this.currentMeeting.id);
-                } else if (this.currentView === 'minute') {
-                    this.showMeetingView(this.currentMeeting.id);
-                }
+                if (this.currentView === 'meeting') this.showMeetingView(this.currentMeeting.id);
+                else if (this.currentView === 'minute') this.showMeetingView(this.currentMeeting.id);
             },
             
             async logout() {
@@ -908,13 +778,11 @@
             }
         };
         
-        // Login form handler
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const loginBtn = document.getElementById('loginBtn');
+            const loginBtn = e.target.querySelector('button');
             
             loginBtn.disabled = true;
             loginBtn.textContent = 'ログイン中...';
@@ -925,7 +793,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
                 });
-                
                 const data = await response.json();
                 
                 if (response.ok && data.success) {
@@ -945,7 +812,6 @@
             }
         });
         
-        // Initialize app
         window.addEventListener('load', () => app.init());
     </script>
 </body>
