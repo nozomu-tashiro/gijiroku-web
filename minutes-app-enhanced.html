@@ -622,16 +622,25 @@
             },
             
             showMeetingView(meetingId) {
+                console.log('showMeetingView called with:', meetingId);
+                
                 // Find meeting
                 let meeting = null;
-                const parts = meetingId.split('-');
-                const entityType = parts[1];
                 
-                if (entityType === 'board') {
+                // Check if it's a board meeting (format: meeting-board-1-0)
+                if (meetingId.includes('board')) {
+                    console.log('Detected board meeting');
                     const meetings = this.demoData.generateMeetings('board-1');
                     meeting = meetings.find(m => m.id === meetingId);
+                    
+                    if (meeting) {
+                        this.currentBoard = this.demoData.board;
+                        this.currentDepartment = null;
+                        this.currentTeam = null;
+                    }
                 } else {
                     // Find team from meetingId
+                    console.log('Searching for team meeting');
                     let foundTeam = null;
                     for (const dept of this.demoData.departments) {
                         const team = dept.teams.find(t => meetingId.includes(t.id));
@@ -639,6 +648,7 @@
                             foundTeam = team;
                             this.currentTeam = team;
                             this.currentDepartment = dept;
+                            this.currentBoard = null;
                             break;
                         }
                     }
@@ -651,8 +661,11 @@
                 
                 if (!meeting) {
                     console.error('Meeting not found:', meetingId);
+                    alert('会議が見つかりません: ' + meetingId);
                     return;
                 }
+                
+                console.log('Meeting found:', meeting);
                 
                 this.currentView = 'meeting';
                 this.currentMeeting = meeting;
@@ -944,6 +957,9 @@
                 loginBtn.textContent = 'ログイン';
             }
         });
+        
+        // Make app globally accessible for onclick handlers
+        window.app = app;
         
         // Initialize app
         window.addEventListener('load', () => app.init());
