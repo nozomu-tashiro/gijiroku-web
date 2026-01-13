@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会議議事録管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 20px;
+        }
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-info {
+            text-align: right;
+            font-size: 13px;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        .breadcrumb-item {
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .breadcrumb-item:hover {
+            color: #667eea;
+        }
+        .breadcrumb-item.active {
+            color: #333;
+            font-weight: 600;
+        }
+        .breadcrumb-separator {
+            color: #999;
+        }
+        
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Organization Tree */
+        .org-tree {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .org-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .org-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+        .org-item-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .org-item-count {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        /* Meeting List */
+        .meeting-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .meeting-item {
+            background: #f8f9fa;
+            padding: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            border-left: 4px solid #667eea;
+        }
+        .meeting-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        .meeting-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .meeting-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        .meeting-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Minutes List */
+        .minutes-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .minutes-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .minutes-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .minutes-table tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .minutes-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        /* Status Badge */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-progress { background: #cfe2ff; color: #084298; }
+        .badge-completed { background: #d1e7dd; color: #0f5132; }
+        .badge-overdue { background: #f8d7da; color: #842029; }
+        
+        /* Minutes Detail */
+        .detail-section {
+            margin-bottom: 25px;
+        }
+        .detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .detail-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+        .detail-value {
+            font-size: 14px;
+            color: #333;
+        }
+        
+        /* Back Button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+        .back-btn:hover {
+            background: #5a6268;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        /* Login Page */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .login-subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .login-btn:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+        }
+        .alert-success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+        }
+        .demo-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #666;
+        }
+        .demo-info code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <h1 class="login-title">会議議事録管理システム</h1>
+            <p class="login-subtitle">全社ナレッジ共有プラットフォーム</p>
+            
+            <div id="loginAlert"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">メールアドレス</label>
+                    <input type="email" id="email" value="admin@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" value="Admin@123" required>
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">ログイン</button>
+            </form>
+            
+            <div class="demo-info">
+                <p><strong>デモアカウント:</strong></p>
+                <p><code>admin@example.com</code> / <code>Admin@123</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" style="display: none;">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 会議議事録管理システム</h1>
+            <div class="user-section">
+                <div class="user-info">
+                    <div id="headerUserName"></div>
+                    <div id="headerUserDept"></div>
+                </div>
+                <button class="logout-btn" onclick="app.logout()">ログアウト</button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="container">
+            <!-- Breadcrumb -->
+            <div class="breadcrumb" id="breadcrumb"></div>
+            
+            <!-- Content Area -->
+            <div id="contentArea"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
+        
+        // Application State
+        const app = {
+            currentUser: null,
+            currentView: 'organization',
+            currentDepartment: null,
+            currentTeam: null,
+            currentMeeting: null,
+            currentMinute: null,
+            
+            // Demo Data
+            demoData: null,
+            
+            init() {
+                this.loadDemoData();
+                this.checkAuth();
+            },
+            
+            loadDemoData() {
+                // 組織データ
+                this.demoData = {
+                    departments: [
+                        {
+                            id: 'dept-1',
+                            name: '営業部（営業債権管理部）',
+                            teams: [
+                                { id: 'team-1-1', name: '東日本', meetingCount: 8 },
+                                { id: 'team-1-2', name: '西日本', meetingCount: 6 }
+                            ]
+                        },
+                        {
+                            id: 'dept-2',
+                            name: '債権管理部',
+                            teams: [
+                                { id: 'team-2-1', name: 'コンサルティングデスク', meetingCount: 5 },
+                                { id: 'team-2-2', name: 'エリア担当東①', meetingCount: 4 },
+                                { id: 'team-2-3', name: 'エリア担当東②', meetingCount: 3 },
+                                { id: 'team-2-4', name: 'エリア担当西①', meetingCount: 5 },
+                                { id: 'team-2-5', name: 'エリア担当西②', meetingCount: 4 },
+                                { id: 'team-2-6', name: '法務', meetingCount: 7 },
+                                { id: 'team-2-7', name: '求償', meetingCount: 3 },
+                                { id: 'team-2-8', name: 'サポートデスク通常事務チーム', meetingCount: 4 },
+                                { id: 'team-2-9', name: 'サポートデスク保証実行チーム', meetingCount: 3 }
+                            ]
+                        },
+                        {
+                            id: 'dept-3',
+                            name: '審査契約管理部',
+                            teams: [
+                                { id: 'team-3-1', name: '審査', meetingCount: 6 },
+                                { id: 'team-3-2', name: '契約管理', meetingCount: 5 },
+                                { id: 'team-3-3', name: '国際チーム', meetingCount: 4 }
+                            ]
+                        },
+                        {
+                            id: 'dept-4',
+                            name: 'システム部',
+                            teams: [
+                                { id: 'team-4-1', name: 'インフラチーム', meetingCount: 7 },
+                                { id: 'team-4-2', name: '開発チーム', meetingCount: 9 }
+                            ]
+                        },
+                        {
+                            id: 'dept-5',
+                            name: '人事管理部',
+                            teams: [
+                                { id: 'team-5-1', name: '経理', meetingCount: 5 },
+                                { id: 'team-5-2', name: '人事', meetingCount: 6 },
+                                { id: 'team-5-3', name: '管理', meetingCount: 4 }
+                            ]
+                        }
+                    ],
+                    
+                    // 会議データのサンプル生成
+                    generateMeetings(teamId) {
+                        const meetingTypes = ['定例会議', '緊急ミーティング', 'プロジェクト会議', '報告会', '戦略会議'];
+                        const meetings = [];
+                        const count = Math.floor(Math.random() * 5) + 3;
+                        
+                        for (let i = 0; i < count; i++) {
+                            const date = new Date();
+                            date.setDate(date.getDate() - Math.floor(Math.random() * 60));
+                            
+                            meetings.push({
+                                id: `meeting-${teamId}-${i}`,
+                                teamId: teamId,
+                                name: `${meetingTypes[Math.floor(Math.random() * meetingTypes.length)]} ${i + 1}`,
+                                date: date.toISOString().split('T')[0],
+                                minutesCount: Math.floor(Math.random() * 10) + 3,
+                                participants: Math.floor(Math.random() * 8) + 3
+                            });
+                        }
+                        
+                        return meetings.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    },
+                    
+                    // 議事録データのサンプル生成
+                    generateMinutes(meetingId) {
+                        const minutes = [];
+                        const count = Math.floor(Math.random() * 8) + 3;
+                        const topics = [
+                            '新規プロジェクト提案',
+                            '予算見直し',
+                            'システム改善',
+                            '人員配置検討',
+                            '顧客対応方針',
+                            '業務効率化施策',
+                            '四半期目標設定',
+                            'リスク管理体制',
+                            '契約条件見直し',
+                            '営業戦略立案'
+                        ];
+                        const statuses = ['pending', 'progress', 'completed'];
+                        const members = ['田中太郎', '鈴木花子', '佐藤次郎', '高橋美咲', '伊藤健太'];
+                        
+                        for (let i = 0; i < count; i++) {
+                            const dueDate = new Date();
+                            dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30));
+                            const isOverdue = Math.random() < 0.2;
+                            
+                            minutes.push({
+                                id: `minute-${meetingId}-${i}`,
+                                meetingId: meetingId,
+                                topic: topics[Math.floor(Math.random() * topics.length)],
+                                decision: `決定事項の詳細内容がここに入ります。`,
+                                issue: `課題や問題点がここに記載されます。`,
+                                dueDate: isOverdue ? '2025-12-' + String(Math.floor(Math.random() * 28) + 1).padStart(2, '0') : dueDate.toISOString().split('T')[0],
+                                assignee: members[Math.floor(Math.random() * members.length)],
+                                action: `実行すべきアクションの内容`,
+                                reason: `この決定に至った理由や背景`,
+                                status: isOverdue ? 'overdue' : statuses[Math.floor(Math.random() * statuses.length)]
+                            });
+                        }
+                        
+                        return minutes;
+                    }
+                };
+            },
+            
+            async checkAuth() {
+                const token = localStorage.getItem('accessToken');
+                if (token) {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                this.currentUser = data.data;
+                                this.showMainApp();
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Auto-login failed:', error);
+                    }
+                }
+                this.showLoginPage();
+            },
+            
+            showLoginPage() {
+                document.getElementById('loginPage').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+            },
+            
+            showMainApp() {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                
+                // Update header
+                document.getElementById('headerUserName').textContent = this.currentUser.name;
+                document.getElementById('headerUserDept').textContent = 
+                    `${this.currentUser.department.name} / ${this.currentUser.team.name}`;
+                
+                // Show organization view
+                this.showOrganizationView();
+            },
+            
+            showAlert(message, type = 'error') {
+                const alertDiv = document.getElementById('loginAlert');
+                alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => alertDiv.innerHTML = '', 3000);
+            },
+            
+            updateBreadcrumb() {
+                const breadcrumb = document.getElementById('breadcrumb');
+                let html = '<span class="breadcrumb-item" onclick="app.showOrganizationView()">🏢 全組織</span>';
+                
+                if (this.currentDepartment) {
+                    html += '<span class="breadcrumb-separator">›</span>';
+                    html += `<span class="breadcrumb-item" onclick="app.showDepartmentView('${this.currentDepartment.id}')">${this.currentDepartment.name}</span>`;
+                }
+                
+                if (this.currentTeam) {
+                    html += '<span class="breadcrumb-separator">›</span>';
+                    html += `<span class="breadcrumb-item" onclick="app.showTeamView('${this.currentTeam.id}')">${this.currentTeam.name}</span>`;
+                }
+                
+                if (this.currentMeeting) {
+                    html += '<span class="breadcrumb-separator">›</span>';
+                    html += `<span class="breadcrumb-item" onclick="app.showMeetingView('${this.currentMeeting.id}')">${this.currentMeeting.name}</span>`;
+                }
+                
+                if (this.currentMinute) {
+                    html += '<span class="breadcrumb-separator">›</span>';
+                    html += `<span class="breadcrumb-item active">${this.currentMinute.topic}</span>`;
+                }
+                
+                breadcrumb.innerHTML = html;
+            },
+            
+            showOrganizationView() {
+                this.currentView = 'organization';
+                this.currentDepartment = null;
+                this.currentTeam = null;
+                this.currentMeeting = null;
+                this.currentMinute = null;
+                
+                this.updateBreadcrumb();
+                
+                const content = document.getElementById('contentArea');
+                let html = '<div class="card">';
+                html += '<div class="card-title">🏢 組織一覧 - 部門を選択してください</div>';
+                html += '<div class="org-tree">';
+                
+                this.demoData.departments.forEach(dept => {
+                    const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
+                    html += `
+                        <div class="org-item" onclick="app.showDepartmentView('${dept.id}')">
+                            <div class="org-item-title">${dept.name}</div>
+                            <div class="org-item-count">
+                                ${dept.teams.length}チーム・${totalMeetings}件の会議
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+                content.innerHTML = html;
+            },
+            
+            showDepartmentView(deptId) {
+                const dept = this.demoData.departments.find(d => d.id === deptId);
+                if (!dept) return;
+                
+                this.currentView = 'department';
+                this.currentDepartment = dept;
+                this.currentTeam = null;
+                this.currentMeeting = null;
+                this.currentMinute = null;
+                
+                this.updateBreadcrumb();
+                
+                const content = document.getElementById('contentArea');
+                let html = '<button class="back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
+                html += '<div class="card">';
+                html += `<div class="card-title">👥 ${dept.name} のチーム一覧</div>`;
+                html += '<div class="org-tree">';
+                
+                dept.teams.forEach(team => {
+                    html += `
+                        <div class="org-item" onclick="app.showTeamView('${team.id}')">
+                            <div class="org-item-title">${team.name}</div>
+                            <div class="org-item-count">${team.meetingCount}件の会議</div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+                content.innerHTML = html;
+            },
+            
+            showTeamView(teamId) {
+                // Find team
+                let team = null;
+                for (const dept of this.demoData.departments) {
+                    team = dept.teams.find(t => t.id === teamId);
+                    if (team) {
+                        this.currentDepartment = dept;
+                        break;
+                    }
+                }
+                if (!team) return;
+                
+                this.currentView = 'team';
+                this.currentTeam = team;
+                this.currentMeeting = null;
+                this.currentMinute = null;
+                
+                this.updateBreadcrumb();
+                
+                const meetings = this.demoData.generateMeetings(teamId);
+                
+                const content = document.getElementById('contentArea');
+                let html = `<button class="back-btn" onclick="app.showDepartmentView('${this.currentDepartment.id}')">← 戻る</button>`;
+                html += '<div class="card">';
+                html += `<div class="card-title">📅 ${team.name} の会議一覧</div>`;
+                
+                if (meetings.length === 0) {
+                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
+                } else {
+                    html += '<div class="meeting-list">';
+                    meetings.forEach(meeting => {
+                        html += `
+                            <div class="meeting-item" onclick="app.showMeetingView('${meeting.id}')">
+                                <div class="meeting-title">${meeting.name}</div>
+                                <div class="meeting-meta">
+                                    <div class="meeting-meta-item">📅 ${meeting.date}</div>
+                                    <div class="meeting-meta-item">📝 ${meeting.minutesCount}件の議事録</div>
+                                    <div class="meeting-meta-item">👥 ${meeting.participants}名参加</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+                content.innerHTML = html;
+            },
+            
+            showMeetingView(meetingId) {
+                const meetings = this.demoData.generateMeetings(this.currentTeam.id);
+                const meeting = meetings.find(m => m.id === meetingId);
+                if (!meeting) return;
+                
+                this.currentView = 'meeting';
+                this.currentMeeting = meeting;
+                this.currentMinute = null;
+                
+                this.updateBreadcrumb();
+                
+                const minutes = this.demoData.generateMinutes(meetingId);
+                
+                const content = document.getElementById('contentArea');
+                let html = `<button class="back-btn" onclick="app.showTeamView('${this.currentTeam.id}')">← 戻る</button>`;
+                html += '<div class="card">';
+                html += `<div class="card-title">📝 ${meeting.name} の議事録一覧（${meeting.date}）</div>`;
+                
+                if (minutes.length === 0) {
+                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
+                } else {
+                    html += '<table class="minutes-table">';
+                    html += `
+                        <thead>
+                            <tr>
+                                <th>議題</th>
+                                <th>担当者</th>
+                                <th>期日</th>
+                                <th>ステータス</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
+                    minutes.forEach(minute => {
+                        const statusMap = {
+                            'pending': { class: 'badge-pending', text: '未着手' },
+                            'progress': { class: 'badge-progress', text: '進行中' },
+                            'completed': { class: 'badge-completed', text: '完了' },
+                            'overdue': { class: 'badge-overdue', text: '期限超過' }
+                        };
+                        const status = statusMap[minute.status];
+                        
+                        html += `
+                            <tr onclick="app.showMinuteDetail('${minute.id}')">
+                                <td>${minute.topic}</td>
+                                <td>${minute.assignee}</td>
+                                <td>${minute.dueDate}</td>
+                                <td><span class="badge ${status.class}">${status.text}</span></td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table>';
+                }
+                
+                html += '</div>';
+                content.innerHTML = html;
+            },
+            
+            showMinuteDetail(minuteId) {
+                const minutes = this.demoData.generateMinutes(this.currentMeeting.id);
+                const minute = minutes.find(m => m.id === minuteId);
+                if (!minute) return;
+                
+                this.currentView = 'minute';
+                this.currentMinute = minute;
+                
+                this.updateBreadcrumb();
+                
+                const statusMap = {
+                    'pending': { class: 'badge-pending', text: '未着手' },
+                    'progress': { class: 'badge-progress', text: '進行中' },
+                    'completed': { class: 'badge-completed', text: '完了' },
+                    'overdue': { class: 'badge-overdue', text: '期限超過' }
+                };
+                const status = statusMap[minute.status];
+                
+                const content = document.getElementById('contentArea');
+                let html = `<button class="back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
+                html += '<div class="card">';
+                html += `<div class="card-title">📄 議事録詳細</div>`;
+                
+                html += '<div class="detail-section">';
+                html += '<div class="detail-section-title">基本情報</div>';
+                html += '<div class="detail-grid">';
+                html += `<div class="detail-item"><div class="detail-label">議題</div><div class="detail-value">${minute.topic}</div></div>`;
+                html += `<div class="detail-item"><div class="detail-label">担当者</div><div class="detail-value">${minute.assignee}</div></div>`;
+                html += `<div class="detail-item"><div class="detail-label">期日</div><div class="detail-value">${minute.dueDate}</div></div>`;
+                html += `<div class="detail-item"><div class="detail-label">ステータス</div><div class="detail-value"><span class="badge ${status.class}">${status.text}</span></div></div>`;
+                html += '</div></div>';
+                
+                html += '<div class="detail-section">';
+                html += '<div class="detail-section-title">決定事項</div>';
+                html += `<div class="detail-content">${minute.decision}</div>`;
+                html += '</div>';
+                
+                html += '<div class="detail-section">';
+                html += '<div class="detail-section-title">課題</div>';
+                html += `<div class="detail-content">${minute.issue}</div>`;
+                html += '</div>';
+                
+                html += '<div class="detail-section">';
+                html += '<div class="detail-section-title">実行内容</div>';
+                html += `<div class="detail-content">${minute.action}</div>`;
+                html += '</div>';
+                
+                html += '<div class="detail-section">';
+                html += '<div class="detail-section-title">理由・背景</div>';
+                html += `<div class="detail-content">${minute.reason}</div>`;
+                html += '</div>';
+                
+                html += '</div>';
+                content.innerHTML = html;
+            },
+            
+            async logout() {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                this.currentUser = null;
+                this.showLoginPage();
+            }
+        };
+        
+        // Login form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'ログイン中...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    localStorage.setItem('accessToken', data.data.accessToken);
+                    localStorage.setItem('refreshToken', data.data.refreshToken);
+                    app.currentUser = data.data.user;
+                    app.showAlert('✅ ログイン成功！', 'success');
+                    setTimeout(() => app.showMainApp(), 500);
+                } else {
+                    app.showAlert(`❌ ${data.message || 'ログインに失敗しました'}`, 'error');
+                }
+            } catch (error) {
+                app.showAlert(`❌ エラー: ${error.message}`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+            }
+        });
+        
+        // Initialize app
+        window.addEventListener('load', () => app.init());
+    </script>
+</body>
+</html>
