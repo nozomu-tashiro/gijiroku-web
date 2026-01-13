@@ -238,19 +238,46 @@
             },
             
             setupEventListeners() {
-                document.getElementById('minuteForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.saveMinute();
-                });
+                console.log('=== setupEventListeners called ===');
+                
+                // Minute form listener
+                const minuteForm = document.getElementById('minuteForm');
+                if (minuteForm) {
+                    minuteForm.addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.saveMinute();
+                    });
+                    console.log('✅ minuteForm listener added');
+                } else {
+                    console.error('❌ minuteForm not found');
+                }
+                
+                // Content area listener
+                const contentArea = document.getElementById('contentArea');
+                if (!contentArea) {
+                    console.error('❌ contentArea not found!');
+                    return;
+                }
+                
+                console.log('✅ contentArea found, adding click listener...');
                 
                 // イベント委譲: contentArea内のクリックを監視
-                document.getElementById('contentArea').addEventListener('click', (e) => {
+                contentArea.addEventListener('click', (e) => {
+                    console.log('contentArea clicked!', e.target);
+                    
                     // 会議アイテムのクリック
                     const meetingItem = e.target.closest('.meeting-item');
-                    if (meetingItem && meetingItem.dataset.meetingId) {
-                        console.log('Meeting clicked via event delegation:', meetingItem.dataset.meetingId);
-                        this.showMeetingView(meetingItem.dataset.meetingId);
-                        return;
+                    if (meetingItem) {
+                        console.log('Meeting item found:', meetingItem);
+                        console.log('Meeting ID:', meetingItem.dataset.meetingId);
+                        
+                        if (meetingItem.dataset.meetingId) {
+                            console.log('✅ Calling showMeetingView with:', meetingItem.dataset.meetingId);
+                            this.showMeetingView(meetingItem.dataset.meetingId);
+                            return;
+                        } else {
+                            console.error('❌ No meeting ID found on meeting item');
+                        }
                     }
                     
                     // 組織セクションタイトルのクリック（部門名）
@@ -276,7 +303,11 @@
                         }
                         return;
                     }
+                    
+                    console.log('No matching element found for click');
                 });
+                
+                console.log('✅ contentArea click listener added successfully');
             },
             
             loadDemoData() {
