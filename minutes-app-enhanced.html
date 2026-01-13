@@ -751,7 +751,17 @@
                 const minutes = this.demoData.generateMinutes(meetingId);
                 
                 const content = document.getElementById('contentArea');
-                let backAction = this.currentBoard ? 'app.showBoardView()' : `app.showTeamView('${this.currentTeam.id}')`;
+                
+                // 戻るボタンのアクション（thisコンテキストを考慮）
+                let backAction;
+                if (this.currentBoard) {
+                    backAction = 'app.showBoardView()';
+                } else if (this.currentTeam && this.currentTeam.id) {
+                    backAction = `app.showTeamView('${this.currentTeam.id}')`;
+                } else {
+                    backAction = 'app.showOrganizationView()';
+                }
+                
                 let html = `<button class="btn btn-secondary back-btn" onclick="${backAction}">← 戻る</button>`;
                 html += '<div class="card">';
                 html += `<div class="card-title">
