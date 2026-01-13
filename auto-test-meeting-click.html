@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>自動テスト - 会議クリック</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+        .log { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #667eea; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        .warning { border-left-color: #ffc107; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 会議クリック - 自動テスト</h1>
+    <div id="logs"></div>
+    
+    <script>
+        const logs = document.getElementById('logs');
+        
+        function addLog(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> - ${message}`;
+            logs.appendChild(div);
+            console.log(message);
+        }
+        
+        addLog('テスト開始...', 'log');
+        
+        // Load the app in an iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = '/minutes-app-enhanced.html';
+        iframe.style.width = '100%';
+        iframe.style.height = '600px';
+        iframe.style.border = '2px solid #667eea';
+        iframe.style.borderRadius = '8px';
+        iframe.style.marginTop = '20px';
+        
+        iframe.onload = () => {
+            addLog('✅ アプリがロードされました', 'success');
+            
+            setTimeout(() => {
+                try {
+                    const iframeWindow = iframe.contentWindow;
+                    const iframeDocument = iframe.contentDocument;
+                    
+                    addLog('window.appの確認中...', 'log');
+                    
+                    if (iframeWindow.app) {
+                        addLog('✅ window.app が存在します！', 'success');
+                        addLog(`app.showMeetingView: ${typeof iframeWindow.app.showMeetingView}`, 'log');
+                        
+                        // Try to login
+                        addLog('自動ログインを試行中...', 'log');
+                        
+                        const emailInput = iframeDocument.getElementById('email');
+                        const passwordInput = iframeDocument.getElementById('password');
+                        const loginBtn = iframeDocument.getElementById('loginBtn');
+                        
+                        if (emailInput && passwordInput && loginBtn) {
+                            emailInput.value = 'admin@example.com';
+                            passwordInput.value = 'Admin@123';
+                            
+                            addLog('認証情報を入力しました', 'log');
+                            addLog('ログインボタンをクリックします...', 'log');
+                            
+                            loginBtn.click();
+                            
+                            setTimeout(() => {
+                                addLog('ログイン後の画面を確認中...', 'log');
+                                
+                                const meetingItems = iframeDocument.querySelectorAll('.meeting-item');
+                                addLog(`会議アイテム数: ${meetingItems.length}`, 'log');
+                                
+                                if (meetingItems.length > 0) {
+                                    addLog('✅ 会議アイテムが見つかりました！', 'success');
+                                    addLog('最初の会議をクリックします...', 'log');
+                                    
+                                    // Click the first meeting
+                                    meetingItems[0].click();
+                                    
+                                    setTimeout(() => {
+                                        const minutesTable = iframeDocument.querySelector('.minutes-table');
+                                        if (minutesTable) {
+                                            addLog('✅✅✅ 成功！議事録テーブルが表示されました！', 'success');
+                                            addLog('会議クリックは正常に動作しています！', 'success');
+                                        } else {
+                                            addLog('⚠️ 議事録テーブルが見つかりません', 'warning');
+                                            addLog('現在の画面: ' + iframeDocument.body.innerHTML.substring(0, 200), 'log');
+                                        }
+                                    }, 2000);
+                                } else {
+                                    addLog('⚠️ まだログインページです。手動でログインしてください', 'warning');
+                                }
+                            }, 3000);
+                        } else {
+                            addLog('⚠️ ログインフォームが見つかりません', 'warning');
+                        }
+                    } else {
+                        addLog('❌ window.app が存在しません', 'error');
+                    }
+                } catch (e) {
+                    addLog(`⚠️ クロスオリジンエラー: ${e.message}`, 'warning');
+                    addLog('手動でログインして会議をクリックしてください', 'log');
+                }
+            }, 3000);
+        };
+        
+        document.body.appendChild(iframe);
+    </script>
+</body>
+</html>
