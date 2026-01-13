@@ -180,7 +180,7 @@ npm run dev
 - Node.js 20+
 - Express.js + TypeScript
 - PostgreSQL + Prisma ORM
-- OpenAI API (GPT-4)
+- **AI: GPT-5 / GPT-5.1 / GPT-5 Mini (ジェンスパーク最新モデル)** 🆕
 - JWT認証
 - bcrypt
 
@@ -192,6 +192,12 @@ npm run dev
 - Zustand (状態管理)
 - React Query (データフェッチング)
 - Axios
+
+### AI機能
+- **モデル**: GPT-5、GPT-5.1、GPT-5 Mini
+- **プロバイダー**: ジェンスパークLLMプロキシ
+- **機能**: 議事録自動構造化、テキスト解析
+- **自動最適化**: テキスト長に応じたモデル自動選択
 
 ## 📊 データベース概要
 

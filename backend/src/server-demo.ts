@@ -38,7 +38,42 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     message: 'Demo mode - Database not connected',
+    aiModel: 'GPT-5 (GenSpark)',
     timestamp: new Date().toISOString(),
+  });
+});
+
+// AI Model Info
+app.get('/api/ai/info', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: {
+      availableModels: [
+        {
+          id: 'gpt-5',
+          name: 'GPT-5',
+          description: '最新の高性能モデル（推奨）',
+          recommended: true,
+          useCase: '複雑な議事録、長文テキスト',
+        },
+        {
+          id: 'gpt-5.1',
+          name: 'GPT-5.1',
+          description: 'GPT-5のアップグレード版',
+          recommended: false,
+          useCase: '非常に長い議事録（5000文字以上）',
+        },
+        {
+          id: 'gpt-5-mini',
+          name: 'GPT-5 Mini',
+          description: '軽量高速版',
+          recommended: false,
+          useCase: '短い議事録、高速処理が必要な場合',
+        },
+      ],
+      currentModel: 'gpt-5',
+      provider: 'GenSpark LLM Proxy',
+    },
   });
 });
 
