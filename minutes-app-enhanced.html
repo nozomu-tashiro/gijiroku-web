@@ -242,6 +242,41 @@
                     e.preventDefault();
                     this.saveMinute();
                 });
+                
+                // イベント委譲: contentArea内のクリックを監視
+                document.getElementById('contentArea').addEventListener('click', (e) => {
+                    // 会議アイテムのクリック
+                    const meetingItem = e.target.closest('.meeting-item');
+                    if (meetingItem && meetingItem.dataset.meetingId) {
+                        console.log('Meeting clicked via event delegation:', meetingItem.dataset.meetingId);
+                        this.showMeetingView(meetingItem.dataset.meetingId);
+                        return;
+                    }
+                    
+                    // 組織セクションタイトルのクリック（部門名）
+                    const sectionTitle = e.target.closest('.org-section-title');
+                    if (sectionTitle && sectionTitle.dataset.deptId) {
+                        console.log('Department section clicked via event delegation:', sectionTitle.dataset.deptId);
+                        this.showDepartmentView(sectionTitle.dataset.deptId);
+                        return;
+                    }
+                    
+                    // 組織アイテムのクリック
+                    const orgItem = e.target.closest('.org-item');
+                    if (orgItem) {
+                        if (orgItem.dataset.boardId) {
+                            console.log('Board clicked via event delegation');
+                            this.showBoardView();
+                        } else if (orgItem.dataset.deptId) {
+                            console.log('Department clicked via event delegation:', orgItem.dataset.deptId);
+                            this.showDepartmentView(orgItem.dataset.deptId);
+                        } else if (orgItem.dataset.teamId) {
+                            console.log('Team clicked via event delegation:', orgItem.dataset.teamId);
+                            this.showTeamView(orgItem.dataset.teamId);
+                        }
+                        return;
+                    }
+                });
             },
             
             loadDemoData() {
@@ -471,7 +506,7 @@
                 html += '<div class="org-level">';
                 html += '<div class="org-level-title">🏛️ 経営層（ボード）</div>';
                 html += `
-                    <div class="org-item" onclick="app.showBoardView()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px;">
+                    <div class="org-item" data-board-id="${this.demoData.board.id}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px;">
                         <div class="org-item-title">👔 ${this.demoData.board.name}</div>
                         <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
                     </div>
@@ -485,14 +520,14 @@
                 this.demoData.departments.forEach(dept => {
                     const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
                     html += '<div class="org-section">';
-                    html += `<div class="org-section-title" onclick="app.showDepartmentView('${dept.id}')" style="cursor: pointer;">
+                    html += `<div class="org-section-title" data-dept-id="${dept.id}" style="cursor: pointer;">
                         ${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span>
                     </div>`;
                     html += '<div class="sub-items">';
                     
                     dept.teams.forEach(team => {
                         html += `
-                            <div class="org-item" onclick="app.showTeamView('${team.id}')" style="padding: 15px;">
+                            <div class="org-item" data-team-id="${team.id}" style="padding: 15px;">
                                 <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
                                 <div class="org-item-count">${team.meetingCount}件の会議</div>
                             </div>
@@ -526,7 +561,7 @@
                 
                 meetings.forEach(meeting => {
                     html += `
-                        <div class="meeting-item" onclick="app.showMeetingView('${meeting.id}')">
+                        <div class="meeting-item" data-meeting-id="${meeting.id}">
                             <div class="meeting-title">${meeting.name}</div>
                             <div class="meeting-meta">
                                 <div>📅 ${meeting.date}</div>
@@ -605,7 +640,7 @@
                     html += '<div class="meeting-list">';
                     meetings.forEach(meeting => {
                         html += `
-                            <div class="meeting-item" onclick="app.showMeetingView('${meeting.id}')">
+                            <div class="meeting-item" data-meeting-id="${meeting.id}">
                                 <div class="meeting-title">${meeting.name}</div>
                                 <div class="meeting-meta">
                                     <div>📅 ${meeting.date}</div>
