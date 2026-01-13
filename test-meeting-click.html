@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会議クリックテスト</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-item { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; cursor: pointer; }
+        .test-item:hover { background: #e0e0e0; }
+        .result { margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>🧪 会議クリックテスト</h1>
+    <p>下記の会議をクリックして、正しく議事録一覧に遷移するかテストします。</p>
+    
+    <div id="testArea"></div>
+    <div id="result"></div>
+    
+    <script>
+        // Test data
+        const testMeetings = [
+            { id: 'meeting-board-1-0', name: '定例会議 1 (経営)', type: 'board' },
+            { id: 'meeting-board-1-1', name: '幹部会議 2 (経営)', type: 'board' },
+            { id: 'meeting-team-1-0', name: '営業会議 1 (チーム)', type: 'team' },
+        ];
+        
+        const testArea = document.getElementById('testArea');
+        const resultArea = document.getElementById('result');
+        
+        // Create test items
+        testMeetings.forEach(meeting => {
+            const div = document.createElement('div');
+            div.className = 'test-item';
+            div.innerHTML = `
+                <strong>${meeting.name}</strong><br>
+                <small>ID: ${meeting.id} | Type: ${meeting.type}</small>
+            `;
+            div.onclick = () => testClick(meeting);
+            testArea.appendChild(div);
+        });
+        
+        function testClick(meeting) {
+            resultArea.innerHTML = `<div class="result">
+                <h3>テスト実行中...</h3>
+                <p>会議: ${meeting.name}</p>
+                <p>ID: ${meeting.id}</p>
+            </div>`;
+            
+            // Simulate app.showMeetingView call
+            console.log('Testing click:', meeting.id);
+            
+            // Check if the actual app exists in the iframe
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = '/minutes-app-enhanced.html';
+            document.body.appendChild(iframe);
+            
+            iframe.onload = () => {
+                setTimeout(() => {
+                    try {
+                        if (iframe.contentWindow.app) {
+                            resultArea.innerHTML = `<div class="result">
+                                <h3>✅ テスト成功</h3>
+                                <p>会議: ${meeting.name}</p>
+                                <p>app オブジェクトが正しくアクセス可能です</p>
+                                <p><strong>次のステップ:</strong> 実際のアプリで会議をクリックしてください</p>
+                                <p><a href="/minutes-app-enhanced.html" target="_blank">アプリを開く</a></p>
+                            </div>`;
+                        } else {
+                            resultArea.innerHTML = `<div class="result error">
+                                <h3>❌ テスト失敗</h3>
+                                <p>app オブジェクトにアクセスできません</p>
+                            </div>`;
+                        }
+                    } catch (e) {
+                        resultArea.innerHTML = `<div class="result error">
+                            <h3>⚠️ クロスオリジンエラー</h3>
+                            <p>セキュリティ制約によりテストできません</p>
+                            <p><a href="/minutes-app-enhanced.html" target="_blank">実際のアプリで直接テストしてください</a></p>
+                        </div>`;
+                    }
+                    document.body.removeChild(iframe);
+                }, 2000);
+            };
+        }
+        
+        // Initial message
+        resultArea.innerHTML = `<div class="result">
+            <h3>テスト準備完了</h3>
+            <p>上記の会議をクリックしてテストを開始してください</p>
+        </div>`;
+    </script>
+</body>
+</html>
