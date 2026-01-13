@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会議議事録管理システム - ログインテスト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+        }
+        .alert-success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+        }
+        .demo-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #666;
+        }
+        .demo-info p {
+            margin-bottom: 5px;
+        }
+        .demo-info code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .response-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .response-info pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>会議議事録管理システム</h1>
+        <p class="subtitle">ログインしてください</p>
+        
+        <div id="alert"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">メールアドレス</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    value="admin@example.com" 
+                    placeholder="admin@example.com"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    value="Admin@123"
+                    placeholder="••••••••"
+                    required
+                >
+            </div>
+            
+            <button type="submit" id="submitBtn">ログイン</button>
+        </form>
+        
+        <div class="demo-info">
+            <p><strong>デモアカウント:</strong></p>
+            <p><code>admin@example.com</code> / <code>Admin@123</code></p>
+            <p style="margin-top: 10px; font-size: 11px;">
+                API: <code id="apiUrl">https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api</code>
+            </p>
+        </div>
+        
+        <div id="responseInfo" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
+        
+        const showAlert = (message, type = 'error') => {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertDiv.innerHTML = '';
+            }, 5000);
+        };
+        
+        const showResponse = (data) => {
+            const responseDiv = document.getElementById('responseInfo');
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = `
+                <div class="response-info">
+                    <strong>API レスポンス:</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        };
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = document.getElementById('submitBtn');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'ログイン中...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showAlert('✅ ログイン成功！', 'success');
+                    showResponse(data);
+                    
+                    // トークンを保存
+                    localStorage.setItem('accessToken', data.data.accessToken);
+                    localStorage.setItem('refreshToken', data.data.refreshToken);
+                    
+                    // ユーザー情報を表示
+                    setTimeout(() => {
+                        const user = data.data.user;
+                        alert(`ログイン成功！\n\n名前: ${user.name}\n役職: ${user.role}\n部門: ${user.department.name}\nチーム: ${user.team.name}`);
+                    }, 1000);
+                } else {
+                    showAlert(`❌ ログイン失敗: ${data.message || '不明なエラー'}`, 'error');
+                    showResponse(data);
+                }
+            } catch (error) {
+                showAlert(`❌ エラー: ${error.message}`, 'error');
+                showResponse({ error: error.message, stack: error.stack });
+                console.error('Login error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'ログイン';
+            }
+        });
+        
+        // ページ読み込み時にAPIの疎通確認
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+                const data = await response.json();
+                console.log('✅ Backend health check:', data);
+            } catch (error) {
+                console.error('❌ Backend health check failed:', error);
+            }
+        });
+    </script>
+</body>
+</html>
