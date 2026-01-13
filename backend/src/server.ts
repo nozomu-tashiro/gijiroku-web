@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 // ルート
 import authRoutes from './routes/auth';
 import organizationRoutes from './routes/organization';
+import meetingsRoutes from './routes/meetings';
 import minutesRoutes from './routes/minutes';
 
 // ユーティリティ
@@ -57,6 +58,7 @@ app.get('/health', (req, res) => {
 // APIルート
 app.use('/api/auth', authRoutes);
 app.use('/api/organization', organizationRoutes);
+app.use('/api/meetings', meetingsRoutes);
 app.use('/api/minutes', minutesRoutes);
 
 // 404ハンドラー
