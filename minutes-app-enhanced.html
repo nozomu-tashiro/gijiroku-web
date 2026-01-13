@@ -600,7 +600,7 @@
                 
                 meetings.forEach(meeting => {
                     html += `
-                        <div class="meeting-item" id="meeting-${meeting.id}" style="cursor: pointer;">
+                        <div class="meeting-item meeting-item-clickable" data-meeting-id="${meeting.id}" style="cursor: pointer;">
                             <div class="meeting-title">${meeting.name}</div>
                             <div class="meeting-meta">
                                 <div>📅 ${meeting.date}</div>
@@ -614,18 +614,23 @@
                 html += '</div></div>';
                 content.innerHTML = html;
                 
-                // ★ 動的に生成された後、各要素にイベントを直接バインド
-                setTimeout(() => {
-                    meetings.forEach(meeting => {
-                        const element = document.getElementById(`meeting-${meeting.id}`);
-                        if (element) {
-                            element.onclick = () => {
-                                console.log('Meeting clicked (direct binding):', meeting.id);
-                                this.showMeetingView(meeting.id);
-                            };
-                        }
+                // ★ DOMの完全な更新を待ってからイベントをバインド
+                requestAnimationFrame(() => {
+                    const items = document.querySelectorAll('.meeting-item-clickable');
+                    console.log(`Found ${items.length} meeting items to bind`);
+                    
+                    items.forEach(item => {
+                        const meetingId = item.dataset.meetingId;
+                        console.log(`Binding click event to meeting: ${meetingId}`);
+                        
+                        item.addEventListener('click', (e) => {
+                            console.log('Meeting clicked (addEventListener):', meetingId);
+                            this.showMeetingView(meetingId);
+                        });
                     });
-                }, 0);
+                    
+                    console.log('✅ All meeting click events bound successfully');
+                });
             },
             
             showDepartmentView(deptId) {
@@ -692,7 +697,7 @@
                     html += '<div class="meeting-list">';
                     meetings.forEach(meeting => {
                         html += `
-                            <div class="meeting-item" id="meeting-${meeting.id}" style="cursor: pointer;">
+                            <div class="meeting-item meeting-item-clickable" data-meeting-id="${meeting.id}" style="cursor: pointer;">
                                 <div class="meeting-title">${meeting.name}</div>
                                 <div class="meeting-meta">
                                     <div>📅 ${meeting.date}</div>
@@ -708,19 +713,24 @@
                 html += '</div>';
                 content.innerHTML = html;
                 
-                // ★ 動的に生成された後、各要素にイベントを直接バインド
+                // ★ DOMの完全な更新を待ってからイベントをバインド
                 if (meetings.length > 0) {
-                    setTimeout(() => {
-                        meetings.forEach(meeting => {
-                            const element = document.getElementById(`meeting-${meeting.id}`);
-                            if (element) {
-                                element.onclick = () => {
-                                    console.log('Meeting clicked (direct binding):', meeting.id);
-                                    this.showMeetingView(meeting.id);
-                                };
-                            }
+                    requestAnimationFrame(() => {
+                        const items = document.querySelectorAll('.meeting-item-clickable');
+                        console.log(`Found ${items.length} meeting items to bind`);
+                        
+                        items.forEach(item => {
+                            const meetingId = item.dataset.meetingId;
+                            console.log(`Binding click event to meeting: ${meetingId}`);
+                            
+                            item.addEventListener('click', (e) => {
+                                console.log('Meeting clicked (addEventListener):', meetingId);
+                                this.showMeetingView(meetingId);
+                            });
                         });
-                    }, 0);
+                        
+                        console.log('✅ All meeting click events bound successfully');
+                    });
                 }
             },
             
