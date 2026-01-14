@@ -118,6 +118,16 @@
         /* Empty State */
         .empty-state { text-align: center; padding: 60px 20px; color: #999; }
         .empty-state-icon { font-size: 48px; margin-bottom: 15px; }
+        
+        /* Editable Table */
+        .editable-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        .editable-table th { background-color: #4A90E2; color: white; padding: 12px; border: 1px solid #ddd; text-align: left; font-weight: 600; }
+        .editable-table td { padding: 8px; border: 1px solid #ddd; }
+        .editable-cell { cursor: text; transition: background-color 0.2s; }
+        .editable-cell:hover { background-color: #f0f8ff; }
+        .editable-cell:focus { outline: 2px solid #4A90E2; outline-offset: -2px; background-color: #fff; }
+        .editable-row:nth-child(even) { background-color: #f9f9f9; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -813,40 +823,26 @@
                 if (minutes.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
                 } else {
-                    html += '<table class="minutes-table">';
+                    // シンプルな会議一覧（会議名称、会議日、詳細ボタンのみ）
+                    html += '<table class="minutes-table" style="width: 100%;">';
                     html += `
                         <thead>
                             <tr>
-                                <th>議題</th>
-                                <th>担当者</th>
-                                <th>期日</th>
-                                <th>ステータス</th>
-                                <th>操作</th>
+                                <th style="width: 40%;">会議名称</th>
+                                <th style="width: 30%;">会議日</th>
+                                <th style="width: 30%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                     `;
                     
                     minutes.forEach(minute => {
-                        const statusMap = {
-                            'pending': { class: 'badge-pending', text: '未着手' },
-                            'progress': { class: 'badge-progress', text: '進行中' },
-                            'completed': { class: 'badge-completed', text: '完了' },
-                            'overdue': { class: 'badge-overdue', text: '期限超過' }
-                        };
-                        const status = statusMap[minute.status];
-                        
                         html += `
                             <tr>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.topic}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.assignee}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;">${minute.dueDate}</td>
-                                <td onclick="app.showMinuteDetail('${minute.id}')" style="cursor: pointer;"><span class="badge ${status.class}">${status.text}</span></td>
+                                <td>${minute.topic}</td>
+                                <td>${meeting.date}</td>
                                 <td>
-                                    <div class="action-btns">
-                                        <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="event.stopPropagation(); app.openEditMinuteModal('${minute.id}')">編集</button>
-                                        <button class="btn btn-danger" style="padding: 6px 12px;" onclick="event.stopPropagation(); app.archiveMinute('${minute.id}')">アーカイブ</button>
-                                    </div>
+                                    <button class="btn btn-primary" onclick="app.showMinuteDetailTable('${minute.id}')">詳細</button>
                                 </td>
                             </tr>
                         `;
@@ -924,6 +920,185 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+            },
+            
+            showMinuteDetailTable(minuteId) {
+                // Find minute
+                let minute = null;
+                for (const meetingId in this.minutesData) {
+                    minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) break;
+                }
+                
+                if (!minute) return;
+                
+                this.currentView = 'minute';
+                this.currentMinute = minute;
+                
+                this.updateBreadcrumb();
+                
+                const content = document.getElementById('contentArea');
+                let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
+                html += '<div class="card">';
+                html += `<div class="card-title">
+                    <span>📄 会議名：${minute.topic}</span>
+                </div>`;
+                
+                html += `<div style="margin-bottom: 10px;">
+                    <strong>会議日：</strong>${this.currentMeeting.date}
+                </div>`;
+                html += `<div style="margin-bottom: 20px;">
+                    <strong>会議参加者：</strong>${minute.assignee}
+                </div>`;
+                
+                // 編集可能なテーブル
+                html += '<table class="editable-table" style="width: 100%; border-collapse: collapse;">';
+                html += `
+                    <thead>
+                        <tr style="background-color: #4A90E2; color: white;">
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">議題・テーマ</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">担当者</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 10%;">期限</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 20%;">目的・期待される効果</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">ステータス (Inferred)</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 10%;">ソース</th>
+                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editableTableBody">
+                `;
+                
+                // デモデータ行を生成（議事録から）
+                const rows = [
+                    {
+                        topic: minute.decision || '決定事項',
+                        assignee: minute.assignee,
+                        deadline: minute.dueDate,
+                        purpose: minute.issue || '課題内容',
+                        status: this.getStatusText(minute.status),
+                        source: '1'
+                    },
+                    {
+                        topic: minute.action || '実行内容',
+                        assignee: minute.assignee,
+                        deadline: minute.dueDate,
+                        purpose: minute.reason || '理由・背景',
+                        status: this.getStatusText(minute.status),
+                        source: '1'
+                    }
+                ];
+                
+                rows.forEach((row, index) => {
+                    html += `
+                        <tr id="row-${index}" class="editable-row">
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="topic">${row.topic}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="assignee">${row.assignee}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="deadline">${row.deadline}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="purpose">${row.purpose}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="status">${row.status}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="source">${row.source}</td>
+                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                                <button class="btn btn-danger btn-sm" onclick="app.deleteRow(${index})" style="padding: 4px 8px; font-size: 12px;">削除</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                    </tbody>
+                </table>
+                `;
+                
+                // 保存・キャンセルボタン
+                html += `<div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="app.saveMinuteTable('${minute.id}')">💾 保存</button>
+                    <button class="btn btn-secondary" onclick="app.showMeetingView('${this.currentMeeting.id}')">キャンセル</button>
+                    <button class="btn btn-success" onclick="app.addNewRow()">+ 行を追加</button>
+                </div>`;
+                
+                html += '</div>';
+                content.innerHTML = html;
+            },
+            
+            getStatusText(status) {
+                const statusMap = {
+                    'pending': '未着手',
+                    'progress': '進行中',
+                    'completed': '完了',
+                    'overdue': '期限超過'
+                };
+                return statusMap[status] || '未着手';
+            },
+            
+            addNewRow() {
+                const tbody = document.getElementById('editableTableBody');
+                const rowCount = tbody.querySelectorAll('.editable-row').length;
+                
+                const newRow = document.createElement('tr');
+                newRow.id = `row-${rowCount}`;
+                newRow.className = 'editable-row';
+                newRow.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="topic">新しい議題</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="assignee">担当者名</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="deadline">${new Date().toISOString().split('T')[0]}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="purpose">目的・効果</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="status">未着手</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="source">1</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
+                        <button class="btn btn-danger btn-sm" onclick="app.deleteRow(${rowCount})" style="padding: 4px 8px; font-size: 12px;">削除</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(newRow);
+            },
+            
+            deleteRow(rowIndex) {
+                if (confirm('この行を削除しますか？')) {
+                    const row = document.getElementById(`row-${rowIndex}`);
+                    if (row) {
+                        row.remove();
+                    }
+                }
+            },
+            
+            saveMinuteTable(minuteId) {
+                const rows = document.querySelectorAll('.editable-row');
+                const data = [];
+                
+                rows.forEach((row) => {
+                    const cells = row.querySelectorAll('.editable-cell');
+                    const rowData = {};
+                    
+                    cells.forEach(cell => {
+                        const field = cell.getAttribute('data-field');
+                        rowData[field] = cell.textContent.trim();
+                    });
+                    
+                    data.push(rowData);
+                });
+                
+                console.log('Saving minute table data:', data);
+                
+                // Find and update minute
+                for (const meetingId in this.minutesData) {
+                    const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) {
+                        // Update minute with first row data
+                        if (data.length > 0) {
+                            minute.topic = data[0].topic;
+                            minute.assignee = data[0].assignee;
+                            minute.dueDate = data[0].deadline;
+                            minute.issue = data[0].purpose;
+                            minute.decision = data[0].topic;
+                            minute.action = data.length > 1 ? data[1].topic : data[0].topic;
+                            minute.reason = data.length > 1 ? data[1].purpose : data[0].purpose;
+                        }
+                        break;
+                    }
+                }
+                
+                alert('✅ 保存しました！');
+                this.showMeetingView(this.currentMeeting.id);
             },
             
             openAddMinuteModal(meetingId) {
