@@ -181,32 +181,29 @@
             <h2 class="modal-title" id="modalTitle">議事録を追加</h2>
             <form id="minuteForm">
                 <div class="form-group">
-                    <label for="minuteTopic">議題 *</label>
-                    <input type="text" id="minuteTopic" required>
+                    <label for="minuteMeetingName">会議名 *</label>
+                    <input type="text" id="minuteMeetingName" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteDecision">決定事項 *</label>
-                    <textarea id="minuteDecision" required></textarea>
+                    <label for="minuteSubtitle">サブタイトル</label>
+                    <input type="text" id="minuteSubtitle">
                 </div>
                 <div class="form-group">
-                    <label for="minuteIssue">課題</label>
-                    <textarea id="minuteIssue"></textarea>
+                    <label for="minuteMeetingDate">会議開催日 *</label>
+                    <input type="date" id="minuteMeetingDate" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteAssignee">担当者 *</label>
-                    <input type="text" id="minuteAssignee" required>
+                    <label for="minuteParticipants">会議参加者 *</label>
+                    <textarea id="minuteParticipants" required placeholder="参加者名を入力してください（最大30名）" rows="4"></textarea>
+                    <small style="color: #666;">※改行または、カンマで区切って入力してください</small>
                 </div>
                 <div class="form-group">
-                    <label for="minuteDueDate">期日 *</label>
-                    <input type="date" id="minuteDueDate" required>
+                    <label for="minuteFacilitator">ファシリテーター *</label>
+                    <input type="text" id="minuteFacilitator" required>
                 </div>
                 <div class="form-group">
-                    <label for="minuteAction">実行内容 *</label>
-                    <textarea id="minuteAction" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="minuteReason">理由・背景</label>
-                    <textarea id="minuteReason"></textarea>
+                    <label for="minuteNotes">備考</label>
+                    <textarea id="minuteNotes" rows="3"></textarea>
                 </div>
                 <div class="form-group">
                     <label for="minuteStatus">ステータス *</label>
@@ -892,22 +889,47 @@
                 if (minutes.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
                 } else {
-                    // 改善されたテーブル形式（テーマ列を追加、詳細・編集・削除ボタン）
+                    // 改善されたテーブル形式（すべてのフィールドを1行で表示）
                     html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
                     html += `
                         <thead>
                             <tr>
-                                <th style="width: 60%; padding: 12px;">テーマ</th>
-                                <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
+                                <th style="width: 15%; padding: 12px;">会議名</th>
+                                <th style="width: 12%; padding: 12px;">サブタイトル</th>
+                                <th style="width: 10%; padding: 12px;">開催日</th>
+                                <th style="width: 15%; padding: 12px;">参加者</th>
+                                <th style="width: 10%; padding: 12px;">ファシリテーター</th>
+                                <th style="width: 10%; padding: 12px;">備考</th>
+                                <th style="width: 10%; padding: 12px;">ステータス</th>
+                                <th style="width: 18%; padding: 12px; text-align: right;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                     `;
                     
+                    const statusMap = {
+                        'pending': { class: 'badge-pending', text: '未着手' },
+                        'progress': { class: 'badge-progress', text: '進行中' },
+                        'completed': { class: 'badge-completed', text: '完了' },
+                        'overdue': { class: 'badge-overdue', text: '期限超過' }
+                    };
+                    
                     minutes.forEach((minute, index) => {
+                        const status = statusMap[minute.status] || statusMap.pending;
+                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).slice(0, 3).join(', ');
+                        const participantsDisplay = participantsList.length > 30 ? participantsList.substring(0, 30) + '...' : participantsList;
+                        
                         html += `
                             <tr style="border-bottom: 1px solid #e0e0e0;">
-                                <td style="padding: 12px; font-size: 15px; font-weight: 500;">${minute.topic}</td>
+                                <td style="padding: 12px; font-size: 14px;">${minute.meetingName || ''}</td>
+                                <td style="padding: 12px; font-size: 14px;">${minute.subtitle || ''}</td>
+                                <td style="padding: 12px; font-size: 14px;">${minute.meetingDate || ''}</td>
+                                <td style="padding: 12px; font-size: 13px;" title="${minute.participants || ''}">${participantsDisplay}</td>
+                                <td style="padding: 12px; font-size: 14px;">${minute.facilitator || ''}</td>
+                                <td style="padding: 12px; font-size: 13px;">${(minute.notes || '').substring(0, 20)}${(minute.notes || '').length > 20 ? '...' : ''}</td>
+                                <td style="padding: 12px;">
+                                    <span class="badge ${status.class}" style="padding: 4px 8px; border-radius: 4px; font-size: 12px;">${status.text}</span>
+                                </td>
                                 <td style="padding: 8px 12px; text-align: right;">
                                     <button class="btn btn-primary detail-minute-btn" data-minute-id="${minute.id}" 
                                         style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
@@ -1161,80 +1183,30 @@
                 let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
                 html += '<div class="card">';
                 html += `<div class="card-title">
-                    <span>📄 会議名：${minute.topic}</span>
+                    <span>📄 議事録詳細</span>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="app.openEditMinuteModal('${minute.id}')">✏️ 編集</button>
+                    </div>
                 </div>`;
                 
-                html += `<div style="margin-bottom: 10px;">
-                    <strong>会議日：</strong>${this.currentMeeting.date}
-                </div>`;
-                html += `<div style="margin-bottom: 20px;">
-                    <strong>会議参加者：</strong>${minute.assignee}
-                </div>`;
+                // 詳細情報を表示
+                const statusMap = {
+                    'pending': { class: 'badge-pending', text: '未着手' },
+                    'progress': { class: 'badge-progress', text: '進行中' },
+                    'completed': { class: 'badge-completed', text: '完了' },
+                    'overdue': { class: 'badge-overdue', text: '期限超過' }
+                };
+                const status = statusMap[minute.status] || statusMap.pending;
                 
-                // 編集可能なテーブル
-                html += '<table class="editable-table" style="width: 100%; border-collapse: collapse;">';
-                html += `
-                    <thead>
-                        <tr style="background-color: #4A90E2; color: white;">
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">議題・テーマ</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">担当者</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 10%;">期限</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 20%;">目的・期待される効果</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">ステータス (Inferred)</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 10%;">ソース</th>
-                            <th style="padding: 12px; border: 1px solid #ddd; width: 15%;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="editableTableBody">
-                `;
-                
-                // デモデータ行を生成（議事録から）
-                const rows = [
-                    {
-                        topic: minute.decision || '決定事項',
-                        assignee: minute.assignee,
-                        deadline: minute.dueDate,
-                        purpose: minute.issue || '課題内容',
-                        status: this.getStatusText(minute.status),
-                        source: '1'
-                    },
-                    {
-                        topic: minute.action || '実行内容',
-                        assignee: minute.assignee,
-                        deadline: minute.dueDate,
-                        purpose: minute.reason || '理由・背景',
-                        status: this.getStatusText(minute.status),
-                        source: '1'
-                    }
-                ];
-                
-                rows.forEach((row, index) => {
-                    html += `
-                        <tr id="row-${index}" class="editable-row">
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="topic">${row.topic}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="assignee">${row.assignee}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="deadline">${row.deadline}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="purpose">${row.purpose}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="status">${row.status}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd;" contenteditable="true" class="editable-cell" data-field="source">${row.source}</td>
-                            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
-                                <button class="btn btn-danger btn-sm" onclick="app.deleteRow(${index})" style="padding: 4px 8px; font-size: 12px;">削除</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                html += `
-                    </tbody>
-                </table>
-                `;
-                
-                // 保存・キャンセルボタン
-                html += `<div style="margin-top: 20px; display: flex; gap: 10px;">
-                    <button class="btn btn-primary" onclick="app.saveMinuteTable('${minute.id}')">💾 保存</button>
-                    <button class="btn btn-secondary" onclick="app.showMeetingView('${this.currentMeeting.id}')">キャンセル</button>
-                    <button class="btn btn-success" onclick="app.addNewRow()">+ 行を追加</button>
-                </div>`;
+                html += '<div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">';
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議名：</strong><span>${minute.meetingName || ''}</span></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">サブタイトル：</strong><span>${minute.subtitle || ''}</span></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議開催日：</strong><span>${minute.meetingDate || ''}</span></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">ファシリテーター：</strong><span>${minute.facilitator || ''}</span></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">ステータス：</strong><span class="badge ${status.class}" style="padding: 4px 12px; border-radius: 4px;">${status.text}</span></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議参加者：</strong><div style="margin-left: 150px; margin-top: -20px; white-space: pre-wrap;">${minute.participants || ''}</div></div>`;
+                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">備考：</strong><div style="margin-left: 150px; margin-top: -20px; white-space: pre-wrap;">${minute.notes || ''}</div></div>`;
+                html += '</div>';
                 
                 html += '</div>';
                 content.innerHTML = html;
@@ -1326,10 +1298,14 @@
                 document.getElementById('modalTitle').textContent = '議事録を追加';
                 document.getElementById('minuteForm').reset();
                 
-                // Set default due date (30 days from now)
-                const dueDate = new Date();
-                dueDate.setDate(dueDate.getDate() + 30);
-                document.getElementById('minuteDueDate').value = dueDate.toISOString().split('T')[0];
+                // Set default meeting name (from current meeting)
+                if (this.currentMeeting) {
+                    document.getElementById('minuteMeetingName').value = this.currentMeeting.name || '';
+                }
+                
+                // Set default meeting date (today)
+                const today = new Date();
+                document.getElementById('minuteMeetingDate').value = today.toISOString().split('T')[0];
                 
                 document.getElementById('minuteModal').classList.add('active');
             },
@@ -1348,13 +1324,12 @@
                 document.getElementById('modalTitle').textContent = '議事録を編集';
                 
                 // Fill form with current data
-                document.getElementById('minuteTopic').value = minute.topic;
-                document.getElementById('minuteDecision').value = minute.decision;
-                document.getElementById('minuteIssue').value = minute.issue;
-                document.getElementById('minuteAssignee').value = minute.assignee;
-                document.getElementById('minuteDueDate').value = minute.dueDate;
-                document.getElementById('minuteAction').value = minute.action;
-                document.getElementById('minuteReason').value = minute.reason;
+                document.getElementById('minuteMeetingName').value = minute.meetingName || '';
+                document.getElementById('minuteSubtitle').value = minute.subtitle || '';
+                document.getElementById('minuteMeetingDate').value = minute.meetingDate || '';
+                document.getElementById('minuteParticipants').value = minute.participants || '';
+                document.getElementById('minuteFacilitator').value = minute.facilitator || '';
+                document.getElementById('minuteNotes').value = minute.notes || '';
                 document.getElementById('minuteStatus').value = minute.status;
                 
                 document.getElementById('minuteModal').classList.add('active');
@@ -1368,13 +1343,12 @@
             
             saveMinute() {
                 const formData = {
-                    topic: document.getElementById('minuteTopic').value,
-                    decision: document.getElementById('minuteDecision').value,
-                    issue: document.getElementById('minuteIssue').value,
-                    assignee: document.getElementById('minuteAssignee').value,
-                    dueDate: document.getElementById('minuteDueDate').value,
-                    action: document.getElementById('minuteAction').value,
-                    reason: document.getElementById('minuteReason').value,
+                    meetingName: document.getElementById('minuteMeetingName').value,
+                    subtitle: document.getElementById('minuteSubtitle').value,
+                    meetingDate: document.getElementById('minuteMeetingDate').value,
+                    participants: document.getElementById('minuteParticipants').value,
+                    facilitator: document.getElementById('minuteFacilitator').value,
+                    notes: document.getElementById('minuteNotes').value,
                     status: document.getElementById('minuteStatus').value
                 };
                 
@@ -1407,6 +1381,7 @@
                     this.minutesData[meetingId].push(newMinute);
                 }
                 
+                this.saveToLocalStorage(); // Save to localStorage
                 this.closeModal();
                 this.showMeetingView(this.currentMeeting.id);
             },
