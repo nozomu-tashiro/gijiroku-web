@@ -1354,6 +1354,14 @@
                 
                 if (!minute) return;
                 
+                // Ensure attachedFiles array exists
+                if (!minute.attachedFiles) {
+                    minute.attachedFiles = [];
+                }
+                
+                console.log('showMinuteDetailTable - minute with files:', minute);
+                console.log('Attached files:', minute.attachedFiles);
+                
                 this.currentView = 'minute';
                 this.currentMinute = minute;
                 
@@ -1531,6 +1539,9 @@
             
             // ========== File Attachment Functions ==========
             renderAttachedFiles(minute) {
+                console.log('renderAttachedFiles called, minute:', minute);
+                console.log('attachedFiles:', minute.attachedFiles);
+                
                 if (!minute.attachedFiles || minute.attachedFiles.length === 0) {
                     return '<div style="color: #999; font-size: 13px;">添付ファイルはありません</div>';
                 }
@@ -1555,7 +1566,7 @@
                     html += `
                         <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px;">
                             <span style="font-size: 18px;">${icon}</span>
-                            <a href="${file.url}" target="_blank" style="text-decoration: none; color: #007bff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
+                            <a href="#" onclick="app.openAttachedFile('${minute.id}', ${index}); return false;" style="text-decoration: none; color: #007bff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
                                 ${file.name}
                             </a>
                             <span style="color: #6c757d; font-size: 11px;">${this.formatFileSize(file.size)}</span>
@@ -1566,6 +1577,7 @@
                     `;
                 });
                 
+                console.log('Rendered HTML:', html);
                 return html;
             },
             
@@ -1660,6 +1672,88 @@
                 alert('✅ ファイルを削除しました');
             },
             
+            openAttachedFile(minuteId, fileIndex) {
+                console.log('openAttachedFile called:', minuteId, fileIndex);
+                
+                // Find minute
+                let minute = null;
+                for (const meetingId in this.minutesData) {
+                    minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) break;
+                }
+                
+                if (!minute || !minute.attachedFiles || !minute.attachedFiles[fileIndex]) {
+                    alert('ファイルが見つかりません');
+                    console.error('Minute or file not found:', { minute, fileIndex });
+                    return;
+                }
+                
+                const file = minute.attachedFiles[fileIndex];
+                console.log('Opening file:', file);
+                
+                // For PDFs, create a blob URL and open in new tab
+                if (file.type === 'application/pdf') {
+                    try {
+                        // Convert Data URL to Blob
+                        const byteString = atob(file.url.split(',')[1]);
+                        const mimeString = file.url.split(',')[0].split(':')[1].split(';')[0];
+                        const ab = new ArrayBuffer(byteString.length);
+                        const ia = new Uint8Array(ab);
+                        for (let i = 0; i < byteString.length; i++) {
+                            ia[i] = byteString.charCodeAt(i);
+                        }
+                        const blob = new Blob([ab], { type: mimeString });
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        // Open in new tab
+                        window.open(blobUrl, '_blank');
+                    } catch (error) {
+                        console.error('Error opening PDF:', error);
+                        alert('PDFの表示に失敗しました。ダウンロードしてください。');
+                        // Fallback to download
+                        const link = document.createElement('a');
+                        link.href = file.url;
+                        link.download = file.name;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }
+                // For images, open in new window with img tag
+                else if (file.type && file.type.startsWith('image/')) {
+                    const newWindow = window.open();
+                    if (newWindow) {
+                        newWindow.document.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>${file.name}</title>
+                                <style>
+                                    body { margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f0f0; }
+                                    img { max-width: 100%; height: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                                </style>
+                            </head>
+                            <body>
+                                <img src="${file.url}" alt="${file.name}">
+                            </body>
+                            </html>
+                        `);
+                        newWindow.document.close();
+                    } else {
+                        alert('ポップアップがブロックされました。ブラウザの設定を確認してください。');
+                    }
+                }
+                // For other files, trigger download
+                else {
+                    const link = document.createElement('a');
+                    link.href = file.url;
+                    link.download = file.name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            },
+            
             addNewDetailRow() {
                 if (!this.currentMinute.detailRows) {
                     this.currentMinute.detailRows = [];
@@ -1724,6 +1818,13 @@
                     const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
                     if (minute) {
                         minute.detailRows = updatedRows;
+                        
+                        // Ensure attachedFiles is preserved
+                        if (!minute.attachedFiles) {
+                            minute.attachedFiles = [];
+                        }
+                        
+                        console.log('Saving minute with files:', minute.attachedFiles);
                         
                         this.saveToLocalStorage();
                         alert('✅ 保存しました');
