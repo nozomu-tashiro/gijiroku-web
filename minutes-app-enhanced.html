@@ -412,8 +412,9 @@
                     },
                     
                     generateMinutes(meetingId) {
-                        if (this.minutesData[meetingId]) {
-                            return this.minutesData[meetingId].filter(m => !m.archived);
+                        // app.minutesData を参照（this.minutesData ではなく）
+                        if (window.app && window.app.minutesData && window.app.minutesData[meetingId]) {
+                            return window.app.minutesData[meetingId].filter(m => !m.archived);
                         }
                         
                         const minutes = [];
@@ -456,7 +457,10 @@
                             });
                         }
                         
-                        this.minutesData[meetingId] = minutes;
+                        // window.app.minutesData に保存
+                        if (window.app && window.app.minutesData) {
+                            window.app.minutesData[meetingId] = minutes;
+                        }
                         return minutes;
                     }
                 };
