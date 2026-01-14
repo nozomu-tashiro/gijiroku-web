@@ -1365,6 +1365,22 @@
                 html += `<div class="card-title">
                     <span>📊 ${minute.meetingName || '会議名'} の議事録詳細</span>
                     <div style="display: flex; gap: 10px;">
+                        <div class="dropdown" style="position: relative;">
+                            <button class="btn btn-info" onclick="app.toggleExportMenu()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                📥 エクスポート
+                            </button>
+                            <div id="exportMenu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-top: 5px; min-width: 180px; z-index: 1000;">
+                                <button onclick="app.exportPDF('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📄 PDF</button>
+                                <button onclick="app.exportWord('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📝 Word</button>
+                                <button onclick="app.exportExcel('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📊 Excel</button>
+                                <button onclick="app.exportPowerPoint('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📽️ PowerPoint</button>
+                                <button onclick="app.exportCSV('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📋 CSV</button>
+                                <button onclick="app.exportImage('${minute.id}', 'png')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">🖼️ PNG</button>
+                                <button onclick="app.exportImage('${minute.id}', 'jpg')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">🖼️ JPG</button>
+                                <button onclick="app.exportTXT('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📃 TXT</button>
+                                <button onclick="app.exportZIP('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px;">🗜️ ZIP</button>
+                            </div>
+                        </div>
                         <button class="btn btn-success" onclick="app.addNewDetailRow()">+ 行を追加</button>
                         <button class="btn btn-primary" onclick="app.saveDetailTable('${minute.id}')">💾 保存</button>
                     </div>
@@ -1776,6 +1792,151 @@
                 loginBtn.textContent = 'ログイン';
             }
         });
+        
+        // ========== Export Functions ==========
+        app.toggleExportMenu = function() {
+            const menu = document.getElementById('exportMenu');
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        };
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('exportMenu');
+            const btn = event.target.closest('.btn-info');
+            if (menu && !btn && menu.style.display === 'block') {
+                menu.style.display = 'none';
+            }
+        });
+        
+        app.exportCSV = function(minuteId) {
+            const minute = this.currentMinute;
+            if (!minute || !minute.detailRows) {
+                alert('データが見つかりません');
+                return;
+            }
+            
+            let csv = '\uFEFF'; // UTF-8 BOM for Excel
+            csv += '会議名,サブタイトル,会議開催日\n';
+            csv += `"${minute.meetingName || ''}","${minute.subtitle || ''}","${minute.meetingDate || ''}"\n\n`;
+            csv += '#,議題・アジェンダ,具体的なアクション,担当者,期限,目的・期待される効果,ステータス,備考1,備考2\n';
+            
+            minute.detailRows.forEach((row, index) => {
+                const statusMap = { pending: '未着手', progress: '進行中', completed: '完了', overdue: '期限超過' };
+                csv += `${index + 1},"${(row.agenda || '').replace(/"/g, '""')}","${(row.action || '').replace(/"/g, '""')}","${(row.assignee || '').replace(/"/g, '""')}","${row.deadline || ''}","${(row.purpose || '').replace(/"/g, '""')}","${statusMap[row.status] || ''}","${(row.notes1 || '').replace(/"/g, '""')}","${(row.notes2 || '').replace(/"/g, '""')}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `議事録_${minute.meetingName || 'minutes'}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            this.toggleExportMenu();
+        };
+        
+        app.exportTXT = function(minuteId) {
+            const minute = this.currentMinute;
+            if (!minute || !minute.detailRows) {
+                alert('データが見つかりません');
+                return;
+            }
+            
+            let txt = `議事録詳細\n`;
+            txt += `${'='.repeat(50)}\n\n`;
+            txt += `会議名: ${minute.meetingName || ''}\n`;
+            txt += `サブタイトル: ${minute.subtitle || ''}\n`;
+            txt += `会議開催日: ${minute.meetingDate || ''}\n\n`;
+            txt += `${'='.repeat(50)}\n\n`;
+            
+            minute.detailRows.forEach((row, index) => {
+                const statusMap = { pending: '未着手', progress: '進行中', completed: '完了', overdue: '期限超過' };
+                txt += `【${index + 1}】\n`;
+                txt += `議題・アジェンダ: ${row.agenda || ''}\n`;
+                txt += `具体的なアクション: ${row.action || ''}\n`;
+                txt += `担当者: ${row.assignee || ''}\n`;
+                txt += `期限: ${row.deadline || ''}\n`;
+                txt += `目的・期待される効果: ${row.purpose || ''}\n`;
+                txt += `ステータス: ${statusMap[row.status] || ''}\n`;
+                txt += `備考1: ${row.notes1 || ''}\n`;
+                txt += `備考2: ${row.notes2 || ''}\n`;
+                txt += `${'-'.repeat(50)}\n\n`;
+            });
+            
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `議事録_${minute.meetingName || 'minutes'}_${new Date().toISOString().split('T')[0]}.txt`;
+            link.click();
+            this.toggleExportMenu();
+        };
+        
+        app.exportPDF = function(minuteId) {
+            alert('📄 PDF形式でのエクスポートには外部ライブラリが必要です。\n\n代わりに、ブラウザの印刷機能（Ctrl+P）を使用して「PDFとして保存」を選択してください。');
+            this.toggleExportMenu();
+        };
+        
+        app.exportWord = function(minuteId) {
+            const minute = this.currentMinute;
+            if (!minute || !minute.detailRows) {
+                alert('データが見つかりません');
+                return;
+            }
+            
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>議事録</title></head><body>`;
+            html += `<h1>議事録詳細</h1>`;
+            html += `<p><strong>会議名:</strong> ${minute.meetingName || ''}</p>`;
+            html += `<p><strong>サブタイトル:</strong> ${minute.subtitle || ''}</p>`;
+            html += `<p><strong>会議開催日:</strong> ${minute.meetingDate || ''}</p><hr>`;
+            html += `<table border="1" cellpadding="5" cellspacing="0" style="border-collapse:collapse;width:100%;">`;
+            html += `<thead><tr style="background-color:#4a86e8;color:white;">`;
+            html += `<th>#</th><th>議題・アジェンダ</th><th>具体的なアクション</th><th>担当者</th><th>期限</th><th>目的・期待される効果</th><th>ステータス</th><th>備考1</th><th>備考2</th>`;
+            html += `</tr></thead><tbody>`;
+            
+            minute.detailRows.forEach((row, index) => {
+                const statusMap = { pending: '未着手', progress: '進行中', completed: '完了', overdue: '期限超過' };
+                html += `<tr>`;
+                html += `<td>${index + 1}</td>`;
+                html += `<td>${row.agenda || ''}</td>`;
+                html += `<td>${row.action || ''}</td>`;
+                html += `<td>${row.assignee || ''}</td>`;
+                html += `<td>${row.deadline || ''}</td>`;
+                html += `<td>${row.purpose || ''}</td>`;
+                html += `<td>${statusMap[row.status] || ''}</td>`;
+                html += `<td>${row.notes1 || ''}</td>`;
+                html += `<td>${row.notes2 || ''}</td>`;
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table></body></html>`;
+            
+            const blob = new Blob(['\ufeff' + html], { type: 'application/msword;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `議事録_${minute.meetingName || 'minutes'}_${new Date().toISOString().split('T')[0]}.doc`;
+            link.click();
+            this.toggleExportMenu();
+        };
+        
+        app.exportExcel = function(minuteId) {
+            alert('📊 Excel形式でのエクスポートには専用ライブラリが必要です。\n\n代わりにCSV形式をご利用ください（ExcelでCSVを開くことができます）。');
+            this.toggleExportMenu();
+        };
+        
+        app.exportPowerPoint = function(minuteId) {
+            alert('📽️ PowerPoint形式でのエクスポートには専用ライブラリが必要です。\n\n現在の機能ではサポートされていません。');
+            this.toggleExportMenu();
+        };
+        
+        app.exportImage = function(minuteId, format) {
+            alert(`🖼️ ${format.toUpperCase()}形式でのエクスポートには専用ライブラリが必要です。\n\nブラウザのスクリーンショット機能をご利用ください。`);
+            this.toggleExportMenu();
+        };
+        
+        app.exportZIP = function(minuteId) {
+            alert('🗜️ ZIP形式でのエクスポートには専用ライブラリが必要です。\n\n複数ファイルを個別にダウンロード後、手動でZIP圧縮してください。');
+            this.toggleExportMenu();
+        };
         
         console.log('=== Setting window.app ===');
         // Make app globally accessible for onclick handlers
