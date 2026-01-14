@@ -1183,11 +1183,18 @@
                 let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
                 html += '<div class="card">';
                 html += `<div class="card-title">
-                    <span>📊 議事録詳細 - ${minute.meetingName || '会議名'}</span>
+                    <span>📊 ${minute.meetingName || '会議名'} の議事録詳細</span>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn btn-success" onclick="app.addNewDetailRow()">+ 行を追加</button>
                         <button class="btn btn-primary" onclick="app.saveDetailTable('${minute.id}')">💾 保存</button>
                     </div>
+                </div>`;
+                
+                // 会議情報を表示
+                html += `<div style="background: #f0f0f0; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                    <strong>会議名：</strong>${minute.meetingName || ''} &nbsp;&nbsp;
+                    <strong>会議開催日：</strong>${minute.meetingDate || ''} &nbsp;&nbsp;
+                    <strong>サブタイトル：</strong>${minute.subtitle || ''}
                 </div>`;
                 
                 // Google Sheets風の編集可能テーブル
@@ -1195,16 +1202,17 @@
                 html += '<table class="editable-table" style="width: 100%; border-collapse: collapse; background: white;">';
                 html += `
                     <thead>
-                        <tr style="background-color: #f0f0f0; position: sticky; top: 0;">
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 5%; text-align: center; font-weight: 600;">#</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 15%; font-weight: 600;">会議名</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 12%; font-weight: 600;">サブタイトル</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 10%; font-weight: 600;">開催日</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 18%; font-weight: 600;">参加者</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 12%; font-weight: 600;">ファシリテーター</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 15%; font-weight: 600;">備考</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 8%; font-weight: 600;">ステータス</th>
-                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 5%; font-weight: 600; text-align: center;">操作</th>
+                        <tr style="background-color: #4a86e8; color: white;">
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 3%; text-align: center; font-weight: 600; font-size: 13px;">#</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">議題・アジェンダ</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">具体的なアクション</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 10%; font-weight: 600; font-size: 13px;">担当者</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 8%; font-weight: 600; font-size: 13px;">期限</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">目的・期待される効果</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 10%; font-weight: 600; font-size: 13px;">ステータス</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 10%; font-weight: 600; font-size: 13px;">備考1</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 10%; font-weight: 600; font-size: 13px;">備考2</th>
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 4%; font-weight: 600; font-size: 13px; text-align: center;">削除</th>
                         </tr>
                     </thead>
                     <tbody id="editableTableBody">
@@ -1213,13 +1221,14 @@
                 // Initialize detail rows if not exists
                 if (!minute.detailRows || minute.detailRows.length === 0) {
                     minute.detailRows = [{
-                        meetingName: minute.meetingName || '',
-                        subtitle: minute.subtitle || '',
-                        meetingDate: minute.meetingDate || '',
-                        participants: minute.participants || '',
-                        facilitator: minute.facilitator || '',
-                        notes: minute.notes || '',
-                        status: minute.status || 'pending'
+                        agenda: '',
+                        action: '',
+                        assignee: minute.facilitator || '',
+                        deadline: minute.meetingDate || '',
+                        purpose: '',
+                        status: minute.status || 'pending',
+                        notes1: '',
+                        notes2: ''
                     }];
                 }
                 
@@ -1230,20 +1239,21 @@
                     
                     html += `
                         <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500;">${index + 1}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="meetingName" data-row="${index}">${row.meetingName || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="subtitle" data-row="${index}">${row.subtitle || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="meetingDate" data-row="${index}">${row.meetingDate || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="participants" data-row="${index}">${row.participants || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="facilitator" data-row="${index}">${row.facilitator || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="notes" data-row="${index}">${row.notes || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0;">
-                                <select class="status-select" data-row="${index}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500; font-size: 12px;">${index + 1}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="agenda" data-row="${index}">${row.agenda || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="action" data-row="${index}">${row.action || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="assignee" data-row="${index}">${row.assignee || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}">${row.deadline || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
+                                <select class="status-select" data-row="${index}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
                                     ${statusOptions.map(opt => `<option value="${opt}" ${row.status === opt ? 'selected' : ''}>${statusTexts[opt]}</option>`).join('')}
                                 </select>
                             </td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes1" data-row="${index}">${row.notes1 || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes2" data-row="${index}">${row.notes2 || ''}</td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
-                                <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 12px;">🗑️</button>
+                                <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 11px;">削除</button>
                             </td>
                         </tr>
                     `;
@@ -1319,13 +1329,14 @@
                 }
                 
                 this.currentMinute.detailRows.push({
-                    meetingName: this.currentMinute.meetingName || '',
-                    subtitle: '',
-                    meetingDate: new Date().toISOString().split('T')[0],
-                    participants: '',
-                    facilitator: '',
-                    notes: '',
-                    status: 'pending'
+                    agenda: '',
+                    action: '',
+                    assignee: '',
+                    deadline: new Date().toISOString().split('T')[0],
+                    purpose: '',
+                    status: 'pending',
+                    notes1: '',
+                    notes2: ''
                 });
                 
                 this.showMinuteDetailTable(this.currentMinute.id);
@@ -1376,17 +1387,6 @@
                     const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
                     if (minute) {
                         minute.detailRows = updatedRows;
-                        
-                        // Also update main minute data with first row
-                        if (updatedRows.length > 0) {
-                            minute.meetingName = updatedRows[0].meetingName;
-                            minute.subtitle = updatedRows[0].subtitle;
-                            minute.meetingDate = updatedRows[0].meetingDate;
-                            minute.participants = updatedRows[0].participants;
-                            minute.facilitator = updatedRows[0].facilitator;
-                            minute.notes = updatedRows[0].notes;
-                            minute.status = updatedRows[0].status;
-                        }
                         
                         this.saveToLocalStorage();
                         alert('✅ 保存しました');
