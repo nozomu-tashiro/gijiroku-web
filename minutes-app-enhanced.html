@@ -609,41 +609,35 @@
                 let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
                 html += '<div class="card">';
                 html += `<div class="card-title">📅 ${this.currentBoard.name} の会議一覧</div>`;
-                html += '<div class="meeting-list">';
+                
+                // シンプルなテーブル形式（会議名称、会議日、詳細ボタンのみ）
+                html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">会議名称</th>
+                            <th style="width: 25%;">会議日</th>
+                            <th style="width: 25%;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
                 
                 meetings.forEach(meeting => {
                     html += `
-                        <div class="meeting-item meeting-item-clickable" data-meeting-id="${meeting.id}" style="cursor: pointer;">
-                            <div class="meeting-title">${meeting.name}</div>
-                            <div class="meeting-meta">
-                                <div>📅 ${meeting.date}</div>
-                                <div>📝 ${meeting.minutesCount}件の議事録</div>
-                                <div>👥 ${meeting.participants}名参加</div>
-                            </div>
-                        </div>
+                        <tr>
+                            <td>${meeting.name}</td>
+                            <td>${meeting.date}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="app.showMeetingView('${meeting.id}')" style="padding: 6px 16px;">詳細</button>
+                            </td>
+                        </tr>
                     `;
                 });
                 
-                html += '</div></div>';
+                html += '</tbody></table>';
+                html += '</div>';
                 content.innerHTML = html;
-                
-                // ★ DOMの完全な更新を待ってからイベントをバインド
-                requestAnimationFrame(() => {
-                    const items = document.querySelectorAll('.meeting-item-clickable');
-                    console.log(`Found ${items.length} meeting items to bind`);
-                    
-                    items.forEach(item => {
-                        const meetingId = item.dataset.meetingId;
-                        console.log(`Binding click event to meeting: ${meetingId}`);
-                        
-                        item.addEventListener('click', (e) => {
-                            console.log('Meeting clicked (addEventListener):', meetingId);
-                            this.showMeetingView(meetingId);
-                        });
-                    });
-                    
-                    console.log('✅ All meeting click events bound successfully');
-                });
             },
             
             showDepartmentView(deptId) {
@@ -707,44 +701,36 @@
                 if (meetings.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
                 } else {
-                    html += '<div class="meeting-list">';
+                    // シンプルなテーブル形式（会議名称、会議日、詳細ボタンのみ）
+                    html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
+                    html += `
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">会議名称</th>
+                                <th style="width: 25%;">会議日</th>
+                                <th style="width: 25%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    `;
+                    
                     meetings.forEach(meeting => {
                         html += `
-                            <div class="meeting-item meeting-item-clickable" data-meeting-id="${meeting.id}" style="cursor: pointer;">
-                                <div class="meeting-title">${meeting.name}</div>
-                                <div class="meeting-meta">
-                                    <div>📅 ${meeting.date}</div>
-                                    <div>📝 ${meeting.minutesCount}件の議事録</div>
-                                    <div>👥 ${meeting.participants}名参加</div>
-                                </div>
-                            </div>
+                            <tr>
+                                <td>${meeting.name}</td>
+                                <td>${meeting.date}</td>
+                                <td>
+                                    <button class="btn btn-primary" onclick="app.showMeetingView('${meeting.id}')" style="padding: 6px 16px;">詳細</button>
+                                </td>
+                            </tr>
                         `;
                     });
-                    html += '</div>';
+                    
+                    html += '</tbody></table>';
                 }
                 
                 html += '</div>';
                 content.innerHTML = html;
-                
-                // ★ DOMの完全な更新を待ってからイベントをバインド
-                if (meetings.length > 0) {
-                    requestAnimationFrame(() => {
-                        const items = document.querySelectorAll('.meeting-item-clickable');
-                        console.log(`Found ${items.length} meeting items to bind`);
-                        
-                        items.forEach(item => {
-                            const meetingId = item.dataset.meetingId;
-                            console.log(`Binding click event to meeting: ${meetingId}`);
-                            
-                            item.addEventListener('click', (e) => {
-                                console.log('Meeting clicked (addEventListener):', meetingId);
-                                this.showMeetingView(meetingId);
-                            });
-                        });
-                        
-                        console.log('✅ All meeting click events bound successfully');
-                    });
-                }
             },
             
             showMeetingView(meetingId) {
