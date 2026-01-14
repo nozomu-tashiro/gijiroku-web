@@ -612,16 +612,18 @@
                 const content = document.getElementById('contentArea');
                 let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
                 html += '<div class="card">';
-                html += `<div class="card-title">📅 ${this.currentBoard.name} の会議一覧</div>`;
+                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📅 ${this.currentBoard.name} の会議一覧</span>
+                    <button class="btn btn-success" onclick="app.openAddMeetingModal('board-1')">+ 会議名称追加</button>
+                </div>`;
                 
-                // シンプルなテーブル形式（会議名称、会議日、詳細ボタンのみ）
+                // シンプルなテーブル形式（会議名称、編集、削除、詳細ボタン）
                 html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
                 html += `
                     <thead>
                         <tr>
                             <th style="width: 50%;">会議名称</th>
-                            <th style="width: 25%;">会議日</th>
-                            <th style="width: 25%;">操作</th>
+                            <th style="width: 50%;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -631,8 +633,9 @@
                     html += `
                         <tr>
                             <td>${meeting.name}</td>
-                            <td>${meeting.date}</td>
                             <td>
+                                <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">編集</button>
+                                <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">削除</button>
                                 <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
                             </td>
                         </tr>
@@ -645,10 +648,11 @@
                 
                 // ★ DOMに追加された後、ボタンにイベントハンドラを設定
                 setTimeout(() => {
-                    const buttons = content.querySelectorAll('.detail-btn');
-                    console.log(`Found ${buttons.length} detail buttons`);
+                    // 詳細ボタン
+                    const detailButtons = content.querySelectorAll('.detail-btn');
+                    console.log(`Found ${detailButtons.length} detail buttons`);
                     
-                    buttons.forEach(button => {
+                    detailButtons.forEach(button => {
                         button.addEventListener('click', () => {
                             const meetingId = button.getAttribute('data-meeting-id');
                             console.log('Detail button clicked:', meetingId);
@@ -656,7 +660,25 @@
                         });
                     });
                     
-                    console.log('✅ All detail button handlers attached');
+                    // 編集ボタン
+                    const editButtons = content.querySelectorAll('.edit-meeting-btn');
+                    editButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const meetingId = button.getAttribute('data-meeting-id');
+                            this.openEditMeetingModal(meetingId);
+                        });
+                    });
+                    
+                    // 削除ボタン
+                    const deleteButtons = content.querySelectorAll('.delete-meeting-btn');
+                    deleteButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const meetingId = button.getAttribute('data-meeting-id');
+                            this.deleteMeeting(meetingId);
+                        });
+                    });
+                    
+                    console.log('✅ All button handlers attached');
                 }, 100);
             },
             
@@ -716,19 +738,21 @@
                 const content = document.getElementById('contentArea');
                 let html = `<button class="btn btn-secondary back-btn" onclick="app.showDepartmentView('${this.currentDepartment.id}')">← 戻る</button>`;
                 html += '<div class="card">';
-                html += `<div class="card-title">📅 ${team.name} の会議一覧</div>`;
+                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📅 ${team.name} の会議一覧</span>
+                    <button class="btn btn-success" onclick="app.openAddMeetingModal('${teamId}')">+ 会議名称追加</button>
+                </div>`;
                 
                 if (meetings.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
                 } else {
-                    // シンプルなテーブル形式（会議名称、会議日、詳細ボタンのみ）
+                    // シンプルなテーブル形式（会議名称、編集、削除、詳細ボタン）
                     html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
                     html += `
                         <thead>
                             <tr>
                                 <th style="width: 50%;">会議名称</th>
-                                <th style="width: 25%;">会議日</th>
-                                <th style="width: 25%;">操作</th>
+                                <th style="width: 50%;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -738,8 +762,9 @@
                         html += `
                             <tr>
                                 <td>${meeting.name}</td>
-                                <td>${meeting.date}</td>
                                 <td>
+                                    <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">編集</button>
+                                    <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">削除</button>
                                     <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
                                 </td>
                             </tr>
@@ -755,10 +780,11 @@
                 // ★ DOMに追加された後、ボタンにイベントハンドラを設定
                 if (meetings.length > 0) {
                     setTimeout(() => {
-                        const buttons = content.querySelectorAll('.detail-btn');
-                        console.log(`Found ${buttons.length} detail buttons in team view`);
+                        // 詳細ボタン
+                        const detailButtons = content.querySelectorAll('.detail-btn');
+                        console.log(`Found ${detailButtons.length} detail buttons in team view`);
                         
-                        buttons.forEach(button => {
+                        detailButtons.forEach(button => {
                             button.addEventListener('click', () => {
                                 const meetingId = button.getAttribute('data-meeting-id');
                                 console.log('Detail button clicked:', meetingId);
@@ -766,7 +792,25 @@
                             });
                         });
                         
-                        console.log('✅ All detail button handlers attached in team view');
+                        // 編集ボタン
+                        const editButtons = content.querySelectorAll('.edit-meeting-btn');
+                        editButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const meetingId = button.getAttribute('data-meeting-id');
+                                this.openEditMeetingModal(meetingId);
+                            });
+                        });
+                        
+                        // 削除ボタン
+                        const deleteButtons = content.querySelectorAll('.delete-meeting-btn');
+                        deleteButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const meetingId = button.getAttribute('data-meeting-id');
+                                this.deleteMeeting(meetingId);
+                            });
+                        });
+                        
+                        console.log('✅ All button handlers attached in team view');
                     }, 100);
                 }
             },
@@ -877,6 +921,106 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+            },
+            
+            openAddMeetingModal(entityId) {
+                const meetingName = prompt('新しい会議名称を入力してください：');
+                if (!meetingName || meetingName.trim() === '') {
+                    return;
+                }
+                
+                // 新しい会議を作成（簡易実装）
+                alert(`✅ 会議「${meetingName}」を追加しました（デモ版では実際には保存されません）`);
+                
+                // 画面を再表示
+                if (entityId === 'board-1') {
+                    this.showBoardView();
+                } else {
+                    this.showTeamView(entityId);
+                }
+            },
+            
+            openEditMeetingModal(meetingId) {
+                // 会議を検索
+                let meeting = null;
+                const boardMeetings = this.demoData.generateMeetings('board-1');
+                meeting = boardMeetings.find(m => m.id === meetingId);
+                
+                if (!meeting) {
+                    // チームの会議を検索
+                    for (const dept of this.demoData.departments) {
+                        for (const team of dept.teams) {
+                            const teamMeetings = this.demoData.generateMeetings(team.id);
+                            meeting = teamMeetings.find(m => m.id === meetingId);
+                            if (meeting) break;
+                        }
+                        if (meeting) break;
+                    }
+                }
+                
+                if (!meeting) {
+                    alert('❌ 会議が見つかりません');
+                    return;
+                }
+                
+                const newName = prompt('会議名称を編集してください：', meeting.name);
+                if (!newName || newName.trim() === '') {
+                    return;
+                }
+                
+                meeting.name = newName;
+                alert(`✅ 会議名称を「${newName}」に変更しました`);
+                
+                // 画面を再表示
+                if (this.currentBoard) {
+                    this.showBoardView();
+                } else if (this.currentTeam) {
+                    this.showTeamView(this.currentTeam.id);
+                }
+            },
+            
+            deleteMeeting(meetingId) {
+                // 議事録があるかチェック
+                if (window.app && window.app.minutesData && window.app.minutesData[meetingId]) {
+                    const minutes = window.app.minutesData[meetingId].filter(m => !m.archived);
+                    if (minutes.length > 0) {
+                        alert(`❌ この会議には${minutes.length}件の議事録があるため、削除できません。\n先に議事録を削除してください。`);
+                        return;
+                    }
+                }
+                
+                // 会議を検索
+                let meeting = null;
+                const boardMeetings = this.demoData.generateMeetings('board-1');
+                meeting = boardMeetings.find(m => m.id === meetingId);
+                
+                if (!meeting) {
+                    // チームの会議を検索
+                    for (const dept of this.demoData.departments) {
+                        for (const team of dept.teams) {
+                            const teamMeetings = this.demoData.generateMeetings(team.id);
+                            meeting = teamMeetings.find(m => m.id === meetingId);
+                            if (meeting) break;
+                        }
+                        if (meeting) break;
+                    }
+                }
+                
+                if (!meeting) {
+                    alert('❌ 会議が見つかりません');
+                    return;
+                }
+                
+                if (confirm(`会議「${meeting.name}」を削除しますか？`)) {
+                    alert(`✅ 会議「${meeting.name}」を削除しました（デモ版では実際には削除されません）`);
+                    
+                    // 画面を再表示
+                    if (this.currentBoard) {
+                        this.showBoardView();
+                    } else if (this.currentTeam) {
+                        this.showTeamView(this.currentTeam.id);
+                    }
+                }
             },
             
             showMinuteDetail(minuteId) {
