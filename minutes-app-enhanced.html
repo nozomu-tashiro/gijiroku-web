@@ -1373,12 +1373,8 @@
                                 <button onclick="app.exportPDF('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📄 PDF</button>
                                 <button onclick="app.exportWord('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📝 Word</button>
                                 <button onclick="app.exportExcel('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📊 Excel</button>
-                                <button onclick="app.exportPowerPoint('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📽️ PowerPoint</button>
                                 <button onclick="app.exportCSV('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📋 CSV</button>
-                                <button onclick="app.exportImage('${minute.id}', 'png')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">🖼️ PNG</button>
-                                <button onclick="app.exportImage('${minute.id}', 'jpg')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">🖼️ JPG</button>
-                                <button onclick="app.exportTXT('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📃 TXT</button>
-                                <button onclick="app.exportZIP('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px;">🗜️ ZIP</button>
+                                <button onclick="app.exportTXT('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px;">📃 TXT</button>
                             </div>
                         </div>
                         <button class="btn btn-success" onclick="app.addNewDetailRow()">+ 行を追加</button>
@@ -1391,6 +1387,20 @@
                     <strong>会議名：</strong>${minute.meetingName || ''} &nbsp;&nbsp;
                     <strong>会議開催日：</strong>${minute.meetingDate || ''} &nbsp;&nbsp;
                     <strong>サブタイトル：</strong>${minute.subtitle || ''}
+                </div>`;
+                
+                // ファイル添付セクション
+                html += `<div style="background: #fff; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong>📎 添付ファイル</strong>
+                        <label for="fileUpload-${minute.id}" class="btn btn-sm btn-success" style="padding: 6px 12px; font-size: 13px; cursor: pointer; margin: 0;">
+                            📁 ファイルを追加
+                        </label>
+                        <input type="file" id="fileUpload-${minute.id}" multiple style="display: none;" onchange="app.handleFileUpload(event, '${minute.id}')">
+                    </div>
+                    <div id="attachedFiles-${minute.id}" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        ${this.renderAttachedFiles(minute)}
+                    </div>
                 </div>`;
                 
                 // Google Sheets風の編集可能テーブル
@@ -1517,6 +1527,137 @@
                         row.remove();
                     }
                 }
+            },
+            
+            // ========== File Attachment Functions ==========
+            renderAttachedFiles(minute) {
+                if (!minute.attachedFiles || minute.attachedFiles.length === 0) {
+                    return '<div style="color: #999; font-size: 13px;">添付ファイルはありません</div>';
+                }
+                
+                const iconMap = {
+                    'pdf': '📄',
+                    'doc': '📝', 'docx': '📝',
+                    'xls': '📊', 'xlsx': '📊',
+                    'ppt': '📽️', 'pptx': '📽️',
+                    'csv': '📋',
+                    'txt': '📃',
+                    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+                    'zip': '🗜️', 'rar': '🗜️',
+                    'mp4': '🎬', 'avi': '🎬', 'mov': '🎬'
+                };
+                
+                let html = '';
+                minute.attachedFiles.forEach((file, index) => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const icon = iconMap[ext] || '📎';
+                    
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px;">
+                            <span style="font-size: 18px;">${icon}</span>
+                            <a href="${file.url}" target="_blank" style="text-decoration: none; color: #007bff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
+                                ${file.name}
+                            </a>
+                            <span style="color: #6c757d; font-size: 11px;">${this.formatFileSize(file.size)}</span>
+                            <button onclick="app.deleteAttachedFile('${minute.id}', ${index})" style="padding: 2px 6px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                                ✕
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                return html;
+            },
+            
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            },
+            
+            handleFileUpload(event, minuteId) {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+                
+                // Find minute
+                let minute = null;
+                for (const meetingId in this.minutesData) {
+                    minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) break;
+                }
+                
+                if (!minute) {
+                    alert('議事録が見つかりません');
+                    return;
+                }
+                
+                // Initialize attachedFiles array if not exists
+                if (!minute.attachedFiles) {
+                    minute.attachedFiles = [];
+                }
+                
+                // Process each file
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Create FileReader to read file as Data URL
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        minute.attachedFiles.push({
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            url: e.target.result, // Data URL
+                            uploadDate: new Date().toISOString()
+                        });
+                        
+                        // Save to localStorage
+                        this.saveToLocalStorage();
+                        
+                        // Re-render the attached files section
+                        const filesContainer = document.getElementById(`attachedFiles-${minuteId}`);
+                        if (filesContainer) {
+                            filesContainer.innerHTML = this.renderAttachedFiles(minute);
+                        }
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+                
+                // Reset input
+                event.target.value = '';
+            },
+            
+            deleteAttachedFile(minuteId, fileIndex) {
+                if (!confirm('このファイルを削除しますか？')) return;
+                
+                // Find minute
+                let minute = null;
+                for (const meetingId in this.minutesData) {
+                    minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) break;
+                }
+                
+                if (!minute || !minute.attachedFiles) {
+                    alert('ファイルが見つかりません');
+                    return;
+                }
+                
+                // Remove file
+                minute.attachedFiles.splice(fileIndex, 1);
+                
+                // Save to localStorage
+                this.saveToLocalStorage();
+                
+                // Re-render
+                const filesContainer = document.getElementById(`attachedFiles-${minuteId}`);
+                if (filesContainer) {
+                    filesContainer.innerHTML = this.renderAttachedFiles(minute);
+                }
+                
+                alert('✅ ファイルを削除しました');
             },
             
             addNewDetailRow() {
