@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>会議一覧テスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn { padding: 8px 16px; background: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background: #357ABD; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #4A90E2; color: white; }
+        .result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>📅 経営（ボード）の会議一覧</h1>
+    
+    <table class="minutes-table" style="width: 100%; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th style="width: 50%;">会議名称</th>
+                <th style="width: 25%;">会議日</th>
+                <th style="width: 25%;">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>プロジェクト会議 1</td>
+                <td>2026-01-01</td>
+                <td>
+                    <button class="btn btn-primary" onclick="console.log('Button clicked for:', 'meeting-board-1-0'); app.showMeetingView('meeting-board-1-0'); return false;" style="padding: 6px 16px;">詳細</button>
+                </td>
+            </tr>
+            <tr>
+                <td>定例会議 2</td>
+                <td>2026-01-02</td>
+                <td>
+                    <button class="btn btn-primary" onclick="console.log('Button clicked for:', 'meeting-board-1-1'); app.showMeetingView('meeting-board-1-1'); return false;" style="padding: 6px 16px;">詳細</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="result" id="result">
+        コンソールを開いてボタンをクリックしてください
+    </div>
+    
+    <script>
+        window.app = {
+            showMeetingView: function(meetingId) {
+                console.log('✅ showMeetingView called with:', meetingId);
+                document.getElementById('result').innerHTML = 
+                    `<h3>✅ 成功！</h3><p>showMeetingView が呼ばれました<br>Meeting ID: <strong>${meetingId}</strong></p>`;
+            }
+        };
+        
+        console.log('=== Test Page Loaded ===');
+        console.log('window.app:', window.app);
+        console.log('window.app.showMeetingView:', window.app.showMeetingView);
+    </script>
+</body>
+</html>

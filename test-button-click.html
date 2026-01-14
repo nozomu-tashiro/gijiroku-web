@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ボタンクリックテスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn { padding: 10px 20px; background: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .result { margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #4A90E2; color: white; }
+    </style>
+</head>
+<body>
+    <h1>詳細ボタンクリックテスト</h1>
+    
+    <h2>テスト1: 基本的なボタン</h2>
+    <button class="btn" onclick="testClick('test-1')">基本ボタン</button>
+    
+    <h2>テスト2: テーブル内のボタン</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>会議名称</th>
+                <th>会議日</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>プロジェクト会議 1</td>
+                <td>2026-01-01</td>
+                <td>
+                    <button class="btn" onclick="testClick('meeting-board-1-0')">詳細</button>
+                </td>
+            </tr>
+            <tr>
+                <td>定例会議 2</td>
+                <td>2026-01-02</td>
+                <td>
+                    <button class="btn" onclick="testClick('meeting-board-1-1')">詳細</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>テスト3: window.app.showMeetingView を呼ぶ</h2>
+    <button class="btn" onclick="testAppCall('meeting-board-1-0')">app.showMeetingView を呼ぶ</button>
+    
+    <div class="result" id="result">
+        結果がここに表示されます
+    </div>
+    
+    <script>
+        // Mock app object
+        window.app = {
+            showMeetingView: function(meetingId) {
+                console.log('showMeetingView called with:', meetingId);
+                document.getElementById('result').innerHTML += 
+                    `<p>✅ showMeetingView が呼ばれました！<br>Meeting ID: ${meetingId}</p>`;
+            }
+        };
+        
+        function testClick(id) {
+            console.log('testClick called with:', id);
+            document.getElementById('result').innerHTML += 
+                `<p>✅ ボタンがクリックされました！<br>ID: ${id}</p>`;
+        }
+        
+        function testAppCall(meetingId) {
+            console.log('testAppCall called with:', meetingId);
+            window.app.showMeetingView(meetingId);
+        }
+        
+        console.log('Test page loaded successfully');
+        console.log('window.app:', window.app);
+    </script>
+</body>
+</html>
