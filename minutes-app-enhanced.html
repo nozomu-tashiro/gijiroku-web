@@ -538,32 +538,59 @@
                 
                 // Board level
                 html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏛️ 経営層（ボード）</div>';
+                html += `<div class="org-level-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🏛️ 経営層（ボード）</span>
+                    <button class="btn btn-success btn-sm" onclick="app.addBoard()" style="padding: 6px 12px; font-size: 13px;">+ ボード追加</button>
+                </div>`;
                 html += `
-                    <div class="org-item" data-board-id="${this.demoData.board.id}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px;">
-                        <div class="org-item-title">👔 ${this.demoData.board.name}</div>
-                        <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
+                    <div class="org-item" data-board-id="${this.demoData.board.id}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px; position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div class="org-item-title">👔 ${this.demoData.board.name}</div>
+                                <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn btn-sm" onclick="app.editBoard('${this.demoData.board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">✏️</button>
+                                <button class="btn btn-sm" onclick="app.deleteBoard('${this.demoData.board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">🗑️</button>
+                            </div>
+                        </div>
                     </div>
                 `;
                 html += '</div>';
                 
                 // Department and Team levels
                 html += '<div class="org-level">';
-                html += '<div class="org-level-title">🏢 部門・チーム一覧</div>';
+                html += `<div class="org-level-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🏢 部門・チーム一覧</span>
+                    <button class="btn btn-success btn-sm" onclick="app.addDepartment()" style="padding: 6px 12px; font-size: 13px;">+ 部門追加</button>
+                </div>`;
                 
                 this.demoData.departments.forEach(dept => {
                     const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
                     html += '<div class="org-section">';
-                    html += `<div class="org-section-title" data-dept-id="${dept.id}" style="cursor: pointer;">
-                        ${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span>
+                    html += `<div class="org-section-title" data-dept-id="${dept.id}" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span></span>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn btn-sm" onclick="event.stopPropagation(); app.addTeam('${dept.id}')" style="padding: 4px 8px; font-size: 12px; background: #28a745; color: white; border: none; border-radius: 4px;">+ チーム</button>
+                            <button class="btn btn-sm" onclick="event.stopPropagation(); app.editDepartment('${dept.id}')" style="padding: 4px 8px; font-size: 12px; background: #6c757d; color: white; border: none; border-radius: 4px;">✏️</button>
+                            <button class="btn btn-sm" onclick="event.stopPropagation(); app.deleteDepartment('${dept.id}')" style="padding: 4px 8px; font-size: 12px; background: #dc3545; color: white; border: none; border-radius: 4px; opacity: 0.7;">🗑️</button>
+                        </div>
                     </div>`;
                     html += '<div class="sub-items">';
                     
                     dept.teams.forEach(team => {
                         html += `
-                            <div class="org-item" data-team-id="${team.id}" style="padding: 15px;">
-                                <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
-                                <div class="org-item-count">${team.meetingCount}件の会議</div>
+                            <div class="org-item" data-team-id="${team.id}" style="padding: 15px; position: relative;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1;">
+                                        <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
+                                        <div class="org-item-count">${team.meetingCount}件の会議</div>
+                                    </div>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button class="btn btn-sm" onclick="event.stopPropagation(); app.editTeam('${team.id}')" style="padding: 4px 8px; font-size: 11px; background: #6c757d; color: white; border: none; border-radius: 4px;">✏️</button>
+                                        <button class="btn btn-sm" onclick="event.stopPropagation(); app.deleteTeam('${team.id}')" style="padding: 4px 8px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 4px; opacity: 0.7;">🗑️</button>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     });
@@ -1095,6 +1122,159 @@
                 }
                 
                 alert('❌ 会議が見つかりません');
+            },
+            
+            // ========== Board Management ==========
+            addBoard() {
+                const name = prompt('新しいボード名を入力してください：');
+                if (name && name.trim()) {
+                    alert('✅ デモ版では追加できません。保存機能を実装後に利用可能です。');
+                    console.log('New board:', name);
+                }
+            },
+            
+            editBoard(boardId) {
+                const newName = prompt('ボード名を変更してください：', this.demoData.board.name);
+                if (newName && newName.trim()) {
+                    this.demoData.board.name = newName.trim();
+                    alert('✅ ボード名を変更しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            deleteBoard(boardId) {
+                alert('❌ ボードは削除できません（会議データが存在する可能性があります）');
+            },
+            
+            // ========== Department Management ==========
+            addDepartment() {
+                const name = prompt('新しい部門名を入力してください：');
+                if (name && name.trim()) {
+                    const newDept = {
+                        id: `dept-${Date.now()}`,
+                        name: name.trim(),
+                        teams: []
+                    };
+                    this.demoData.departments.push(newDept);
+                    alert('✅ 部門を追加しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            editDepartment(deptId) {
+                const dept = this.demoData.departments.find(d => d.id === deptId);
+                if (!dept) {
+                    alert('❌ 部門が見つかりません');
+                    return;
+                }
+                
+                const newName = prompt('部門名を変更してください：', dept.name);
+                if (newName && newName.trim()) {
+                    dept.name = newName.trim();
+                    alert('✅ 部門名を変更しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            deleteDepartment(deptId) {
+                const dept = this.demoData.departments.find(d => d.id === deptId);
+                if (!dept) {
+                    alert('❌ 部門が見つかりません');
+                    return;
+                }
+                
+                if (dept.teams.length > 0) {
+                    alert('❌ チームが存在するため削除できません。先にチームを削除してください。');
+                    return;
+                }
+                
+                if (confirm(`部門「${dept.name}」を削除しますか？`)) {
+                    const index = this.demoData.departments.findIndex(d => d.id === deptId);
+                    this.demoData.departments.splice(index, 1);
+                    alert('✅ 部門を削除しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            // ========== Team Management ==========
+            addTeam(deptId) {
+                const dept = this.demoData.departments.find(d => d.id === deptId);
+                if (!dept) {
+                    alert('❌ 部門が見つかりません');
+                    return;
+                }
+                
+                const name = prompt('新しいチーム名を入力してください：');
+                if (name && name.trim()) {
+                    const newTeam = {
+                        id: `team-${Date.now()}`,
+                        name: name.trim(),
+                        departmentId: deptId,
+                        meetingCount: 0
+                    };
+                    dept.teams.push(newTeam);
+                    alert('✅ チームを追加しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            editTeam(teamId) {
+                let team = null;
+                let dept = null;
+                
+                for (const d of this.demoData.departments) {
+                    const t = d.teams.find(tm => tm.id === teamId);
+                    if (t) {
+                        team = t;
+                        dept = d;
+                        break;
+                    }
+                }
+                
+                if (!team) {
+                    alert('❌ チームが見つかりません');
+                    return;
+                }
+                
+                const newName = prompt('チーム名を変更してください：', team.name);
+                if (newName && newName.trim()) {
+                    team.name = newName.trim();
+                    alert('✅ チーム名を変更しました');
+                    this.showOrganizationView();
+                }
+            },
+            
+            deleteTeam(teamId) {
+                let team = null;
+                let dept = null;
+                
+                for (const d of this.demoData.departments) {
+                    const t = d.teams.find(tm => tm.id === teamId);
+                    if (t) {
+                        team = t;
+                        dept = d;
+                        break;
+                    }
+                }
+                
+                if (!team) {
+                    alert('❌ チームが見つかりません');
+                    return;
+                }
+                
+                // Check if team has meetings
+                const teamMeetings = this.meetingsData[teamId];
+                if (teamMeetings && teamMeetings.length > 0) {
+                    alert('❌ 会議が存在するため削除できません。先に会議を削除してください。');
+                    return;
+                }
+                
+                if (confirm(`チーム「${team.name}」を削除しますか？`)) {
+                    const index = dept.teams.findIndex(t => t.id === teamId);
+                    dept.teams.splice(index, 1);
+                    alert('✅ チームを削除しました');
+                    this.showOrganizationView();
+                }
             },
             
             showMinuteDetail(minuteId) {
