@@ -1183,33 +1183,93 @@
                 let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
                 html += '<div class="card">';
                 html += `<div class="card-title">
-                    <span>📄 議事録詳細</span>
+                    <span>📊 議事録詳細 - ${minute.meetingName || '会議名'}</span>
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="app.openEditMinuteModal('${minute.id}')">✏️ 編集</button>
+                        <button class="btn btn-success" onclick="app.addNewDetailRow()">+ 行を追加</button>
+                        <button class="btn btn-primary" onclick="app.saveDetailTable('${minute.id}')">💾 保存</button>
                     </div>
                 </div>`;
                 
-                // 詳細情報を表示
-                const statusMap = {
-                    'pending': { class: 'badge-pending', text: '未着手' },
-                    'progress': { class: 'badge-progress', text: '進行中' },
-                    'completed': { class: 'badge-completed', text: '完了' },
-                    'overdue': { class: 'badge-overdue', text: '期限超過' }
-                };
-                const status = statusMap[minute.status] || statusMap.pending;
+                // Google Sheets風の編集可能テーブル
+                html += '<div style="overflow-x: auto;">';
+                html += '<table class="editable-table" style="width: 100%; border-collapse: collapse; background: white;">';
+                html += `
+                    <thead>
+                        <tr style="background-color: #f0f0f0; position: sticky; top: 0;">
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 5%; text-align: center; font-weight: 600;">#</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 15%; font-weight: 600;">会議名</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 12%; font-weight: 600;">サブタイトル</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 10%; font-weight: 600;">開催日</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 18%; font-weight: 600;">参加者</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 12%; font-weight: 600;">ファシリテーター</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 15%; font-weight: 600;">備考</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 8%; font-weight: 600;">ステータス</th>
+                            <th style="padding: 12px; border: 1px solid #d0d0d0; width: 5%; font-weight: 600; text-align: center;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="editableTableBody">
+                `;
                 
-                html += '<div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">';
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議名：</strong><span>${minute.meetingName || ''}</span></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">サブタイトル：</strong><span>${minute.subtitle || ''}</span></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議開催日：</strong><span>${minute.meetingDate || ''}</span></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">ファシリテーター：</strong><span>${minute.facilitator || ''}</span></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">ステータス：</strong><span class="badge ${status.class}" style="padding: 4px 12px; border-radius: 4px;">${status.text}</span></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">会議参加者：</strong><div style="margin-left: 150px; margin-top: -20px; white-space: pre-wrap;">${minute.participants || ''}</div></div>`;
-                html += `<div style="margin-bottom: 15px;"><strong style="display: inline-block; width: 150px;">備考：</strong><div style="margin-left: 150px; margin-top: -20px; white-space: pre-wrap;">${minute.notes || ''}</div></div>`;
-                html += '</div>';
+                // Initialize detail rows if not exists
+                if (!minute.detailRows || minute.detailRows.length === 0) {
+                    minute.detailRows = [{
+                        meetingName: minute.meetingName || '',
+                        subtitle: minute.subtitle || '',
+                        meetingDate: minute.meetingDate || '',
+                        participants: minute.participants || '',
+                        facilitator: minute.facilitator || '',
+                        notes: minute.notes || '',
+                        status: minute.status || 'pending'
+                    }];
+                }
+                
+                // Render rows
+                minute.detailRows.forEach((row, index) => {
+                    const statusOptions = ['pending', 'progress', 'completed', 'overdue'];
+                    const statusTexts = { pending: '未着手', progress: '進行中', completed: '完了', overdue: '期限超過' };
+                    
+                    html += `
+                        <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500;">${index + 1}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="meetingName" data-row="${index}">${row.meetingName || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="subtitle" data-row="${index}">${row.subtitle || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="meetingDate" data-row="${index}">${row.meetingDate || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="participants" data-row="${index}">${row.participants || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="facilitator" data-row="${index}">${row.facilitator || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;" contenteditable="true" class="editable-cell" data-field="notes" data-row="${index}">${row.notes || ''}</td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0;">
+                                <select class="status-select" data-row="${index}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+                                    ${statusOptions.map(opt => `<option value="${opt}" ${row.status === opt ? 'selected' : ''}>${statusTexts[opt]}</option>`).join('')}
+                                </select>
+                            </td>
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
+                                <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 12px;">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                    </tbody>
+                </table>
+                </div>`;
                 
                 html += '</div>';
                 content.innerHTML = html;
+                
+                // Add cell focus styling
+                setTimeout(() => {
+                    document.querySelectorAll('.editable-cell').forEach(cell => {
+                        cell.addEventListener('focus', function() {
+                            this.style.outline = '2px solid #4285f4';
+                            this.style.backgroundColor = '#e8f0fe';
+                        });
+                        cell.addEventListener('blur', function() {
+                            this.style.outline = 'none';
+                            this.style.backgroundColor = '';
+                        });
+                    });
+                }, 100);
             },
             
             getStatusText(status) {
@@ -1249,6 +1309,89 @@
                     const row = document.getElementById(`row-${rowIndex}`);
                     if (row) {
                         row.remove();
+                    }
+                }
+            },
+            
+            addNewDetailRow() {
+                if (!this.currentMinute.detailRows) {
+                    this.currentMinute.detailRows = [];
+                }
+                
+                this.currentMinute.detailRows.push({
+                    meetingName: this.currentMinute.meetingName || '',
+                    subtitle: '',
+                    meetingDate: new Date().toISOString().split('T')[0],
+                    participants: '',
+                    facilitator: '',
+                    notes: '',
+                    status: 'pending'
+                });
+                
+                this.showMinuteDetailTable(this.currentMinute.id);
+            },
+            
+            deleteDetailRow(rowIndex) {
+                if (confirm('この行を削除しますか？')) {
+                    if (this.currentMinute.detailRows && this.currentMinute.detailRows.length > 1) {
+                        this.currentMinute.detailRows.splice(rowIndex, 1);
+                        this.showMinuteDetailTable(this.currentMinute.id);
+                    } else {
+                        alert('最低1行は必要です。');
+                    }
+                }
+            },
+            
+            saveDetailTable(minuteId) {
+                // Collect data from all cells
+                const cells = document.querySelectorAll('.editable-cell');
+                const statusSelects = document.querySelectorAll('.status-select');
+                
+                // Group by row
+                const rowData = {};
+                cells.forEach(cell => {
+                    const row = cell.getAttribute('data-row');
+                    const field = cell.getAttribute('data-field');
+                    const value = cell.textContent.trim();
+                    
+                    if (!rowData[row]) {
+                        rowData[row] = {};
+                    }
+                    rowData[row][field] = value;
+                });
+                
+                // Add status values
+                statusSelects.forEach(select => {
+                    const row = select.getAttribute('data-row');
+                    if (rowData[row]) {
+                        rowData[row].status = select.value;
+                    }
+                });
+                
+                // Convert to array
+                const updatedRows = Object.keys(rowData).sort().map(key => rowData[key]);
+                
+                // Find and update minute
+                for (const meetingId in this.minutesData) {
+                    const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) {
+                        minute.detailRows = updatedRows;
+                        
+                        // Also update main minute data with first row
+                        if (updatedRows.length > 0) {
+                            minute.meetingName = updatedRows[0].meetingName;
+                            minute.subtitle = updatedRows[0].subtitle;
+                            minute.meetingDate = updatedRows[0].meetingDate;
+                            minute.participants = updatedRows[0].participants;
+                            minute.facilitator = updatedRows[0].facilitator;
+                            minute.notes = updatedRows[0].notes;
+                            minute.status = updatedRows[0].status;
+                        }
+                        
+                        this.saveToLocalStorage();
+                        alert('✅ 保存しました');
+                        this.showMeetingView(this.currentMeeting.id);
+                        return;
                     }
                 }
             },
