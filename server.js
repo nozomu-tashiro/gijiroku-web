@@ -13,9 +13,26 @@ function loadOpenAIConfig() {
         if (fs.existsSync(configPath)) {
             const fileContents = fs.readFileSync(configPath, 'utf8');
             const config = yaml.load(fileContents);
+            
+            // Expand environment variables
+            let apiKey = config?.openai?.api_key || process.env.OPENAI_API_KEY;
+            if (apiKey && apiKey.includes('${')) {
+                // Replace ${VAR_NAME} with actual environment variable value
+                apiKey = apiKey.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+                    return process.env[varName] || match;
+                });
+            }
+            
+            let baseUrl = config?.openai?.base_url || process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1';
+            if (baseUrl && baseUrl.includes('${')) {
+                baseUrl = baseUrl.replace(/\$\{([^}]+)\}/g, (match, varName) => {
+                    return process.env[varName] || match;
+                });
+            }
+            
             return {
-                api_key: config?.openai?.api_key || process.env.OPENAI_API_KEY,
-                base_url: config?.openai?.base_url || process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
+                api_key: apiKey,
+                base_url: baseUrl
             };
         }
     } catch (error) {
@@ -24,7 +41,7 @@ function loadOpenAIConfig() {
     
     // Fallback to environment variables
     return {
-        api_key: process.env.OPENAI_API_KEY,
+        api_key: process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN,
         base_url: process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
     };
 }
