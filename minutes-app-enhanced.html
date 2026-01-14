@@ -164,6 +164,7 @@
                     <div id="headerUserName"></div>
                     <div id="headerUserDept"></div>
                 </div>
+                <button class="btn btn-warning" onclick="app.resetAllData()" style="margin-right: 10px; padding: 8px 16px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 データリセット</button>
                 <button class="logout-btn" onclick="app.logout()">ログアウト</button>
             </div>
         </div>
@@ -238,13 +239,48 @@
             currentMinute: null,
             editingMinuteId: null,
             demoData: null,
-            minutesData: {}, // Store minutes data in memory
+            meetingsData: {}, // Store meetings data by entityId
+            minutesData: {}, // Store minutes data by meetingId
             archivedMinutes: [], // Store archived minutes
             
             init() {
                 this.loadDemoData();
+                this.loadFromLocalStorage(); // Load data from localStorage
                 this.checkAuth();
                 this.setupEventListeners();
+            },
+            
+            loadFromLocalStorage() {
+                const savedMeetings = localStorage.getItem('meetingsData');
+                const savedMinutes = localStorage.getItem('minutesData');
+                
+                if (savedMeetings) {
+                    this.meetingsData = JSON.parse(savedMeetings);
+                    console.log('Loaded meetings from localStorage:', this.meetingsData);
+                }
+                
+                if (savedMinutes) {
+                    this.minutesData = JSON.parse(savedMinutes);
+                    console.log('Loaded minutes from localStorage:', this.minutesData);
+                }
+            },
+            
+            saveToLocalStorage() {
+                localStorage.setItem('meetingsData', JSON.stringify(this.meetingsData));
+                localStorage.setItem('minutesData', JSON.stringify(this.minutesData));
+                console.log('Saved to localStorage');
+            },
+            
+            resetAllData() {
+                if (confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
+                    this.meetingsData = {};
+                    this.minutesData = {};
+                    this.archivedMinutes = [];
+                    localStorage.removeItem('meetingsData');
+                    localStorage.removeItem('minutesData');
+                    alert('✅ データをリセットしました');
+                    location.reload();
+                }
             },
             
             setupEventListeners() {
@@ -390,78 +426,23 @@
                     ],
                     
                     generateMeetings(entityId) {
-                        const meetingTypes = ['定例会議', '緊急ミーティング', 'プロジェクト会議', '報告会', '戦略会議', '経営会議', '幹部会議'];
-                        const meetings = [];
-                        const count = entityId === 'board-1' ? 12 : Math.floor(Math.random() * 5) + 3;
-                        
-                        for (let i = 0; i < count; i++) {
-                            const date = new Date();
-                            date.setDate(date.getDate() - Math.floor(Math.random() * 60));
-                            
-                            meetings.push({
-                                id: `meeting-${entityId}-${i}`,
-                                entityId: entityId,
-                                name: `${meetingTypes[Math.floor(Math.random() * meetingTypes.length)]} ${i + 1}`,
-                                date: date.toISOString().split('T')[0],
-                                minutesCount: Math.floor(Math.random() * 10) + 3,
-                                participants: Math.floor(Math.random() * 8) + 3
-                            });
+                        // LocalStorageから読み込む
+                        if (window.app && window.app.meetingsData && window.app.meetingsData[entityId]) {
+                            return window.app.meetingsData[entityId].sort((a, b) => new Date(b.date) - new Date(a.date));
                         }
                         
-                        return meetings.sort((a, b) => new Date(b.date) - new Date(a.date));
+                        // データがない場合は空配列を返す
+                        return [];
                     },
                     
                     generateMinutes(meetingId) {
-                        // app.minutesData を参照（this.minutesData ではなく）
+                        // LocalStorageから読み込む
                         if (window.app && window.app.minutesData && window.app.minutesData[meetingId]) {
                             return window.app.minutesData[meetingId].filter(m => !m.archived);
                         }
                         
-                        const minutes = [];
-                        const count = Math.floor(Math.random() * 8) + 3;
-                        const topics = [
-                            '新規プロジェクト提案',
-                            '予算見直し',
-                            'システム改善',
-                            '人員配置検討',
-                            '顧客対応方針',
-                            '業務効率化施策',
-                            '四半期目標設定',
-                            'リスク管理体制',
-                            '契約条件見直し',
-                            '営業戦略立案',
-                            '経営方針決定',
-                            '中期経営計画',
-                            '組織再編検討'
-                        ];
-                        const statuses = ['pending', 'progress', 'completed'];
-                        const members = ['田中太郎', '鈴木花子', '佐藤次郎', '高橋美咲', '伊藤健太', '山田花子', '渡辺太郎'];
-                        
-                        for (let i = 0; i < count; i++) {
-                            const dueDate = new Date();
-                            dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30));
-                            const isOverdue = Math.random() < 0.2;
-                            
-                            minutes.push({
-                                id: `minute-${meetingId}-${i}-${Date.now()}`,
-                                meetingId: meetingId,
-                                topic: topics[Math.floor(Math.random() * topics.length)],
-                                decision: `決定事項の詳細内容がここに入ります。会議で合意された方針や決定事項を記録します。`,
-                                issue: `課題や問題点がここに記載されます。解決すべき事項や検討が必要な内容を記述します。`,
-                                dueDate: isOverdue ? '2025-12-' + String(Math.floor(Math.random() * 28) + 1).padStart(2, '0') : dueDate.toISOString().split('T')[0],
-                                assignee: members[Math.floor(Math.random() * members.length)],
-                                action: `実行すべきアクションの内容。担当者が具体的に何をするかを明確に記載します。`,
-                                reason: `この決定に至った理由や背景。なぜこの決定をしたのか、判断の根拠を記録します。`,
-                                status: isOverdue ? 'overdue' : statuses[Math.floor(Math.random() * statuses.length)],
-                                archived: false
-                            });
-                        }
-                        
-                        // window.app.minutesData に保存
-                        if (window.app && window.app.minutesData) {
-                            window.app.minutesData[meetingId] = minutes;
-                        }
-                        return minutes;
+                        // データがない場合は空配列を返す
+                        return [];
                     }
                 };
             },
@@ -993,8 +974,24 @@
                     return;
                 }
                 
-                // 新しい会議を作成（簡易実装）
-                alert(`✅ 会議「${meetingName}」を追加しました（デモ版では実際には保存されません）`);
+                // 新しい会議を作成
+                const newMeeting = {
+                    id: `meeting-${entityId}-${Date.now()}`,
+                    entityId: entityId,
+                    name: meetingName.trim(),
+                    date: new Date().toISOString().split('T')[0],
+                    minutesCount: 0,
+                    participants: 0
+                };
+                
+                // LocalStorageに保存
+                if (!this.meetingsData[entityId]) {
+                    this.meetingsData[entityId] = [];
+                }
+                this.meetingsData[entityId].push(newMeeting);
+                this.saveToLocalStorage();
+                
+                alert(`✅ 会議「${meetingName}」を追加しました`);
                 
                 // 画面を再表示
                 if (entityId === 'board-1') {
@@ -1007,18 +1004,13 @@
             openEditMeetingModal(meetingId) {
                 // 会議を検索
                 let meeting = null;
-                const boardMeetings = this.demoData.generateMeetings('board-1');
-                meeting = boardMeetings.find(m => m.id === meetingId);
+                let entityId = null;
                 
-                if (!meeting) {
-                    // チームの会議を検索
-                    for (const dept of this.demoData.departments) {
-                        for (const team of dept.teams) {
-                            const teamMeetings = this.demoData.generateMeetings(team.id);
-                            meeting = teamMeetings.find(m => m.id === meetingId);
-                            if (meeting) break;
-                        }
-                        if (meeting) break;
+                for (const [key, meetings] of Object.entries(this.meetingsData)) {
+                    meeting = meetings.find(m => m.id === meetingId);
+                    if (meeting) {
+                        entityId = key;
+                        break;
                     }
                 }
                 
@@ -1032,7 +1024,8 @@
                     return;
                 }
                 
-                meeting.name = newName;
+                meeting.name = newName.trim();
+                this.saveToLocalStorage();
                 alert(`✅ 会議名称を「${newName}」に変更しました`);
                 
                 // 画面を再表示
@@ -1045,46 +1038,41 @@
             
             deleteMeeting(meetingId) {
                 // 議事録があるかチェック
-                if (window.app && window.app.minutesData && window.app.minutesData[meetingId]) {
-                    const minutes = window.app.minutesData[meetingId].filter(m => !m.archived);
+                if (this.minutesData[meetingId]) {
+                    const minutes = this.minutesData[meetingId].filter(m => !m.archived);
                     if (minutes.length > 0) {
                         alert(`❌ この会議には${minutes.length}件の議事録があるため、削除できません。\n先に議事録を削除してください。`);
                         return;
                     }
                 }
                 
-                // 会議を検索
+                // 会議を検索して削除
                 let meeting = null;
-                const boardMeetings = this.demoData.generateMeetings('board-1');
-                meeting = boardMeetings.find(m => m.id === meetingId);
+                let entityId = null;
                 
-                if (!meeting) {
-                    // チームの会議を検索
-                    for (const dept of this.demoData.departments) {
-                        for (const team of dept.teams) {
-                            const teamMeetings = this.demoData.generateMeetings(team.id);
-                            meeting = teamMeetings.find(m => m.id === meetingId);
-                            if (meeting) break;
+                for (const [key, meetings] of Object.entries(this.meetingsData)) {
+                    const index = meetings.findIndex(m => m.id === meetingId);
+                    if (index !== -1) {
+                        meeting = meetings[index];
+                        entityId = key;
+                        
+                        if (confirm(`会議「${meeting.name}」を削除しますか？`)) {
+                            meetings.splice(index, 1);
+                            this.saveToLocalStorage();
+                            alert(`✅ 会議「${meeting.name}」を削除しました`);
+                            
+                            // 画面を再表示
+                            if (this.currentBoard) {
+                                this.showBoardView();
+                            } else if (this.currentTeam) {
+                                this.showTeamView(this.currentTeam.id);
+                            }
                         }
-                        if (meeting) break;
+                        return;
                     }
                 }
                 
-                if (!meeting) {
-                    alert('❌ 会議が見つかりません');
-                    return;
-                }
-                
-                if (confirm(`会議「${meeting.name}」を削除しますか？`)) {
-                    alert(`✅ 会議「${meeting.name}」を削除しました（デモ版では実際には削除されません）`);
-                    
-                    // 画面を再表示
-                    if (this.currentBoard) {
-                        this.showBoardView();
-                    } else if (this.currentTeam) {
-                        this.showTeamView(this.currentTeam.id);
-                    }
-                }
+                alert('❌ 会議が見つかりません');
             },
             
             showMinuteDetail(minuteId) {
