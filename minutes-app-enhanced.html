@@ -222,6 +222,51 @@
         </div>
     </div>
 
+    <!-- AI Analysis Modal -->
+    <div id="aiAnalysisModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <h2 class="modal-title">🤖 AI議事録解析</h2>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 15px;">議事録のテキストを入力するか、ファイルをアップロードしてください。AIが自動的に解析して、議題・アクション・担当者等を抽出します。</p>
+                
+                <!-- File Upload -->
+                <div style="margin-bottom: 15px;">
+                    <label for="aiAnalysisFileUpload" class="btn btn-info" style="display: inline-block; cursor: pointer; margin: 0;">
+                        📄 ファイルをアップロード (.txt, .docx)
+                    </label>
+                    <input type="file" id="aiAnalysisFileUpload" accept=".txt,.docx" style="display: none;" onchange="app.handleAIAnalysisFile(event)">
+                    <span id="aiAnalysisFileName" style="margin-left: 10px; color: #666;"></span>
+                </div>
+                
+                <!-- Text Input -->
+                <div class="form-group">
+                    <label for="aiAnalysisText">または、テキストを直接入力：</label>
+                    <textarea id="aiAnalysisText" rows="12" placeholder="議事録のテキストをコピー＆ペーストしてください..." style="font-family: monospace; font-size: 13px;"></textarea>
+                </div>
+                
+                <!-- Progress -->
+                <div id="aiAnalysisProgress" style="display: none; margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 4px; border-left: 4px solid #007bff;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="spinner" style="border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;"></div>
+                        <span id="aiAnalysisProgressText">AI解析中...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="app.closeAIAnalysisModal()">キャンセル</button>
+                <button type="button" class="btn btn-primary" onclick="app.startAIAnalysis()">🤖 AI解析開始</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <script>
         console.log('=== Script Loading Started ===');
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
@@ -1373,6 +1418,7 @@
                 html += `<div class="card-title">
                     <span>📊 ${minute.meetingName || '会議名'} の議事録詳細</span>
                     <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-success" onclick="app.openAIAnalysisModal()" style="background: #28a745;">🤖 AI解析</button>
                         <div class="dropdown" style="position: relative;">
                             <button class="btn btn-info" onclick="app.toggleExportMenu()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
                                 📥 エクスポート
@@ -2178,6 +2224,209 @@
         app.exportZIP = function(minuteId) {
             alert('🗜️ ZIP形式でのエクスポートには専用ライブラリが必要です。\n\n複数ファイルを個別にダウンロード後、手動でZIP圧縮してください。');
             this.toggleExportMenu();
+        };
+        
+        // AI Analysis Functions
+        app.openAIAnalysisModal = function() {
+            document.getElementById('aiAnalysisModal').classList.add('active');
+            document.getElementById('aiAnalysisText').value = '';
+            document.getElementById('aiAnalysisFileName').textContent = '';
+            document.getElementById('aiAnalysisProgress').style.display = 'none';
+        };
+        
+        app.closeAIAnalysisModal = function() {
+            document.getElementById('aiAnalysisModal').classList.remove('active');
+        };
+        
+        app.handleAIAnalysisFile = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const fileName = file.name;
+            document.getElementById('aiAnalysisFileName').textContent = fileName;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                document.getElementById('aiAnalysisText').value = text;
+            };
+            
+            // Read as text
+            reader.readAsText(file);
+        };
+        
+        app.startAIAnalysis = async function() {
+            const text = document.getElementById('aiAnalysisText').value.trim();
+            
+            if (!text) {
+                alert('テキストを入力してください');
+                return;
+            }
+            
+            // Show progress
+            const progressDiv = document.getElementById('aiAnalysisProgress');
+            const progressText = document.getElementById('aiAnalysisProgressText');
+            progressDiv.style.display = 'block';
+            progressText.textContent = 'AI解析中...';
+            
+            try {
+                // Call OpenAI API to analyze the text
+                const analysisResult = await this.analyzeMinutesWithAI(text);
+                
+                progressText.textContent = '解析完了！データを取り込み中...';
+                
+                // Add analyzed rows to the current minute
+                if (analysisResult && analysisResult.length > 0) {
+                    if (!this.currentMinute.detailRows) {
+                        this.currentMinute.detailRows = [];
+                    }
+                    
+                    // Append all analyzed rows
+                    this.currentMinute.detailRows.push(...analysisResult);
+                    
+                    // Save to localStorage
+                    this.saveToLocalStorage();
+                    
+                    // Close modal and refresh view
+                    this.closeAIAnalysisModal();
+                    this.showMinuteDetailTable(this.currentMinute.id);
+                    
+                    alert(`✅ AI解析完了！${analysisResult.length}件のアイテムを追加しました。`);
+                } else {
+                    alert('⚠️ 解析結果が空です。テキストの形式を確認してください。');
+                }
+            } catch (error) {
+                console.error('AI Analysis error:', error);
+                alert(`❌ AI解析に失敗しました: ${error.message}`);
+            } finally {
+                progressDiv.style.display = 'none';
+            }
+        };
+        
+        app.analyzeMinutesWithAI = async function(text) {
+            console.log('Starting AI analysis...');
+            
+            // Load OpenAI config
+            const config = await this.loadOpenAIConfig();
+            
+            if (!config || !config.api_key) {
+                throw new Error('OpenAI APIキーが設定されていません');
+            }
+            
+            const prompt = `あなたは議事録解析の専門家です。以下の議事録テキストを解析し、JSONフォーマットで構造化データを抽出してください。
+
+議事録テキスト:
+${text}
+
+以下のJSON配列形式で出力してください。必ず有効なJSONとして出力してください：
+[
+  {
+    "agenda": "議題・アジェンダ（具体的な議題や話題）",
+    "action": "具体的なアクション（実施すべき行動）",
+    "assignee": "担当者（実施責任者の名前）",
+    "deadline": "期限（YYYY-MM-DD形式、不明な場合は空文字）",
+    "purpose": "目的・期待される効果（なぜこれを行うのか）",
+    "status": "pending（未着手）、progress（進行中）、completed（完了）、overdue（期限超過）のいずれか",
+    "notes1": "備考1（追加情報や注意事項）",
+    "notes2": "備考2（その他の情報）"
+  }
+]
+
+重要なルール：
+1. 決定事項、アクションアイテム、タスクを中心に抽出してください
+2. 担当者名が明記されている項目を優先してください
+3. 期限が明記されている場合は必ず含めてください
+4. statusは文脈から判断してください（明示的な記載がない場合はpending）
+5. 有効なJSON形式で出力してください（必ず配列で返してください）
+6. テキストに含まれる改行や特殊文字は適切にエスケープしてください`;
+
+            const response = await fetch(config.base_url + '/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.api_key}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-5',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'あなたは議事録解析の専門家です。与えられた議事録テキストから、構造化されたデータを抽出してJSON形式で返します。'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 4000
+                })
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`API Error: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            const content = data.choices[0].message.content;
+            
+            console.log('AI Response:', content);
+            
+            // Parse JSON from response
+            // Remove markdown code blocks if present
+            let jsonText = content.trim();
+            if (jsonText.startsWith('```json')) {
+                jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+            } else if (jsonText.startsWith('```')) {
+                jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            }
+            
+            const parsedData = JSON.parse(jsonText);
+            
+            // Validate and normalize data
+            if (!Array.isArray(parsedData)) {
+                throw new Error('APIレスポンスが配列ではありません');
+            }
+            
+            // Ensure all required fields exist
+            return parsedData.map(item => ({
+                agenda: item.agenda || '',
+                action: item.action || '',
+                assignee: item.assignee || '',
+                deadline: item.deadline || '',
+                purpose: item.purpose || '',
+                status: item.status || 'pending',
+                notes1: item.notes1 || '',
+                notes2: item.notes2 || ''
+            }));
+        };
+        
+        app.loadOpenAIConfig = async function() {
+            try {
+                // Try to load from environment variables or config file
+                // In browser, we'll use a simple approach - check if config is available
+                const response = await fetch('/load-openai-config', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => null);
+                
+                if (response && response.ok) {
+                    return await response.json();
+                }
+                
+                // Fallback: use environment variables if available
+                // This would be injected by the server
+                return {
+                    api_key: window.OPENAI_API_KEY || null,
+                    base_url: window.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
+                };
+            } catch (error) {
+                console.error('Failed to load OpenAI config:', error);
+                return null;
+            }
         };
         
         console.log('=== Setting window.app ===');
