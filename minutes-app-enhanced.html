@@ -903,34 +903,44 @@
                 
                 let html = `<button class="btn btn-secondary back-btn" onclick="${backAction}">← 戻る</button>`;
                 html += '<div class="card">';
-                html += `<div class="card-title">
+                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>📝 ${meeting.name} の議事録一覧（${meeting.date}）</span>
-                    <button class="btn btn-primary" onclick="app.openAddMinuteModal('${meetingId}')">+ 議事録を追加</button>
+                    <button class="btn btn-success" onclick="app.openAddMinuteModal('${meetingId}')">+ 議事録を追加</button>
                 </div>`;
                 
                 if (minutes.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
                 } else {
-                    // シンプルな会議一覧（会議名称、会議日、詳細ボタンのみ）
-                    html += '<table class="minutes-table" style="width: 100%;">';
+                    // 改善されたテーブル形式（テーマ列を追加、詳細・編集・削除ボタン）
+                    html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
                     html += `
                         <thead>
                             <tr>
-                                <th style="width: 40%;">会議名称</th>
-                                <th style="width: 30%;">会議日</th>
-                                <th style="width: 30%;">操作</th>
+                                <th style="width: 60%; padding: 12px;">テーマ</th>
+                                <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
                     `;
                     
-                    minutes.forEach(minute => {
+                    minutes.forEach((minute, index) => {
                         html += `
-                            <tr>
-                                <td>${minute.topic}</td>
-                                <td>${meeting.date}</td>
-                                <td>
-                                    <button class="btn btn-primary" onclick="app.showMinuteDetailTable('${minute.id}')">詳細</button>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 12px; font-size: 15px; font-weight: 500;">${minute.topic}</td>
+                                <td style="padding: 8px 12px; text-align: right;">
+                                    <button class="btn btn-primary detail-minute-btn" data-minute-id="${minute.id}" 
+                                        style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
+                                        📋 詳細
+                                    </button>
+                                    <button class="btn btn-secondary edit-minute-btn" data-minute-id="${minute.id}" 
+                                        style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
+                                        ✏️ 編集
+                                    </button>
+                                    <button class="btn btn-danger delete-minute-btn" data-minute-id="${minute.id}" 
+                                        style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
+                                        title="削除">
+                                        🗑️
+                                    </button>
                                 </td>
                             </tr>
                         `;
@@ -941,6 +951,40 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+                
+                // ★ DOMに追加された後、ボタンにイベントハンドラを設定
+                if (minutes.length > 0) {
+                    setTimeout(() => {
+                        // 詳細ボタン
+                        const detailButtons = content.querySelectorAll('.detail-minute-btn');
+                        detailButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const minuteId = button.getAttribute('data-minute-id');
+                                this.showMinuteDetailTable(minuteId);
+                            });
+                        });
+                        
+                        // 編集ボタン
+                        const editButtons = content.querySelectorAll('.edit-minute-btn');
+                        editButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const minuteId = button.getAttribute('data-minute-id');
+                                this.openEditMinuteModal(minuteId);
+                            });
+                        });
+                        
+                        // 削除ボタン
+                        const deleteButtons = content.querySelectorAll('.delete-minute-btn');
+                        deleteButtons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const minuteId = button.getAttribute('data-minute-id');
+                                this.archiveMinute(minuteId);
+                            });
+                        });
+                        
+                        console.log('✅ All minute button handlers attached');
+                    }, 100);
+                }
             },
             
             openAddMeetingModal(entityId) {
