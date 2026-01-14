@@ -623,13 +623,13 @@
                     <tbody>
                 `;
                 
-                meetings.forEach(meeting => {
+                meetings.forEach((meeting, index) => {
                     html += `
                         <tr>
                             <td>${meeting.name}</td>
                             <td>${meeting.date}</td>
                             <td>
-                                <button class="btn btn-primary" onclick="console.log('Button clicked for:', '${meeting.id}'); if (window.app && window.app.showMeetingView) { window.app.showMeetingView('${meeting.id}'); } else { alert('window.app が見つかりません'); } return false;" style="padding: 6px 16px;">詳細</button>
+                                <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
                             </td>
                         </tr>
                     `;
@@ -638,6 +638,22 @@
                 html += '</tbody></table>';
                 html += '</div>';
                 content.innerHTML = html;
+                
+                // ★ DOMに追加された後、ボタンにイベントハンドラを設定
+                setTimeout(() => {
+                    const buttons = content.querySelectorAll('.detail-btn');
+                    console.log(`Found ${buttons.length} detail buttons`);
+                    
+                    buttons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const meetingId = button.getAttribute('data-meeting-id');
+                            console.log('Detail button clicked:', meetingId);
+                            this.showMeetingView(meetingId);
+                        });
+                    });
+                    
+                    console.log('✅ All detail button handlers attached');
+                }, 100);
             },
             
             showDepartmentView(deptId) {
@@ -714,13 +730,13 @@
                         <tbody>
                     `;
                     
-                    meetings.forEach(meeting => {
+                    meetings.forEach((meeting, index) => {
                         html += `
                             <tr>
                                 <td>${meeting.name}</td>
                                 <td>${meeting.date}</td>
                                 <td>
-                                    <button class="btn btn-primary" onclick="console.log('Button clicked for:', '${meeting.id}'); if (window.app && window.app.showMeetingView) { window.app.showMeetingView('${meeting.id}'); } else { alert('window.app が見つかりません'); } return false;" style="padding: 6px 16px;">詳細</button>
+                                    <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
                                 </td>
                             </tr>
                         `;
@@ -731,6 +747,24 @@
                 
                 html += '</div>';
                 content.innerHTML = html;
+                
+                // ★ DOMに追加された後、ボタンにイベントハンドラを設定
+                if (meetings.length > 0) {
+                    setTimeout(() => {
+                        const buttons = content.querySelectorAll('.detail-btn');
+                        console.log(`Found ${buttons.length} detail buttons in team view`);
+                        
+                        buttons.forEach(button => {
+                            button.addEventListener('click', () => {
+                                const meetingId = button.getAttribute('data-meeting-id');
+                                console.log('Detail button clicked:', meetingId);
+                                this.showMeetingView(meetingId);
+                            });
+                        });
+                        
+                        console.log('✅ All detail button handlers attached in team view');
+                    }, 100);
+                }
             },
             
             showMeetingView(meetingId) {
