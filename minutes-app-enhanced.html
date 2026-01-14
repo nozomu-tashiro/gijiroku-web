@@ -617,13 +617,13 @@
                     <button class="btn btn-success" onclick="app.openAddMeetingModal('board-1')">+ 会議名称追加</button>
                 </div>`;
                 
-                // シンプルなテーブル形式（会議名称、編集、削除、詳細ボタン）
-                html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
+                // 改善されたテーブル形式（詳細を強調、編集を中程度、削除を控えめに）
+                html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
                 html += `
                     <thead>
                         <tr>
-                            <th style="width: 50%;">会議名称</th>
-                            <th style="width: 50%;">操作</th>
+                            <th style="width: 60%; padding: 12px;">会議名称</th>
+                            <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -631,12 +631,22 @@
                 
                 meetings.forEach((meeting, index) => {
                     html += `
-                        <tr>
-                            <td>${meeting.name}</td>
-                            <td>
-                                <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">編集</button>
-                                <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">削除</button>
-                                <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 12px; font-size: 15px; font-weight: 500;">${meeting.name}</td>
+                            <td style="padding: 8px 12px; text-align: right;">
+                                <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" 
+                                    style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
+                                    📋 詳細
+                                </button>
+                                <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" 
+                                    style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
+                                    ✏️ 編集
+                                </button>
+                                <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" 
+                                    style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
+                                    title="削除">
+                                    🗑️
+                                </button>
                             </td>
                         </tr>
                     `;
@@ -746,13 +756,13 @@
                 if (meetings.length === 0) {
                     html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
                 } else {
-                    // シンプルなテーブル形式（会議名称、編集、削除、詳細ボタン）
-                    html += '<table class="minutes-table" style="width: 100%; margin-top: 20px;">';
+                    // 改善されたテーブル形式（詳細を強調、編集を中程度、削除を控えめに）
+                    html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
                     html += `
                         <thead>
                             <tr>
-                                <th style="width: 50%;">会議名称</th>
-                                <th style="width: 50%;">操作</th>
+                                <th style="width: 60%; padding: 12px;">会議名称</th>
+                                <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -760,12 +770,22 @@
                     
                     meetings.forEach((meeting, index) => {
                         html += `
-                            <tr>
-                                <td>${meeting.name}</td>
-                                <td>
-                                    <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">編集</button>
-                                    <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; margin-right: 5px;">削除</button>
-                                    <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" style="padding: 6px 16px;">詳細</button>
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 12px; font-size: 15px; font-weight: 500;">${meeting.name}</td>
+                                <td style="padding: 8px 12px; text-align: right;">
+                                    <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" 
+                                        style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
+                                        📋 詳細
+                                    </button>
+                                    <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" 
+                                        style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
+                                        ✏️ 編集
+                                    </button>
+                                    <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" 
+                                        style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
+                                        title="削除">
+                                        🗑️
+                                    </button>
                                 </td>
                             </tr>
                         `;
