@@ -629,7 +629,7 @@
                             <td>${meeting.name}</td>
                             <td>${meeting.date}</td>
                             <td>
-                                <button class="btn btn-primary" onclick="app.showMeetingView('${meeting.id}')" style="padding: 6px 16px;">詳細</button>
+                                <button class="btn btn-primary" onclick="console.log('Button clicked for:', '${meeting.id}'); app.showMeetingView('${meeting.id}'); return false;" style="padding: 6px 16px;">詳細</button>
                             </td>
                         </tr>
                     `;
@@ -720,7 +720,7 @@
                                 <td>${meeting.name}</td>
                                 <td>${meeting.date}</td>
                                 <td>
-                                    <button class="btn btn-primary" onclick="app.showMeetingView('${meeting.id}')" style="padding: 6px 16px;">詳細</button>
+                                    <button class="btn btn-primary" onclick="console.log('Button clicked for:', '${meeting.id}'); app.showMeetingView('${meeting.id}'); return false;" style="padding: 6px 16px;">詳細</button>
                                 </td>
                             </tr>
                         `;
