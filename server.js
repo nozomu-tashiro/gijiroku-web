@@ -155,55 +155,54 @@ function analyzeMinutesWithAdvancedParser(text) {
     
     console.log('総センテンス数:', sentences.length);
     
-    // トピックごとにグループ化するための解析
-    // 関連するセンテンスをまとめて1つの議題にする
+    // トピックごとにグループ化するための高度な解析
+    // 1) 主要キーワードでトピックを分割
+    // 2) キーワード間のセンテンスをそのトピックに含める
     const topicGroups = [];
-    let currentTopicSentences = [];
-    let lastKeyword = null;
     
     // 主要なトピックキーワード（これらが出てきたら新しい議題の可能性）
     const topicKeywords = [
-        'Wise', '送金', '国際', '倉庫', '撤去', '代理店', '審査', '保険', 
-        '切り替え', '契約', 'リスト', 'アプリ', 'マニュアル', 'システム',
-        'ワイズ', 'ネットスターズ', 'NetStars'
+        'Wise', 'ワイズ', '送金', '国際送金', '倉庫', '撤去', '代理店', '審査', 
+        '保険', '孤独死', '切り替え', '契約', 'リスト', 'アプリ', 'マニュアル', 
+        'システム', 'NetStars', 'ネットスターズ', '月次報告', 'QRコード'
     ];
     
+    // キーワードを含むセンテンスのインデックスを検出
+    const keywordSentences = [];
     sentences.forEach((sentence, idx) => {
-        // このセンテンスに含まれる主要キーワードを検出
         const foundKeywords = topicKeywords.filter(kw => sentence.includes(kw));
-        
         if (foundKeywords.length > 0) {
-            // 新しいトピックの開始
-            if (currentTopicSentences.length > 0) {
-                topicGroups.push({
-                    keyword: lastKeyword,
-                    sentences: [...currentTopicSentences]
-                });
-                currentTopicSentences = [];
-            }
-            lastKeyword = foundKeywords[0];
-            currentTopicSentences.push(sentence);
-        } else if (currentTopicSentences.length > 0) {
-            // 現在のトピックに追加
-            currentTopicSentences.push(sentence);
-        }
-        
-        // 最大5センテンスでトピックを区切る
-        if (currentTopicSentences.length >= 5) {
-            topicGroups.push({
-                keyword: lastKeyword,
-                sentences: [...currentTopicSentences]
+            keywordSentences.push({
+                index: idx,
+                keywords: foundKeywords,
+                sentence: sentence
             });
-            currentTopicSentences = [];
-            lastKeyword = null;
         }
     });
     
-    // 最後のグループを追加
-    if (currentTopicSentences.length > 0) {
+    console.log('キーワードセンテンス数:', keywordSentences.length);
+    
+    if (keywordSentences.length === 0) {
+        // キーワードが見つからない場合は全体を1つのトピックに
         topicGroups.push({
-            keyword: lastKeyword,
-            sentences: [...currentTopicSentences]
+            keyword: '全体',
+            sentences: sentences.slice(0, 5)
+        });
+    } else {
+        // キーワード間でセンテンスをグループ化
+        keywordSentences.forEach((kws, idx) => {
+            const startIdx = kws.index;
+            const endIdx = idx < keywordSentences.length - 1 
+                ? keywordSentences[idx + 1].index 
+                : sentences.length;
+            
+            // このキーワードに関連するセンテンスを抽出（最大8センテンス）
+            const groupSentences = sentences.slice(startIdx, Math.min(endIdx, startIdx + 8));
+            
+            topicGroups.push({
+                keyword: kws.keywords[0],
+                sentences: groupSentences
+            });
         });
     }
     
@@ -232,50 +231,72 @@ function analyzeMinutesWithAdvancedParser(text) {
     
     // 各トピックグループを解析して1つの議題アイテムに変換
     topicGroups.forEach(group => {
-        const combinedText = group.sentences.join(' ');
+        const combinedText = group.sentences.join('。');
         
-        // 議題を抽出（キーワードベース + 最初のセンテンス）
+        // 議題を抽出（高度なロジック）
         let agenda = '';
-        if (group.keyword) {
-            // キーワードを含む最初のセンテンスから議題を抽出
+        
+        if (group.keyword && group.keyword !== '全体') {
+            // キーワードベースの議題生成
             const firstSentence = group.sentences[0];
             
-            // 「〜について」「〜に関して」「〜の件」「〜を検討」パターン
-            const agendaPatterns = [
-                new RegExp(`([^。、]{5,40}?${group.keyword}[^。、]{0,20}?)(?:について|に関して|の件|を検討|の検討|導入|対応|確認)`),
-                new RegExp(`([^。、]{5,40}?)(?:について|に関して|の件|を|の)`),
-                new RegExp(`^([^。、]{10,45})`)
-            ];
+            // パターン1: 「キーワード + の + 名詞」
+            const pattern1 = new RegExp(`(${group.keyword}[^。、]{0,30}?)(?:の|に関する|について)([^。、]{5,25})`);
+            const match1 = combinedText.match(pattern1);
+            if (match1) {
+                agenda = `${match1[1]}${match1[2]}`;
+            }
             
-            for (const pattern of agendaPatterns) {
-                const match = combinedText.match(pattern);
-                if (match) {
-                    agenda = match[1].trim();
-                    if (agenda.length >= 10) break;
+            // パターン2: キーワードを含む最初のまとまり
+            if (!agenda || agenda.length < 10) {
+                const pattern2 = new RegExp(`([^。、]{5,35}${group.keyword}[^。、]{0,25})`);
+                const match2 = combinedText.match(pattern2);
+                if (match2) {
+                    agenda = match2[1].trim();
                 }
             }
             
-            // まだagendaが短い場合はキーワードベースで生成
-            if (agenda.length < 10) {
-                agenda = `${group.keyword}に関する対応と検討`;
+            // パターン3: キーワード + 動詞
+            if (!agenda || agenda.length < 10) {
+                const pattern3 = new RegExp(`(${group.keyword}[^。、]{0,25}?)(?:導入|検討|対応|確認|整理|管理|設定)`);
+                const match3 = combinedText.match(pattern3);
+                if (match3) {
+                    agenda = match3[0].trim();
+                }
+            }
+            
+            // まだ不十分な場合はデフォルト
+            if (!agenda || agenda.length < 10) {
+                agenda = `${group.keyword}に関する検討事項`;
             }
         } else {
             // キーワードがない場合は最初のセンテンスから抽出
             const firstSentence = group.sentences[0];
-            const agendaMatch = firstSentence.match(/^([^。、]{10,45})/);
+            const agendaMatch = firstSentence.match(/^([^。、]{10,50})/);
             agenda = agendaMatch ? agendaMatch[1].trim() : firstSentence.substring(0, 40);
         }
         
-        // アクション（主要なアクションを含むセンテンスを結合）
-        const actionSentences = group.sentences.filter(s => 
-            /検討|確認|実施|対応|準備|進める|行う|決定|提案|確保|調整/.test(s)
-        );
-        let action = actionSentences.length > 0 
-            ? actionSentences.slice(0, 2).join('。') 
-            : group.sentences.slice(0, 2).join('。');
+        // 議題の長さを調整
+        if (agenda.length > 50) {
+            agenda = agenda.substring(0, 50);
+        }
         
-        if (action.length > 150) {
-            action = action.substring(0, 150) + '...';
+        // アクション（主要なアクション動詞を含むセンテンスを優先）
+        const actionVerbs = ['検討', '確認', '実施', '対応', '整理', '提案', '報告', '共有', '確保', '調整', '依頼', '決定', '進める'];
+        const actionSentences = group.sentences.filter(s => 
+            actionVerbs.some(verb => s.includes(verb))
+        );
+        
+        let action = '';
+        if (actionSentences.length > 0) {
+            action = actionSentences.slice(0, 2).join('。');
+        } else {
+            action = group.sentences.slice(0, 2).join('。');
+        }
+        
+        // アクションが長すぎる場合は切り詰め
+        if (action.length > 200) {
+            action = action.substring(0, 200) + '...';
         }
         
         // 期限を探す（全センテンスから）
