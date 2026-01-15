@@ -286,16 +286,12 @@
             archivedMinutes: [], // Store archived minutes
             
             init() {
-                // デモデータは初回のみ読み込む（LocalStorageが空の場合のみ）
-                const hasExistingData = localStorage.getItem('meetingsData') || localStorage.getItem('minutesData');
-                if (!hasExistingData) {
-                    console.log('初回起動: デモデータを読み込みます');
-                    this.loadDemoData();
-                } else {
-                    console.log('既存データあり: デモデータはスキップします');
-                }
+                // デモデータ（組織構造）は常に読み込む
+                this.loadDemoData();
                 
-                this.loadFromLocalStorage(); // Load data from localStorage
+                // LocalStorageから会議・議事録データを読み込む
+                this.loadFromLocalStorage();
+                
                 this.checkAuth();
                 this.setupEventListeners();
             },
@@ -322,17 +318,19 @@
             },
             
             resetAllData() {
-                if (confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
-                    // すべてのデータをクリア
+                if (confirm('すべての会議データをリセットしますか？\n※組織階層（部門・チーム）は残ります。\n\nこの操作は取り消せません。')) {
+                    // 会議データと議事録データをクリア
                     this.meetingsData = {};
                     this.minutesData = {};
                     this.archivedMinutes = [];
                     
-                    // LocalStorageから削除
-                    localStorage.clear(); // すべてのLocalStorageをクリア
+                    // LocalStorageから会議・議事録データのみ削除
+                    localStorage.removeItem('meetingsData');
+                    localStorage.removeItem('minutesData');
+                    localStorage.removeItem('archivedMinutes');
                     
-                    console.log('✅ すべてのデータをリセットしました');
-                    alert('✅ データをリセットしました');
+                    console.log('✅ 会議データをリセットしました');
+                    alert('✅ 会議データをリセットしました\n組織階層は保持されています。');
                     
                     // ページをリロード
                     location.reload();
