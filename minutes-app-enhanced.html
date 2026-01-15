@@ -2275,8 +2275,16 @@
             progressText.textContent = 'AI解析中...';
             
             try {
-                // Call OpenAI API to analyze the text
-                const analysisResult = await this.analyzeMinutesWithAI(text);
+                // Try OpenAI API first
+                let analysisResult;
+                try {
+                    analysisResult = await this.analyzeMinutesWithAI(text);
+                } catch (apiError) {
+                    console.warn('OpenAI API failed, using fallback parser:', apiError);
+                    progressText.textContent = 'AI API利用不可。簡易解析を使用中...';
+                    // Use fallback simple parser
+                    analysisResult = this.simpleParseMinutes(text);
+                }
                 
                 progressText.textContent = '解析完了！データを取り込み中...';
                 

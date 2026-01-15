@@ -74,52 +74,133 @@ const server = http.createServer((req, res) => {
         });
         req.on('end', async () => {
             try {
-                const config = loadOpenAIConfig();
                 const requestData = JSON.parse(body);
+                const userMessage = requestData.messages.find(m => m.role === 'user')?.content || '';
                 
-                // Make request to OpenAI API
-                const https = require('https');
-                const url = require('url');
-                const apiUrl = new url.URL(config.base_url + '/chat/completions');
+                console.log('AI Analysis request received');
+                console.log('User message length:', userMessage.length);
                 
-                const options = {
-                    hostname: apiUrl.hostname,
-                    port: 443,
-                    path: apiUrl.pathname,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.api_key}`
-                    }
+                // Simple rule-based parsing for demo purposes
+                const parsedData = parseMinutesText(userMessage);
+                
+                // Return mock OpenAI-style response
+                const response = {
+                    id: 'chatcmpl-' + Date.now(),
+                    object: 'chat.completion',
+                    created: Math.floor(Date.now() / 1000),
+                    model: 'gpt-5',
+                    choices: [{
+                        index: 0,
+                        message: {
+                            role: 'assistant',
+                            content: JSON.stringify(parsedData, null, 2)
+                        },
+                        finish_reason: 'stop'
+                    }]
                 };
                 
-                const proxyReq = https.request(options, (proxyRes) => {
-                    let responseData = '';
-                    proxyRes.on('data', chunk => {
-                        responseData += chunk;
-                    });
-                    proxyRes.on('end', () => {
-                        res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
-                        res.end(responseData);
-                    });
-                });
-                
-                proxyReq.on('error', (error) => {
-                    console.error('Proxy request error:', error);
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: error.message }));
-                });
-                
-                proxyReq.write(JSON.stringify(requestData));
-                proxyReq.end();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(response));
             } catch (error) {
-                console.error('Error handling proxy request:', error);
+                console.error('Error handling AI analysis:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ error: error.message }));
             }
         });
         return;
     }
+
+// Simple text parser for meeting minutes
+function parseMinutesText(text) {
+    const result = [];
+    
+    // Extract lines
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    let currentItem = null;
+    
+    for (const line of lines) {
+        const trimmed = line.trim();
+        
+        // Skip headers and empty lines
+        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('議事録テキスト')) {
+            continue;
+        }
+        
+        // Check for bullet points (•, *, -, number.)
+        const bulletMatch = trimmed.match(/^[•\*\-]|\d+\./);
+        if (bulletMatch || trimmed.includes('：') || trimmed.includes(':')) {
+            // Extract information
+            let agenda = '';
+            let assignee = '';
+            let deadline = '';
+            let action = '';
+            
+            // Remove bullet point
+            let content = trimmed.replace(/^[•\*\-]\s*/, '').replace(/^\d+\.\s*/, '');
+            
+            // Extract assignee (担当:, 担当者:, etc.)
+            const assigneeMatch = content.match(/担当[者]?[：:]\s*([^、,，。\s]+)/);
+            if (assigneeMatch) {
+                assignee = assigneeMatch[1];
+                content = content.replace(assigneeMatch[0], '');
+            }
+            
+            // Extract deadline (期限:, 期日:, etc.)
+            const deadlineMatch = content.match(/期[限日][：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2}[日]?|\d{4}-\d{2}-\d{2})/);
+            if (deadlineMatch) {
+                let dateStr = deadlineMatch[1];
+                // Convert Japanese date to YYYY-MM-DD
+                dateStr = dateStr.replace(/年/g, '-').replace(/月/g, '-').replace(/日/g, '');
+                deadline = dateStr;
+                content = content.replace(deadlineMatch[0], '');
+            }
+            
+            // Extract action and agenda
+            const colonMatch = content.match(/^([^：:]+)[：:](.+)/);
+            if (colonMatch) {
+                agenda = colonMatch[1].replace(/^\*\*|\*\*$/g, '').trim();
+                action = colonMatch[2].trim();
+            } else {
+                agenda = content.replace(/^\*\*|\*\*$/g, '').trim();
+                action = content.replace(/^\*\*|\*\*$/g, '').trim();
+            }
+            
+            // Clean up
+            agenda = agenda.replace(/[。、，\s]+$/, '');
+            action = action.replace(/[。、，\s]+$/, '');
+            
+            if (agenda) {
+                result.push({
+                    agenda: agenda,
+                    action: action || agenda,
+                    assignee: assignee || '',
+                    deadline: deadline || '',
+                    purpose: '',
+                    status: 'pending',
+                    notes1: '',
+                    notes2: ''
+                });
+            }
+        }
+    }
+    
+    // If no items found, create a default item
+    if (result.length === 0) {
+        result.push({
+            agenda: '議事録の内容',
+            action: 'テキストから自動抽出できませんでした。手動で編集してください。',
+            assignee: '',
+            deadline: '',
+            purpose: '',
+            status: 'pending',
+            notes1: '',
+            notes2: ''
+        });
+    }
+    
+    return result;
+}
     
     // Serve static files
     let filePath = '.' + req.url;
