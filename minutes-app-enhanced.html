@@ -265,6 +265,28 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
     </style>
 
     <script>
@@ -1597,7 +1619,7 @@
                             </div>
                         </div>
                         <button class="btn btn-sm" onclick="app.addNewDetailRow()" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 行を追加</button>
-                        <button class="btn btn-sm" onclick="app.saveDetailTable('${minute.id}')" style="padding: 6px 14px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-weight: 600;">💾 保存</button>
+                        <button class="btn btn-sm" onclick="app.saveDetailTable('${minute.id}')" id="saveButton" style="padding: 6px 14px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-weight: 600; transition: all 0.3s ease;">💾 保存</button>
                     </div>
                 </div>`;
                 
@@ -1995,6 +2017,15 @@
             },
             
             saveDetailTable(minuteId) {
+                // Show saving indicator
+                const saveButton = document.getElementById('saveButton');
+                if (saveButton) {
+                    const originalHTML = saveButton.innerHTML;
+                    saveButton.innerHTML = '⏳ 保存中...';
+                    saveButton.disabled = true;
+                    saveButton.style.opacity = '0.6';
+                }
+                
                 // Collect data from all cells
                 const cells = document.querySelectorAll('.editable-cell');
                 const statusSelects = document.querySelectorAll('.status-select');
@@ -2037,11 +2068,54 @@
                         console.log('Saving minute with files:', minute.attachedFiles);
                         
                         this.saveToLocalStorage();
-                        alert('✅ 保存しました');
-                        this.showMeetingView(this.currentMeeting.id);
+                        
+                        // Show success message on current page (not navigate away)
+                        this.showSaveSuccessMessage();
+                        
+                        // Re-render current page to reflect changes (after a small delay to show success message)
+                        setTimeout(() => {
+                            this.showMinuteDetailTable(minuteId);
+                        }, 500);
                         return;
                     }
                 }
+            },
+            
+            showSaveSuccessMessage() {
+                // Create success notification element
+                const notification = document.createElement('div');
+                notification.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: linear-gradient(135deg, #27ae60 0%, #219a52 100%);
+                        color: white;
+                        padding: 16px 24px;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+                        z-index: 10000;
+                        font-size: 15px;
+                        font-weight: 600;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        animation: slideInRight 0.3s ease-out;
+                    ">
+                        <span style="font-size: 24px;">✅</span>
+                        <span>保存しました！</span>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Remove after 3 seconds with fade out animation
+                setTimeout(() => {
+                    notification.firstElementChild.style.animation = 'slideOutRight 0.3s ease-in';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
             },
             
             saveMinuteTable(minuteId) {
