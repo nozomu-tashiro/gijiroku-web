@@ -733,49 +733,52 @@
                 const meetings = this.demoData.generateMeetings('board-1');
                 
                 const content = document.getElementById('contentArea');
-                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
-                html += '<div class="card">';
-                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>📅 ${this.currentBoard.name} の会議一覧</span>
-                    <button class="btn btn-success" onclick="app.openAddMeetingModal('board-1')">+ 会議名称追加</button>
+                
+                // TOPと同じテーブル風UI
+                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()" style="margin-bottom: 15px; padding: 8px 16px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 3px;">← 戻る</button>';
+                
+                html += `<div style="background: #2c3e50; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #3498db;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 18px;">📅</span>
+                        <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${this.currentBoard.name} の会議一覧</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="app.openAddMeetingModal('board-1')" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>
                 </div>`;
                 
-                // 改善されたテーブル形式（詳細を強調、編集を中程度、削除を控えめに）
-                html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
-                html += `
-                    <thead>
-                        <tr>
-                            <th style="width: 60%; padding: 12px;">会議名称</th>
-                            <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                `;
+                // テーブル行風に表示
+                html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
                 
-                meetings.forEach((meeting, index) => {
-                    html += `
-                        <tr style="border-bottom: 1px solid #e0e0e0;">
-                            <td style="padding: 12px; font-size: 15px; font-weight: 500;">${meeting.name}</td>
-                            <td style="padding: 8px 12px; text-align: right;">
-                                <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" 
-                                    style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
-                                    📋 詳細
-                                </button>
-                                <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" 
-                                    style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
-                                    ✏️ 編集
-                                </button>
-                                <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" 
-                                    style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
-                                    title="削除">
-                                    🗑️
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
+                if (meetings.length === 0) {
+                    html += '<div style="padding: 40px 20px; text-align: center; color: #7f8c8d; font-size: 14px;">会議がありません。右上の「+ 会議追加」ボタンから追加してください。</div>';
+                } else {
+                    meetings.forEach((meeting, index) => {
+                        const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                        html += `
+                            <div style="
+                                display: grid;
+                                grid-template-columns: 50px 1fr 280px;
+                                align-items: center;
+                                padding: 10px 20px;
+                                background: ${bgColor};
+                                border-bottom: 1px solid #e9ecef;
+                                cursor: pointer;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='${bgColor}'">
+                                <div style="font-size: 24px; text-align: center;">📋</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${meeting.name}</div>
+                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">${this.currentBoard.name}</div>
+                                </div>
+                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                    <button class="detail-btn" data-meeting-id="${meeting.id}" style="padding: 6px 16px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
+                                    <button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
+                                    <button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
                 
-                html += '</tbody></table>';
                 html += '</div>';
                 content.innerHTML = html;
                 
@@ -829,21 +832,52 @@
                 this.updateBreadcrumb();
                 
                 const content = document.getElementById('contentArea');
-                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()">← 戻る</button>';
-                html += '<div class="card">';
-                html += `<div class="card-title">👥 ${dept.name} のチーム一覧</div>`;
-                html += '<div class="org-tree">';
                 
-                dept.teams.forEach(team => {
-                    html += `
-                        <div class="org-item" onclick="app.showTeamView('${team.id}')">
-                            <div class="org-item-title">${team.name}</div>
-                            <div class="org-item-count">${this.getMeetingCount(team.id)}件の会議</div>
-                        </div>
-                    `;
-                });
+                // TOPと同じテーブル風UI
+                let html = '<button class="btn btn-secondary back-btn" onclick="app.showOrganizationView()" style="margin-bottom: 15px; padding: 8px 16px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 3px;">← 戻る</button>';
                 
-                html += '</div></div>';
+                html += `<div style="background: #27ae60; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2ecc71;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 18px;">👥</span>
+                        <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${dept.name} のチーム一覧</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="app.addTeam('${dept.id}')" style="padding: 6px 14px; font-size: 12px; background: #2ecc71; color: white; border: none; border-radius: 3px; font-weight: 600;">+ チーム追加</button>
+                </div>`;
+                
+                html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
+                
+                if (dept.teams.length === 0) {
+                    html += '<div style="padding: 40px 20px; text-align: center; color: #7f8c8d; font-size: 14px;">チームがありません。右上の「+ チーム追加」ボタンから追加してください。</div>';
+                } else {
+                    dept.teams.forEach((team, index) => {
+                        const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                        html += `
+                            <div onclick="app.showTeamView('${team.id}')" style="
+                                display: grid;
+                                grid-template-columns: 50px 1fr 180px;
+                                align-items: center;
+                                padding: 10px 20px;
+                                background: ${bgColor};
+                                border-bottom: 1px solid #e9ecef;
+                                cursor: pointer;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#d1f2eb'" onmouseout="this.style.background='${bgColor}'">
+                                <div style="font-size: 24px; text-align: center;">👥</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${team.name}</div>
+                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">${dept.name}</div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <span style="background: #27ae60; color: white; padding: 4px 12px; border-radius: 3px; font-size: 12px; font-weight: 600;">
+                                        📋 ${this.getMeetingCount(team.id)}件の会議
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += '</div>';
                 content.innerHTML = html;
             },
             
@@ -869,52 +903,50 @@
                 const meetings = this.demoData.generateMeetings(teamId);
                 
                 const content = document.getElementById('contentArea');
-                let html = `<button class="btn btn-secondary back-btn" onclick="app.showDepartmentView('${this.currentDepartment.id}')">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>📅 ${team.name} の会議一覧</span>
-                    <button class="btn btn-success" onclick="app.openAddMeetingModal('${teamId}')">+ 会議名称追加</button>
+                
+                // TOPと同じテーブル風UI
+                let html = `<button class="btn btn-secondary back-btn" onclick="app.showDepartmentView('${this.currentDepartment.id}')" style="margin-bottom: 15px; padding: 8px 16px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 3px;">← 戻る</button>`;
+                
+                html += `<div style="background: #27ae60; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2ecc71;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 18px;">📅</span>
+                        <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${team.name} の会議一覧</span>
+                        <span style="color: #a8e6cf; font-size: 12px; margin-left: 8px;">${this.currentDepartment.name}</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="app.openAddMeetingModal('${teamId}')" style="padding: 6px 14px; font-size: 12px; background: #2ecc71; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>
                 </div>`;
                 
+                html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
+                
                 if (meetings.length === 0) {
-                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>会議がまだありません</p></div>';
+                    html += '<div style="padding: 40px 20px; text-align: center; color: #7f8c8d; font-size: 14px;">会議がありません。右上の「+ 会議追加」ボタンから追加してください。</div>';
                 } else {
-                    // 改善されたテーブル形式（詳細を強調、編集を中程度、削除を控えめに）
-                    html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
-                    html += `
-                        <thead>
-                            <tr>
-                                <th style="width: 60%; padding: 12px;">会議名称</th>
-                                <th style="width: 40%; padding: 12px; text-align: right;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    `;
-                    
                     meetings.forEach((meeting, index) => {
+                        const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
                         html += `
-                            <tr style="border-bottom: 1px solid #e0e0e0;">
-                                <td style="padding: 12px; font-size: 15px; font-weight: 500;">${meeting.name}</td>
-                                <td style="padding: 8px 12px; text-align: right;">
-                                    <button class="btn btn-primary detail-btn" data-meeting-id="${meeting.id}" data-btn-index="${index}" 
-                                        style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
-                                        📋 詳細
-                                    </button>
-                                    <button class="btn btn-secondary edit-meeting-btn" data-meeting-id="${meeting.id}" 
-                                        style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
-                                        ✏️ 編集
-                                    </button>
-                                    <button class="btn btn-danger delete-meeting-btn" data-meeting-id="${meeting.id}" 
-                                        style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
-                                        title="削除">
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
+                            <div style="
+                                display: grid;
+                                grid-template-columns: 50px 1fr 280px;
+                                align-items: center;
+                                padding: 10px 20px;
+                                background: ${bgColor};
+                                border-bottom: 1px solid #e9ecef;
+                                cursor: pointer;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#d1f2eb'" onmouseout="this.style.background='${bgColor}'">
+                                <div style="font-size: 24px; text-align: center;">📋</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${meeting.name}</div>
+                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">${team.name} - ${this.currentDepartment.name}</div>
+                                </div>
+                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                    <button class="detail-btn" data-meeting-id="${meeting.id}" style="padding: 6px 16px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
+                                    <button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
+                                    <button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                </div>
+                            </div>
                         `;
                     });
-                    
-                    html += '</tbody></table>';
                 }
                 
                 html += '</div>';
