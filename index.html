@@ -286,7 +286,15 @@
             archivedMinutes: [], // Store archived minutes
             
             init() {
-                this.loadDemoData();
+                // デモデータは初回のみ読み込む（LocalStorageが空の場合のみ）
+                const hasExistingData = localStorage.getItem('meetingsData') || localStorage.getItem('minutesData');
+                if (!hasExistingData) {
+                    console.log('初回起動: デモデータを読み込みます');
+                    this.loadDemoData();
+                } else {
+                    console.log('既存データあり: デモデータはスキップします');
+                }
+                
                 this.loadFromLocalStorage(); // Load data from localStorage
                 this.checkAuth();
                 this.setupEventListeners();
@@ -315,12 +323,18 @@
             
             resetAllData() {
                 if (confirm('すべてのデータをリセットしますか？この操作は取り消せません。')) {
+                    // すべてのデータをクリア
                     this.meetingsData = {};
                     this.minutesData = {};
                     this.archivedMinutes = [];
-                    localStorage.removeItem('meetingsData');
-                    localStorage.removeItem('minutesData');
+                    
+                    // LocalStorageから削除
+                    localStorage.clear(); // すべてのLocalStorageをクリア
+                    
+                    console.log('✅ すべてのデータをリセットしました');
                     alert('✅ データをリセットしました');
+                    
+                    // ページをリロード
                     location.reload();
                 }
             },
