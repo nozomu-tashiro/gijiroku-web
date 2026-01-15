@@ -1093,13 +1093,19 @@
                     sortedMinutes.forEach((minute, index) => {
                         const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
                         const status = statusMap[minute.status] || statusMap.pending;
-                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).slice(0, 2).join(', ');
-                        const participantsDisplay = participantsList.length > 20 ? participantsList.substring(0, 20) + '...' : participantsList;
+                        
+                        // 参加者の表示（改行またはカンマ区切り）
+                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).join(', ');
+                        const participantsDisplay = participantsList.length > 40 ? participantsList.substring(0, 40) + '...' : participantsList || '-';
+                        
+                        // 備考の表示
+                        const notesDisplay = (minute.notes || '-').substring(0, 40);
+                        const notesShort = notesDisplay.length >= 40 ? notesDisplay + '...' : notesDisplay;
                         
                         html += `
                             <div style="
                                 display: grid;
-                                grid-template-columns: 100px 1fr 140px 120px 100px 200px;
+                                grid-template-columns: 110px 200px 180px 140px 160px 100px 180px;
                                 align-items: center;
                                 padding: 10px 20px;
                                 background: ${bgColor};
@@ -1107,20 +1113,14 @@
                                 transition: background 0.2s;
                             " onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='${bgColor}'">
                                 <div style="font-size: 13px; color: #2c3e50; font-weight: 600;">${minute.meetingDate || '-'}</div>
-                                <div>
-                                    <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${minute.subtitle || minute.meetingName || '議事録'}</div>
-                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;" title="${minute.participants || ''}">${participantsDisplay || '参加者なし'}</div>
-                                </div>
-                                <div style="font-size: 12px; color: #7f8c8d;">
-                                    ${minute.facilitator ? '📌 ' + minute.facilitator : ''}
-                                </div>
+                                <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${minute.subtitle || minute.meetingName || '議事録'}</div>
+                                <div style="font-size: 12px; color: #7f8c8d;" title="${minute.participants || ''}">${participantsDisplay}</div>
+                                <div style="font-size: 12px; color: #7f8c8d;">${minute.facilitator ? '📌 ' + minute.facilitator : '-'}</div>
+                                <div style="font-size: 11px; color: #95a5a6;" title="${minute.notes || ''}">${notesShort}</div>
                                 <div style="text-align: center;">
                                     <span style="background: ${status.color}; color: white; padding: 4px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;">
                                         ${status.text}
                                     </span>
-                                </div>
-                                <div style="font-size: 11px; color: #95a5a6;">
-                                    ${(minute.notes || '').substring(0, 30)}${(minute.notes || '').length > 30 ? '...' : ''}
                                 </div>
                                 <div style="display: flex; gap: 6px; justify-content: flex-end;">
                                     <button class="detail-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 16px; font-size: 12px; background: ${headerColor}; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
