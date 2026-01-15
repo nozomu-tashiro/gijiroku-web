@@ -410,19 +410,9 @@ function analyzeMinutesWithAdvancedParser(text) {
 
 // AI解析: GenSpark最新AIを使用した最高精度の議事録構造化（フォールバック付き）
 async function analyzeMinutesWithAI(text) {
-    console.log('\n🤖 === AI解析開始 (GenSpark LLM) ===');
+    console.log('\n🤖 === 本物のAI解析開始 (GenSpark LLM API) ===');
     console.log('入力テキスト長:', text.length, '文字');
-    
-    // まず高品質パーサーを試す
-    try {
-        const parsedItems = analyzeMinutesWithAdvancedParser(text);
-        if (parsedItems && parsedItems.length > 0) {
-            console.log('✅ 高品質パーサーで解析成功:', parsedItems.length, '件');
-            return parsedItems;
-        }
-    } catch (error) {
-        console.log('⚠️ 高品質パーサーでエラー、AI解析にフォールバック:', error.message);
-    }
+    console.log('優先順位: 1) GenSpark API → 2) ローカルパーサー（フォールバック）');
     
     const systemPrompt = `あなたは議事録を構造化データに変換する専門家です。
 
@@ -677,12 +667,51 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify(response));
                 
             } catch (error) {
-                console.error('❌ AI解析エラー:', error);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ 
-                    error: error.message,
-                    details: 'AI解析に失敗しました。API設定を確認してください。'
-                }));
+                console.error('❌ AI解析エラー:', error.message);
+                console.log('🔄 フォールバック: ローカルパーサーを使用');
+                
+                try {
+                    // Extract user message again for fallback
+                    const requestData = JSON.parse(body);
+                    const userMessage = requestData.messages.find(m => m.role === 'user');
+                    
+                    // Use local parser as fallback
+                    const fallbackData = analyzeMinutesWithAdvancedParser(userMessage.content);
+                    
+                    const response = {
+                        id: 'chatcmpl-fallback-' + Date.now(),
+                        object: 'chat.completion',
+                        created: Math.floor(Date.now() / 1000),
+                        model: 'local-parser',
+                        choices: [{
+                            index: 0,
+                            message: {
+                                role: 'assistant',
+                                content: JSON.stringify(fallbackData, null, 2)
+                            },
+                            finish_reason: 'stop'
+                        }],
+                        usage: {
+                            prompt_tokens: userMessage.content.length,
+                            completion_tokens: JSON.stringify(fallbackData).length,
+                            total_tokens: userMessage.content.length + JSON.stringify(fallbackData).length
+                        }
+                    };
+                    
+                    console.log('✅ フォールバック成功:', fallbackData.length, '件');
+                    
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify(response));
+                    
+                } catch (fallbackError) {
+                    console.error('❌ フォールバックも失敗:', fallbackError.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ 
+                        error: error.message,
+                        fallback_error: fallbackError.message,
+                        details: 'AI解析とフォールバックの両方に失敗しました。'
+                    }));
+                }
             }
         });
         return;
