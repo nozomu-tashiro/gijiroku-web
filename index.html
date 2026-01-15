@@ -420,11 +420,13 @@
             
             loadDemoData() {
                 this.demoData = {
-                    // 経営（ボード）レベル
-                    board: {
-                        id: 'board-1',
-                        name: '経営（ボード）'
-                    },
+                    // 経営（ボード）レベル - 配列に変更
+                    boards: [
+                        {
+                            id: 'board-1',
+                            name: '経営（ボード）'
+                        }
+                    ],
                     
                     departments: [
                         {
@@ -602,20 +604,25 @@
                     <span>🏛️ 経営層（ボード）</span>
                     <button class="btn btn-success btn-sm" onclick="app.addBoard()" style="padding: 6px 12px; font-size: 13px;">+ ボード追加</button>
                 </div>`;
-                html += `
-                    <div class="org-item" data-board-id="${this.demoData.board.id}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px; position: relative;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <div class="org-item-title">👔 ${this.demoData.board.name}</div>
-                                <div class="org-item-count">${this.getMeetingCount(this.demoData.board.id)}件の経営会議</div>
-                            </div>
-                            <div style="display: flex; gap: 5px;">
-                                <button class="btn btn-sm" onclick="app.editBoard('${this.demoData.board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">✏️</button>
-                                <button class="btn btn-sm" onclick="app.deleteBoard('${this.demoData.board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">🗑️</button>
+                
+                // ボードを配列としてループ
+                this.demoData.boards.forEach(board => {
+                    html += `
+                        <div class="org-item" data-board-id="${board.id}" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%); max-width: 350px; position: relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div class="org-item-title">👔 ${board.name}</div>
+                                    <div class="org-item-count">${this.getMeetingCount(board.id)}件の経営会議</div>
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="btn btn-sm" onclick="app.editBoard('${board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">✏️</button>
+                                    <button class="btn btn-sm" onclick="app.deleteBoard('${board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">🗑️</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                });
+                
                 html += '</div>';
                 
                 // Department and Team levels
@@ -664,7 +671,7 @@
             
             showBoardView() {
                 this.currentView = 'board';
-                this.currentBoard = this.demoData.board;
+                this.currentBoard = this.demoData.boards[0]; // 最初のボードを使用（後で改善可能）
                 this.currentDepartment = null;
                 this.currentTeam = null;
                 this.currentMeeting = null;
@@ -913,7 +920,7 @@
                     meeting = meetings.find(m => m.id === meetingId);
                     
                     if (meeting) {
-                        this.currentBoard = this.demoData.board;
+                        this.currentBoard = this.demoData.boards[0]; // 最初のボードを使用
                         this.currentDepartment = null;
                         this.currentTeam = null;
                     }
@@ -1188,22 +1195,47 @@
             addBoard() {
                 const name = prompt('新しいボード名を入力してください：');
                 if (name && name.trim()) {
-                    alert('✅ デモ版では追加できません。保存機能を実装後に利用可能です。');
-                    console.log('New board:', name);
+                    const newBoard = {
+                        id: `board-${Date.now()}`,
+                        name: name.trim()
+                    };
+                    this.demoData.boards.push(newBoard);
+                    alert('✅ ボードを追加しました');
+                    this.showOrganizationView();
                 }
             },
             
             editBoard(boardId) {
-                const newName = prompt('ボード名を変更してください：', this.demoData.board.name);
+                const board = this.demoData.boards.find(b => b.id === boardId);
+                if (!board) {
+                    alert('❌ ボードが見つかりません');
+                    return;
+                }
+                
+                const newName = prompt('ボード名を変更してください：', board.name);
                 if (newName && newName.trim()) {
-                    this.demoData.board.name = newName.trim();
+                    board.name = newName.trim();
                     alert('✅ ボード名を変更しました');
                     this.showOrganizationView();
                 }
             },
             
             deleteBoard(boardId) {
-                alert('❌ ボードは削除できません（会議データが存在する可能性があります）');
+                // 会議データがあるか確認
+                const hasMeetings = this.getMeetingCount(boardId) > 0;
+                if (hasMeetings) {
+                    alert('❌ このボードには会議データが存在するため削除できません');
+                    return;
+                }
+                
+                if (confirm('このボードを削除してもよろしいですか？')) {
+                    const index = this.demoData.boards.findIndex(b => b.id === boardId);
+                    if (index !== -1) {
+                        this.demoData.boards.splice(index, 1);
+                        alert('✅ ボードを削除しました');
+                        this.showOrganizationView();
+                    }
+                }
             },
             
             // ========== Department Management ==========
