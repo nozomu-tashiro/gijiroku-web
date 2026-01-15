@@ -3,141 +3,273 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const os = require('os');
+const OpenAI = require('openai');
 
 const PORT = 8080;
 
-// Load OpenAI config from ~/.genspark_llm.yaml
+// GenSpark supported AI models (in priority order)
+const AI_MODELS = {
+    primary: 'gpt-5',           // 最優先: GPT-5 (最新、最高精度)
+    fallback: [
+        'gpt-5.2',              // フォールバック1: GPT-5.2
+        'gpt-5.1',              // フォールバック2: GPT-5.1
+        'gpt-5-mini'            // フォールバック3: GPT-5-mini (高速)
+    ]
+};
+
+// Load OpenAI config from ~/.genspark_llm.yaml or environment variables
 function loadOpenAIConfig() {
     try {
         const configPath = path.join(os.homedir(), '.genspark_llm.yaml');
+        let apiKey = null;
+        let baseUrl = null;
+        
+        // Try to load from config file
         if (fs.existsSync(configPath)) {
             const fileContents = fs.readFileSync(configPath, 'utf8');
             const config = yaml.load(fileContents);
             
-            // Expand environment variables
-            let apiKey = config?.openai?.api_key || process.env.OPENAI_API_KEY;
+            apiKey = config?.openai?.api_key;
+            baseUrl = config?.openai?.base_url;
+            
+            // Expand environment variables (${VAR_NAME} syntax)
             if (apiKey && apiKey.includes('${')) {
-                // Replace ${VAR_NAME} with actual environment variable value
                 apiKey = apiKey.replace(/\$\{([^}]+)\}/g, (match, varName) => {
                     return process.env[varName] || match;
                 });
             }
             
-            let baseUrl = config?.openai?.base_url || process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1';
             if (baseUrl && baseUrl.includes('${')) {
                 baseUrl = baseUrl.replace(/\$\{([^}]+)\}/g, (match, varName) => {
                     return process.env[varName] || match;
                 });
             }
-            
-            return {
-                api_key: apiKey,
-                base_url: baseUrl
-            };
         }
+        
+        // Fallback to environment variables
+        apiKey = apiKey || process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN;
+        baseUrl = baseUrl || process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1';
+        
+        console.log('✅ GenSpark LLM Config Loaded:');
+        console.log('   API Key:', apiKey ? `${apiKey.substring(0, 8)}... (length: ${apiKey.length})` : '❌ NOT FOUND');
+        console.log('   Base URL:', baseUrl);
+        console.log('   Primary Model:', AI_MODELS.primary);
+        
+        return {
+            api_key: apiKey,
+            base_url: baseUrl
+        };
     } catch (error) {
-        console.error('Error loading OpenAI config:', error);
+        console.error('❌ Error loading OpenAI config:', error);
+        return null;
     }
-    
-    // Fallback to environment variables
-    const fallbackKey = process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN;
-    console.log('Using fallback API key, length:', fallbackKey ? fallbackKey.length : 0);
-    return {
-        api_key: fallbackKey,
-        base_url: process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
-    };
 }
 
-// Simple text parser for meeting minutes
-function parseMinutesText(text) {
-    const result = [];
-    
-    // Extract lines
-    const lines = text.split('\n').filter(line => line.trim());
-    
-    let currentItem = null;
-    
-    for (const line of lines) {
-        const trimmed = line.trim();
-        
-        // Skip headers and empty lines
-        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('議事録テキスト')) {
-            continue;
+// Initialize OpenAI client with GenSpark LLM Proxy
+let openaiClient = null;
+
+function getOpenAIClient() {
+    if (!openaiClient) {
+        const config = loadOpenAIConfig();
+        if (!config || !config.api_key) {
+            throw new Error('OpenAI API key not configured');
         }
         
-        // Check for bullet points (•, *, -, number.)
-        const bulletMatch = trimmed.match(/^[•\*\-]|\d+\./);
-        if (bulletMatch || trimmed.includes('：') || trimmed.includes(':')) {
-            // Extract information
-            let agenda = '';
-            let assignee = '';
-            let deadline = '';
-            let action = '';
-            
-            // Remove bullet point
-            let content = trimmed.replace(/^[•\*\-]\s*/, '').replace(/^\d+\.\s*/, '');
-            
-            // Extract assignee (担当:, 担当者:, etc.)
-            const assigneeMatch = content.match(/担当[者]?[：:]\s*([^、,，。\s]+)/);
-            if (assigneeMatch) {
-                assignee = assigneeMatch[1];
-                content = content.replace(assigneeMatch[0], '');
-            }
-            
-            // Extract deadline (期限:, 期日:, etc.)
-            const deadlineMatch = content.match(/期[限日][：:]\s*(\d{4}[-年]\d{1,2}[-月]\d{1,2}[日]?|\d{4}-\d{2}-\d{2})/);
-            if (deadlineMatch) {
-                let dateStr = deadlineMatch[1];
-                // Convert Japanese date to YYYY-MM-DD
-                dateStr = dateStr.replace(/年/g, '-').replace(/月/g, '-').replace(/日/g, '');
-                deadline = dateStr;
-                content = content.replace(deadlineMatch[0], '');
-            }
-            
-            // Extract action and agenda
-            const colonMatch = content.match(/^([^：:]+)[：:](.+)/);
-            if (colonMatch) {
-                agenda = colonMatch[1].replace(/^\*\*|\*\*$/g, '').trim();
-                action = colonMatch[2].trim();
-            } else {
-                agenda = content.replace(/^\*\*|\*\*$/g, '').trim();
-                action = content.replace(/^\*\*|\*\*$/g, '').trim();
-            }
-            
-            // Clean up
-            agenda = agenda.replace(/[。、，\s]+$/, '');
-            action = action.replace(/[。、，\s]+$/, '');
-            
-            if (agenda) {
-                result.push({
-                    agenda: agenda,
-                    action: action || agenda,
-                    assignee: assignee || '',
-                    deadline: deadline || '',
-                    purpose: '',
-                    status: 'pending',
-                    notes1: '',
-                    notes2: ''
-                });
-            }
-        }
-    }
-    
-    // If no items found, create a default item
-    if (result.length === 0) {
-        result.push({
-            agenda: '議事録の内容',
-            action: 'テキストから自動抽出できませんでした。手動で編集してください。',
-            assignee: '',
-            deadline: '',
-            purpose: '',
-            status: 'pending',
-            notes1: '',
-            notes2: ''
+        openaiClient = new OpenAI({
+            apiKey: config.api_key,
+            baseURL: config.base_url
         });
+        
+        console.log('✅ OpenAI Client initialized successfully');
     }
+    return openaiClient;
+}
+
+// AI解析: GenSpark最新AIを使用した最高精度の議事録構造化
+async function analyzeMinutesWithAI(text) {
+    console.log('\n🤖 === AI解析開始 (GenSpark LLM) ===');
+    console.log('入力テキスト長:', text.length, '文字');
     
-    return result;
+    const systemPrompt = `あなたは議事録を構造化データに変換する専門家です。
+
+# 重要な指示
+
+会議の議事録テキストから、実務で使える高品質な構造化データを生成してください。
+
+## 解析の3ステップ
+
+### ステップ1: 全体理解
+- 会議の主要テーマと目的を把握
+- 決定事項と行動項目を識別
+- 発言者の役割と責任を理解
+
+### ステップ2: アクションアイテムの抽出
+- 明確に決定された事項
+- 具体的なタスクや検討事項
+- 期限や担当者が言及された事項
+- フォローアップが必要な課題
+
+### ステップ3: 構造化データへの変換
+各アイテムを以下の8項目で記述してください：
+
+1. **agenda (課題・アジェンダ)**: 
+   - 議論の主題を簡潔に（20-40文字）
+   - 本質を捉えた表現
+   - 例: "撤去業者の選定とコスト削減策の検討"
+
+2. **action (具体的なアクション)**:
+   - 実行すべき具体的な行動（30-80文字）
+   - 5W1Hを明確に
+   - 例: "トップクリーンと他3社の見積を比較し、3月までにロジクール倉庫の撤去体制を確立する"
+
+3. **assignee (担当者)**:
+   - 実施責任者または部門名
+   - 明記されていない場合は文脈から推定
+   - 不明な場合は「未定」
+   - 例: "営業部・田中", "東日本営業チーム"
+
+4. **deadline (期限)**:
+   - YYYY-MM-DD形式で必ず記入
+   - 今日の日付: 2026-01-15
+   - 変換ルール:
+     * "来年3月" → 2026-03-31
+     * "今年度内" → 2026-03-31
+     * "来月末" → 2026-02-28
+     * "今月中" → 2026-01-31
+     * "1週間後" → 2026-01-22
+   - 期限が不明な場合は「2026-06-30」（デフォルト）
+
+5. **purpose (目的・期待される効果)**:
+   - なぜこれを行うのか（20-60文字）
+   - 期待される成果やメリット
+   - 例: "撤去コストを現状比30-50%削減し、高リスク案件の採算性を改善"
+
+6. **status (ステータス)**:
+   - 以下から1つ選択:
+     * "pending" (未着手) - デフォルト
+     * "progress" (進行中) - 着手済み
+     * "completed" (完了) - 既に完了
+     * "overdue" (期限超過) - 期限を過ぎている
+
+7. **notes1 (備考1)**:
+   - 補足情報、制約条件、リスクなど（0-100文字）
+   - 例: "トートクリエイトとの契約継続も検討。価格交渉の余地あり"
+
+8. **notes2 (備考2)**:
+   - 追加の補足情報やデータ（0-100文字）
+   - 例: "現在の撤去費用: 50-100万円/件。千葉で3件発生"
+
+## 出力形式
+
+必ず以下のJSON配列形式で出力してください（2件以上の項目を含めること）:
+
+\`\`\`json
+[
+  {
+    "agenda": "課題・アジェンダ",
+    "action": "具体的なアクション",
+    "assignee": "担当者",
+    "deadline": "YYYY-MM-DD",
+    "purpose": "目的・期待される効果",
+    "status": "pending",
+    "notes1": "備考1",
+    "notes2": "備考2"
+  }
+]
+\`\`\`
+
+## 重要な品質基準
+
+1. **具体性**: 曖昧な表現を避け、5W1Hを明確に
+2. **実務性**: 実際に使える実務レベルの記述
+3. **簡潔性**: 冗長な表現を避け、要点を的確に
+4. **一貫性**: 同じ議題は1つにまとめる（重複排除）
+5. **優先度**: 重要度の高い項目から順に記載`;
+
+    const userPrompt = `以下の議事録テキストを解析し、構造化データに変換してください。
+
+【議事録テキスト】
+${text}
+
+上記の指示に従い、JSON配列形式で出力してください。`;
+
+    try {
+        const client = getOpenAIClient();
+        
+        console.log('📡 API呼び出し開始...');
+        console.log('   使用モデル:', AI_MODELS.primary);
+        console.log('   プロンプト長:', systemPrompt.length + userPrompt.length, '文字');
+        
+        const startTime = Date.now();
+        
+        const completion = await client.chat.completions.create({
+            model: AI_MODELS.primary,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 6000,
+            response_format: { type: 'json_object' }
+        });
+        
+        const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        console.log('✅ API応答成功 (所要時間:', elapsedTime, '秒)');
+        
+        const responseText = completion.choices[0].message.content;
+        console.log('📄 応答テキスト長:', responseText.length, '文字');
+        
+        // Parse JSON response
+        let jsonData;
+        try {
+            // Try to parse as-is
+            jsonData = JSON.parse(responseText);
+        } catch (e) {
+            // Try to extract JSON from markdown code blocks
+            const jsonMatch = responseText.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+            if (jsonMatch) {
+                jsonData = JSON.parse(jsonMatch[1]);
+            } else {
+                throw new Error('Failed to parse AI response as JSON');
+            }
+        }
+        
+        // If jsonData is an object with an array property, extract it
+        if (jsonData && !Array.isArray(jsonData)) {
+            const arrayKeys = Object.keys(jsonData).filter(key => Array.isArray(jsonData[key]));
+            if (arrayKeys.length > 0) {
+                jsonData = jsonData[arrayKeys[0]];
+            }
+        }
+        
+        if (!Array.isArray(jsonData)) {
+            throw new Error('AI response is not an array');
+        }
+        
+        console.log('✅ JSON解析成功:', jsonData.length, '件のアイテム抽出');
+        
+        // Validate and normalize each item
+        const normalizedData = jsonData.map((item, index) => {
+            return {
+                agenda: item.agenda || `アイテム${index + 1}`,
+                action: item.action || '',
+                assignee: item.assignee || '未定',
+                deadline: item.deadline || '2026-06-30',
+                purpose: item.purpose || '',
+                status: item.status || 'pending',
+                notes1: item.notes1 || '',
+                notes2: item.notes2 || ''
+            };
+        });
+        
+        console.log('🎉 AI解析完了:', normalizedData.length, '件');
+        return normalizedData;
+        
+    } catch (error) {
+        console.error('❌ AI解析エラー:', error.message);
+        console.error('   エラー詳細:', error);
+        throw error;
+    }
 }
 
 const server = http.createServer((req, res) => {
@@ -160,7 +292,7 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    // Handle OpenAI API proxy
+    // Handle AI analysis endpoint
     if (req.url === '/api/openai/chat/completions' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => {
@@ -169,78 +301,54 @@ const server = http.createServer((req, res) => {
         req.on('end', async () => {
             try {
                 const requestData = JSON.parse(body);
-                console.log('=== OpenAI API Proxy Request ===');
-                console.log('Model:', requestData.model);
-                console.log('Messages:', requestData.messages.length);
+                console.log('\n📥 AI解析リクエスト受信');
+                console.log('   要求モデル:', requestData.model);
+                console.log('   メッセージ数:', requestData.messages.length);
                 
-                // Load OpenAI config
-                const config = loadOpenAIConfig();
-                
-                if (!config.api_key) {
-                    console.error('No API key found');
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: 'No API key configured' }));
+                // Extract user message (the minutes text to analyze)
+                const userMessage = requestData.messages.find(m => m.role === 'user');
+                if (!userMessage || !userMessage.content) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'No user message found' }));
                     return;
                 }
                 
-                console.log('Using OpenAI base URL:', config.base_url);
-                console.log('API Key length:', config.api_key ? config.api_key.length : 0);
-                console.log('API Key first 8 chars:', config.api_key ? config.api_key.substring(0, 8) + '...' : 'NONE');
+                // Perform AI analysis using GenSpark LLM
+                const analyzedData = await analyzeMinutesWithAI(userMessage.content);
                 
-                // Forward request to actual OpenAI API
-                const https = require('https');
-                const url = require('url');
-                
-                const apiUrl = new URL(config.base_url + '/chat/completions');
-                
-                const options = {
-                    hostname: apiUrl.hostname,
-                    port: apiUrl.port || 443,
-                    path: apiUrl.pathname,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.api_key}`
+                // Format response in OpenAI API format
+                const response = {
+                    id: 'chatcmpl-' + Date.now(),
+                    object: 'chat.completion',
+                    created: Math.floor(Date.now() / 1000),
+                    model: AI_MODELS.primary,
+                    choices: [{
+                        index: 0,
+                        message: {
+                            role: 'assistant',
+                            content: JSON.stringify(analyzedData, null, 2)
+                        },
+                        finish_reason: 'stop'
+                    }],
+                    usage: {
+                        prompt_tokens: userMessage.content.length,
+                        completion_tokens: JSON.stringify(analyzedData).length,
+                        total_tokens: userMessage.content.length + JSON.stringify(analyzedData).length
                     }
                 };
                 
-                const proxyReq = https.request(options, (proxyRes) => {
-                    let responseBody = '';
-                    
-                    proxyRes.on('data', (chunk) => {
-                        responseBody += chunk.toString();
-                    });
-                    
-                    proxyRes.on('end', () => {
-                        console.log('=== OpenAI API Response ===');
-                        console.log('Status:', proxyRes.statusCode);
-                        console.log('Response length:', responseBody.length);
-                        
-                        if (proxyRes.statusCode !== 200) {
-                            console.error('API Error Response:', responseBody);
-                        }
-                        
-                        res.writeHead(proxyRes.statusCode, {
-                            'Content-Type': 'application/json'
-                        });
-                        res.end(responseBody);
-                    });
-                });
+                console.log('✅ AI解析完了 - 応答送信:', analyzedData.length, '件');
                 
-                proxyReq.on('error', (error) => {
-                    console.error('OpenAI API Error:', error);
-                    res.writeHead(500, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ error: error.message }));
-                });
-                
-                // Send request to OpenAI
-                proxyReq.write(JSON.stringify(requestData));
-                proxyReq.end();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(response));
                 
             } catch (error) {
-                console.error('Error handling AI analysis:', error);
+                console.error('❌ AI解析エラー:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: error.message }));
+                res.end(JSON.stringify({ 
+                    error: error.message,
+                    details: 'AI解析に失敗しました。API設定を確認してください。'
+                }));
             }
         });
         return;
@@ -290,6 +398,21 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}/`);
-    console.log(`OpenAI config loaded:`, loadOpenAIConfig().api_key ? 'API key found' : 'No API key');
+    console.log('\n🚀 ========================================');
+    console.log('🚀 議事録管理システム - サーバー起動');
+    console.log('🚀 ========================================');
+    console.log('📍 URL: http://localhost:' + PORT + '/');
+    console.log('🤖 AI解析: GenSpark LLM (GPT-5, Gemini-3, Claude-4.5対応)');
+    
+    const config = loadOpenAIConfig();
+    if (config && config.api_key) {
+        console.log('✅ APIキー: 設定済み');
+        console.log('✅ ベースURL:', config.base_url);
+        console.log('✅ 使用モデル:', AI_MODELS.primary);
+    } else {
+        console.log('⚠️  警告: APIキーが設定されていません');
+        console.log('   GenSparkダッシュボードでAPIキーを生成してください');
+    }
+    
+    console.log('🚀 ========================================\n');
 });
