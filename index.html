@@ -1076,6 +1076,29 @@
                 if (minutes.length === 0) {
                     html += '<div style="padding: 40px 20px; text-align: center; color: #7f8c8d; font-size: 14px;">議事録がありません。右上の「+ 議事録追加」ボタンから追加してください。</div>';
                 } else {
+                    // ヘッダー行を追加
+                    html += `
+                        <div style="
+                            display: grid;
+                            grid-template-columns: 110px 200px 180px 140px 160px 100px 180px;
+                            align-items: center;
+                            padding: 12px 20px;
+                            background: #34495e;
+                            border-bottom: 2px solid #2c3e50;
+                            font-weight: 700;
+                            color: white;
+                            font-size: 13px;
+                        ">
+                            <div>会議日</div>
+                            <div>サブタイトル</div>
+                            <div>会議参加者</div>
+                            <div>ファシリテーター</div>
+                            <div>備考</div>
+                            <div style="text-align: center;">ステータス</div>
+                            <div style="text-align: right;">操作</div>
+                        </div>
+                    `;
+                    
                     // 議事録を降順ソート（新しいものが上）
                     const sortedMinutes = [...minutes].sort((a, b) => {
                         const dateA = new Date(a.meetingDate || a.created || 0);
