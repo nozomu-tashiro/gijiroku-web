@@ -1605,6 +1605,7 @@
                         <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${minute.meetingName || '会議名'} の議事録詳細</span>
                     </div>
                     <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm" id="deleteSelectedBtn" onclick="app.deleteSelectedRows()" style="padding: 6px 14px; font-size: 12px; background: #c0392b; color: white; border: none; border-radius: 3px; font-weight: 600; display: none;">🗑️ 選択削除 (<span id="selectedCount">0</span>)</button>
                         <button class="btn btn-sm" onclick="app.openAIAnalysisModal()" style="padding: 6px 14px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; font-weight: 600;">🤖 AI解析</button>
                         <div class="dropdown" style="position: relative;">
                             <button class="btn btn-sm" onclick="app.toggleExportMenu()" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">
@@ -1650,6 +1651,9 @@
                 html += `
                     <thead>
                         <tr style="background-color: ${headerColor}; color: white;">
+                            <th style="padding: 10px; border: 1px solid #ccc; width: 40px; text-align: center; font-weight: 600; font-size: 13px;">
+                                <input type="checkbox" id="selectAllRows" onchange="app.toggleSelectAll()" style="cursor: pointer; width: 16px; height: 16px;">
+                            </th>
                             <th style="padding: 10px; border: 1px solid #ccc; width: 3%; text-align: center; font-weight: 600; font-size: 13px;">#</th>
                             <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">議題・アジェンダ</th>
                             <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">具体的なアクション</th>
@@ -1686,6 +1690,9 @@
                     
                     html += `
                         <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
+                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
+                                <input type="checkbox" class="row-checkbox" data-row="${index}" onchange="app.updateDeleteButtonState()" style="cursor: pointer; width: 16px; height: 16px;">
+                            </td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500; font-size: 12px;">${index + 1}</td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="agenda" data-row="${index}">${row.agenda || ''}</td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="action" data-row="${index}">${row.action || ''}</td>
@@ -1700,7 +1707,7 @@
                             <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes1" data-row="${index}">${row.notes1 || ''}</td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes2" data-row="${index}">${row.notes2 || ''}</td>
                             <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
-                                <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 11px;">削除</button>
+                                <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 11px;">🗑️</button>
                             </td>
                         </tr>
                     `;
@@ -2003,6 +2010,81 @@
                 });
                 
                 this.showMinuteDetailTable(this.currentMinute.id);
+            },
+            
+            // Toggle select all checkboxes
+            toggleSelectAll() {
+                const selectAllCheckbox = document.getElementById('selectAllRows');
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+                
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+                
+                this.updateDeleteButtonState();
+            },
+            
+            // Update delete button state based on selection
+            updateDeleteButtonState() {
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+                const selectedCheckboxes = Array.from(rowCheckboxes).filter(cb => cb.checked);
+                const selectedCount = selectedCheckboxes.length;
+                
+                const deleteButton = document.getElementById('deleteSelectedBtn');
+                const selectedCountSpan = document.getElementById('selectedCount');
+                
+                if (selectedCount > 0) {
+                    deleteButton.style.display = 'inline-block';
+                    selectedCountSpan.textContent = selectedCount;
+                } else {
+                    deleteButton.style.display = 'none';
+                }
+                
+                // Update "select all" checkbox state
+                const selectAllCheckbox = document.getElementById('selectAllRows');
+                if (selectAllCheckbox) {
+                    if (selectedCount === 0) {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = false;
+                    } else if (selectedCount === rowCheckboxes.length) {
+                        selectAllCheckbox.checked = true;
+                        selectAllCheckbox.indeterminate = false;
+                    } else {
+                        selectAllCheckbox.checked = false;
+                        selectAllCheckbox.indeterminate = true;
+                    }
+                }
+            },
+            
+            // Delete selected rows
+            deleteSelectedRows() {
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+                const selectedIndices = Array.from(rowCheckboxes).map(cb => parseInt(cb.getAttribute('data-row'))).sort((a, b) => b - a);
+                
+                if (selectedIndices.length === 0) {
+                    alert('削除する行を選択してください');
+                    return;
+                }
+                
+                // Check if all rows are being deleted
+                if (selectedIndices.length >= this.currentMinute.detailRows.length) {
+                    alert('最低1行は必要です。すべての行を削除することはできません。');
+                    return;
+                }
+                
+                if (confirm(`選択した${selectedIndices.length}件の行を削除しますか？`)) {
+                    // Delete from highest index to lowest to avoid index shift issues
+                    selectedIndices.forEach(index => {
+                        this.currentMinute.detailRows.splice(index, 1);
+                    });
+                    
+                    // Save and refresh
+                    this.saveToLocalStorage();
+                    this.showMinuteDetailTable(this.currentMinute.id);
+                    
+                    // Show success message
+                    this.showSaveSuccessMessage();
+                }
             },
             
             deleteDetailRow(rowIndex) {
