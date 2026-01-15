@@ -40,8 +40,10 @@ function loadOpenAIConfig() {
     }
     
     // Fallback to environment variables
+    const fallbackKey = process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN;
+    console.log('Using fallback API key, length:', fallbackKey ? fallbackKey.length : 0);
     return {
-        api_key: process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN,
+        api_key: fallbackKey,
         base_url: process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
     };
 }
@@ -182,6 +184,8 @@ const server = http.createServer((req, res) => {
                 }
                 
                 console.log('Using OpenAI base URL:', config.base_url);
+                console.log('API Key length:', config.api_key ? config.api_key.length : 0);
+                console.log('API Key first 8 chars:', config.api_key ? config.api_key.substring(0, 8) + '...' : 'NONE');
                 
                 // Forward request to actual OpenAI API
                 const https = require('https');
@@ -211,6 +215,10 @@ const server = http.createServer((req, res) => {
                         console.log('=== OpenAI API Response ===');
                         console.log('Status:', proxyRes.statusCode);
                         console.log('Response length:', responseBody.length);
+                        
+                        if (proxyRes.statusCode !== 200) {
+                            console.error('API Error Response:', responseBody);
+                        }
                         
                         res.writeHead(proxyRes.statusCode, {
                             'Content-Type': 'application/json'
