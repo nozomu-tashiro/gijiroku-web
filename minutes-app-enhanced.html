@@ -2878,36 +2878,50 @@ ${text}
                     if (response.ok) {
                         console.log('=== API Response received successfully ===');
                         const data = await response.json();
-                        const content = data.choices[0].message.content;
+                        console.log('📦 Full API Response:', data);
                         
-                        console.log('AI Response length:', content.length);
-                        console.log('AI Response preview:', content.substring(0, 200));
+                        const content = data.choices[0].message.content;
+                        console.log('📝 Content type:', typeof content);
+                        console.log('📝 Content length:', content.length);
+                        console.log('📝 Content preview:', content.substring(0, 500));
                         
                         // Parse JSON from response
                         let jsonText = content.trim();
+                        console.log('🔍 Raw JSON text (first 300 chars):', jsonText.substring(0, 300));
+                        
                         if (jsonText.startsWith('```json')) {
                             jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                            console.log('✂️ Removed ```json markers');
                         } else if (jsonText.startsWith('```')) {
                             jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                            console.log('✂️ Removed ``` markers');
                         }
                         
-                        console.log('Parsing JSON response...');
+                        console.log('🔄 Parsing JSON response...');
                         const parsedData = JSON.parse(jsonText);
-                        console.log('Parsed data items:', parsedData.length);
+                        console.log('✅ Parsed successfully!');
+                        console.log('📊 Parsed data type:', typeof parsedData, 'isArray:', Array.isArray(parsedData));
+                        console.log('📊 Parsed data items:', Array.isArray(parsedData) ? parsedData.length : 'NOT AN ARRAY');
+                        console.log('📊 First item:', parsedData[0]);
                         
                         if (Array.isArray(parsedData)) {
-                            const result = parsedData.map(item => ({
-                                agenda: item.agenda || '',
-                                action: item.action || '',
-                                assignee: item.assignee || '',
-                                deadline: item.deadline || '',
-                                purpose: item.purpose || '',
-                                status: item.status || 'pending',
-                                notes1: item.notes1 || '',
-                                notes2: item.notes2 || ''
-                            }));
-                            console.log('=== AI analysis completed successfully ===');
-                            console.log('Returning', result.length, 'items');
+                            console.log('✅ Data is array, mapping to result format...');
+                            const result = parsedData.map((item, idx) => {
+                                console.log(`📄 Item ${idx + 1}:`, item);
+                                return {
+                                    agenda: item.agenda || '',
+                                    action: item.action || '',
+                                    assignee: item.assignee || '',
+                                    deadline: item.deadline || '',
+                                    purpose: item.purpose || '',
+                                    status: item.status || 'pending',
+                                    notes1: item.notes1 || '',
+                                    notes2: item.notes2 || ''
+                                };
+                            });
+                            console.log('🎉 AI analysis completed successfully!');
+                            console.log('📦 Returning', result.length, 'structured items');
+                            console.log('📦 Result sample:', result[0]);
                             return result;
                         } else {
                             console.error('Parsed data is not an array:', typeof parsedData);
