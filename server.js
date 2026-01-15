@@ -50,7 +50,7 @@ const server = http.createServer((req, res) => {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     if (req.method === 'OPTIONS') {
         res.writeHead(200);
@@ -63,6 +63,61 @@ const server = http.createServer((req, res) => {
         const config = loadOpenAIConfig();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(config));
+        return;
+    }
+    
+    // Handle OpenAI API proxy
+    if (req.url === '/api/openai/chat/completions' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', async () => {
+            try {
+                const config = loadOpenAIConfig();
+                const requestData = JSON.parse(body);
+                
+                // Make request to OpenAI API
+                const https = require('https');
+                const url = require('url');
+                const apiUrl = new url.URL(config.base_url + '/chat/completions');
+                
+                const options = {
+                    hostname: apiUrl.hostname,
+                    port: 443,
+                    path: apiUrl.pathname,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.api_key}`
+                    }
+                };
+                
+                const proxyReq = https.request(options, (proxyRes) => {
+                    let responseData = '';
+                    proxyRes.on('data', chunk => {
+                        responseData += chunk;
+                    });
+                    proxyRes.on('end', () => {
+                        res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+                        res.end(responseData);
+                    });
+                });
+                
+                proxyReq.on('error', (error) => {
+                    console.error('Proxy request error:', error);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: error.message }));
+                });
+                
+                proxyReq.write(JSON.stringify(requestData));
+                proxyReq.end();
+            } catch (error) {
+                console.error('Error handling proxy request:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: error.message }));
+            }
+        });
         return;
     }
     
