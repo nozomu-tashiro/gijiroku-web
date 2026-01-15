@@ -2319,14 +2319,13 @@
         app.analyzeMinutesWithAI = async function(text) {
             console.log('Starting AI analysis...');
             
-            // Load OpenAI config
-            const config = await this.loadOpenAIConfig();
-            
-            if (!config || !config.api_key) {
-                throw new Error('OpenAI APIキーが設定されていません');
-            }
-            
-            const prompt = `あなたは議事録解析の専門家です。以下の議事録テキストを解析し、JSONフォーマットで構造化データを抽出してください。
+            // Try OpenAI API first, fallback to simple parser if it fails
+            try {
+                // Load OpenAI config
+                const config = await this.loadOpenAIConfig();
+                
+                if (config && config.api_key) {
+                    const prompt = `あなたは議事録解析の専門家です。以下の議事録テキストを解析し、JSONフォーマットで構造化データを抽出してください。
 
 議事録テキスト:
 ${text}
@@ -2353,65 +2352,173 @@ ${text}
 5. 有効なJSON形式で出力してください（必ず配列で返してください）
 6. テキストに含まれる改行や特殊文字は適切にエスケープしてください`;
 
-            const response = await fetch('/api/openai/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'gpt-5',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'あなたは議事録解析の専門家です。与えられた議事録テキストから、構造化されたデータを抽出してJSON形式で返します。'
+                    const response = await fetch('/api/openai/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
                         },
-                        {
-                            role: 'user',
-                            content: prompt
+                        body: JSON.stringify({
+                            model: 'gpt-5',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: 'あなたは議事録解析の専門家です。与えられた議事録テキストから、構造化されたデータを抽出してJSON形式で返します。'
+                                },
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ],
+                            temperature: 0.3,
+                            max_tokens: 4000
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const content = data.choices[0].message.content;
+                        
+                        console.log('AI Response:', content);
+                        
+                        // Parse JSON from response
+                        let jsonText = content.trim();
+                        if (jsonText.startsWith('```json')) {
+                            jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                        } else if (jsonText.startsWith('```')) {
+                            jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
                         }
-                    ],
-                    temperature: 0.3,
-                    max_tokens: 4000
-                })
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`API Error: ${response.status} - ${errorText}`);
+                        
+                        const parsedData = JSON.parse(jsonText);
+                        
+                        if (Array.isArray(parsedData)) {
+                            return parsedData.map(item => ({
+                                agenda: item.agenda || '',
+                                action: item.action || '',
+                                assignee: item.assignee || '',
+                                deadline: item.deadline || '',
+                                purpose: item.purpose || '',
+                                status: item.status || 'pending',
+                                notes1: item.notes1 || '',
+                                notes2: item.notes2 || ''
+                            }));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('OpenAI API failed, using simple parser:', error);
             }
             
-            const data = await response.json();
-            const content = data.choices[0].message.content;
+            // Fallback: Simple text parser
+            console.log('Using simple text parser...');
+            return this.parseMinutesText(text);
+        };
+        
+        app.parseMinutesText = function(text) {
+            const results = [];
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             
-            console.log('AI Response:', content);
+            // Pattern matching for Japanese meeting minutes
+            const patterns = {
+                // Match: • **Text**: description, 担当: person, 期限: date
+                withDetails: /[•・]\s*\*?\*?([^:：]+?)\*?\*?[:：]\s*(.+?)(?:担当[:：]\s*([^、,]+?))?(?:期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?))?\s*$/,
+                // Match: • Text
+                simple: /[•・]\s*(.+)$/,
+                // Date pattern
+                date: /([0-9]{4})[-年/]([0-9]{1,2})[-月/]([0-9]{1,2})/
+            };
             
-            // Parse JSON from response
-            // Remove markdown code blocks if present
-            let jsonText = content.trim();
-            if (jsonText.startsWith('```json')) {
-                jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-            } else if (jsonText.startsWith('```')) {
-                jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Try detailed pattern first
+                let match = line.match(patterns.withDetails);
+                if (match) {
+                    const agenda = match[1].trim();
+                    const action = match[2].trim();
+                    const assignee = match[3] ? match[3].trim() : '';
+                    const deadlineStr = match[4] || '';
+                    
+                    // Parse deadline
+                    let deadline = '';
+                    if (deadlineStr) {
+                        const dateMatch = deadlineStr.match(patterns.date);
+                        if (dateMatch) {
+                            const year = dateMatch[1];
+                            const month = dateMatch[2].padStart(2, '0');
+                            const day = dateMatch[3].padStart(2, '0');
+                            deadline = `${year}-${month}-${day}`;
+                        }
+                    }
+                    
+                    results.push({
+                        agenda: agenda,
+                        action: action,
+                        assignee: assignee,
+                        deadline: deadline,
+                        purpose: '',
+                        status: 'pending',
+                        notes1: '',
+                        notes2: ''
+                    });
+                    continue;
+                }
+                
+                // Try simple pattern
+                match = line.match(patterns.simple);
+                if (match) {
+                    const text = match[1].trim();
+                    
+                    // Extract assignee if present
+                    let assignee = '';
+                    let cleanText = text;
+                    const assigneeMatch = text.match(/担当[:：]\s*([^、,]+)/);
+                    if (assigneeMatch) {
+                        assignee = assigneeMatch[1].trim();
+                        cleanText = text.replace(/担当[:：]\s*[^、,]+/, '').trim();
+                    }
+                    
+                    // Extract deadline if present
+                    let deadline = '';
+                    const deadlineMatch = cleanText.match(/期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/);
+                    if (deadlineMatch) {
+                        const dateMatch = deadlineMatch[1].match(patterns.date);
+                        if (dateMatch) {
+                            const year = dateMatch[1];
+                            const month = dateMatch[2].padStart(2, '0');
+                            const day = dateMatch[3].padStart(2, '0');
+                            deadline = `${year}-${month}-${day}`;
+                        }
+                        cleanText = cleanText.replace(/期限[:：]\s*[0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?/, '').trim();
+                    }
+                    
+                    results.push({
+                        agenda: cleanText,
+                        action: cleanText,
+                        assignee: assignee,
+                        deadline: deadline,
+                        purpose: '',
+                        status: 'pending',
+                        notes1: '',
+                        notes2: ''
+                    });
+                }
             }
             
-            const parsedData = JSON.parse(jsonText);
-            
-            // Validate and normalize data
-            if (!Array.isArray(parsedData)) {
-                throw new Error('APIレスポンスが配列ではありません');
+            // If no items found, create a default one
+            if (results.length === 0) {
+                results.push({
+                    agenda: text.substring(0, 100),
+                    action: text.substring(0, 100),
+                    assignee: '',
+                    deadline: '',
+                    purpose: '',
+                    status: 'pending',
+                    notes1: '',
+                    notes2: ''
+                });
             }
             
-            // Ensure all required fields exist
-            return parsedData.map(item => ({
-                agenda: item.agenda || '',
-                action: item.action || '',
-                assignee: item.assignee || '',
-                deadline: item.deadline || '',
-                purpose: item.purpose || '',
-                status: item.status || 'pending',
-                notes1: item.notes1 || '',
-                notes2: item.notes2 || ''
-            }));
+            return results;
         };
         
         app.loadOpenAIConfig = async function() {
