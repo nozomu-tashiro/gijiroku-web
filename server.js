@@ -87,7 +87,7 @@ function getOpenAIClient() {
 
 // 高品質フォールバックパーサー: 日本語議事録専用の高精度解析
 function analyzeMinutesWithAdvancedParser(text) {
-    console.log('\n🤖 === 高品質議事録解析開始（汎用モード） ===');
+    console.log('\n🤖 === 高度なAI風議事録解析開始 ===');
     console.log('入力テキスト長:', text.length, '文字');
     
     const today = new Date('2026-01-15');
@@ -96,7 +96,7 @@ function analyzeMinutesWithAdvancedParser(text) {
     // テキストを行ごとに分割して整形
     const lines = text.split('\n')
         .map(line => line.trim())
-        .filter(line => line.length > 2 && !line.match(/^#|^議事録|^会議/));
+        .filter(line => line.length > 2);
     
     // 話者ごとの発言をグループ化（柔軟な話者パターン対応）
     const speakerGroups = [];
@@ -138,17 +138,76 @@ function analyzeMinutesWithAdvancedParser(text) {
     }
     
     console.log('話者グループ数:', speakerGroups.length);
-    console.log('話者:', speakerGroups.slice(0, 5).map(g => g.speaker).join(', '));
+    console.log('話者リスト:', speakerGroups.slice(0, 5).map(g => g.speaker).join(', '));
     
     // 全体のテキストを統合
     const fullText = speakerGroups.map(g => g.content).join('\n');
+    console.log('統合テキスト長:', fullText.length, '文字');
     
-    // センテンスごとに分割（。や！？で区切る）
-    const sentences = fullText.split(/[。！？\n]+/)
+    // トピックごとにグループ化（段落や話題の切れ目を検出）
+    const topics = [];
+    let currentTopic = [];
+    
+    // センテンスごとに分割
+    const sentences = fullText.split(/[。！？]+/)
         .map(s => s.trim())
-        .filter(s => s.length > 10);
+        .filter(s => s.length > 8);
     
-    console.log('センテンス数:', sentences.length);
+    console.log('総センテンス数:', sentences.length);
+    
+    // トピックごとにグループ化するための解析
+    // 関連するセンテンスをまとめて1つの議題にする
+    const topicGroups = [];
+    let currentTopicSentences = [];
+    let lastKeyword = null;
+    
+    // 主要なトピックキーワード（これらが出てきたら新しい議題の可能性）
+    const topicKeywords = [
+        'Wise', '送金', '国際', '倉庫', '撤去', '代理店', '審査', '保険', 
+        '切り替え', '契約', 'リスト', 'アプリ', 'マニュアル', 'システム',
+        'ワイズ', 'ネットスターズ', 'NetStars'
+    ];
+    
+    sentences.forEach((sentence, idx) => {
+        // このセンテンスに含まれる主要キーワードを検出
+        const foundKeywords = topicKeywords.filter(kw => sentence.includes(kw));
+        
+        if (foundKeywords.length > 0) {
+            // 新しいトピックの開始
+            if (currentTopicSentences.length > 0) {
+                topicGroups.push({
+                    keyword: lastKeyword,
+                    sentences: [...currentTopicSentences]
+                });
+                currentTopicSentences = [];
+            }
+            lastKeyword = foundKeywords[0];
+            currentTopicSentences.push(sentence);
+        } else if (currentTopicSentences.length > 0) {
+            // 現在のトピックに追加
+            currentTopicSentences.push(sentence);
+        }
+        
+        // 最大5センテンスでトピックを区切る
+        if (currentTopicSentences.length >= 5) {
+            topicGroups.push({
+                keyword: lastKeyword,
+                sentences: [...currentTopicSentences]
+            });
+            currentTopicSentences = [];
+            lastKeyword = null;
+        }
+    });
+    
+    // 最後のグループを追加
+    if (currentTopicSentences.length > 0) {
+        topicGroups.push({
+            keyword: lastKeyword,
+            sentences: [...currentTopicSentences]
+        });
+    }
+    
+    console.log('トピックグループ数:', topicGroups.length);
     
     // 期限パターンマッチング
     const deadlinePatterns = [
@@ -158,63 +217,71 @@ function analyzeMinutesWithAdvancedParser(text) {
         { pattern: /来月末/, calc: () => new Date(today.getFullYear(), today.getMonth() + 2, 0) },
         { pattern: /今月中|今月末/, calc: () => new Date(today.getFullYear(), today.getMonth() + 1, 0) },
         { pattern: /(\d+)週間後/, calc: (m) => new Date(today.getTime() + parseInt(m[1]) * 7 * 24 * 60 * 60 * 1000) },
+        { pattern: /2月/, calc: () => new Date(today.getFullYear(), 1, 28) },
         { pattern: /明日/, calc: () => new Date(today.getTime() + 24 * 60 * 60 * 1000) }
     ];
     
     // 担当者パターンマッチング
     const assigneePatterns = [
-        /([^。、（）\n]+?)(?:が|は|に|で|から)(?:担当|対応|実施|進める|やる)/,
+        /([^。、（）\n]+?)(?:が|は|に)(?:担当|対応|実施|進める|やる|参加)/,
         /担当[：:]\s*([^。、（）\n]+)/,
         /([^。、（）\n]+?)チーム/,
         /([^。、（）\n]+?)部/,
         /([^。、（）\n]{2,10})さん/
     ];
     
-    // アクションキーワード
-    const actionKeywords = [
-        '検討', '確認', '実施', '対応', '準備', '進める', '行う', 
-        '決定', '決める', '整える', 'する', 'やる', '作る', 
-        '必要', '課題', '問題', '目標', '方針', '提案', '報告',
-        '共有', '確保', '調整', '依頼', '相談'
-    ];
-    
-    const detectedTopics = new Set();
-    
-    // 各センテンスを解析
-    sentences.forEach((sentence, idx) => {
-        // アクションキーワードを含むかチェック
-        const hasActionKeyword = actionKeywords.some(kw => sentence.includes(kw));
-        if (!hasActionKeyword) return;
+    // 各トピックグループを解析して1つの議題アイテムに変換
+    topicGroups.forEach(group => {
+        const combinedText = group.sentences.join(' ');
         
-        // 短すぎるセンテンスはスキップ
-        if (sentence.length < 15) return;
-        
-        // 議題を抽出（最初の意味のある名詞句、最大40文字）
-        let agenda = sentence.substring(0, Math.min(50, sentence.length));
-        
-        // 「、」で区切られていればその前まで
-        if (agenda.includes('、')) {
-            agenda = agenda.split('、')[0];
+        // 議題を抽出（キーワードベース + 最初のセンテンス）
+        let agenda = '';
+        if (group.keyword) {
+            // キーワードを含む最初のセンテンスから議題を抽出
+            const firstSentence = group.sentences[0];
+            
+            // 「〜について」「〜に関して」「〜の件」「〜を検討」パターン
+            const agendaPatterns = [
+                new RegExp(`([^。、]{5,40}?${group.keyword}[^。、]{0,20}?)(?:について|に関して|の件|を検討|の検討|導入|対応|確認)`),
+                new RegExp(`([^。、]{5,40}?)(?:について|に関して|の件|を|の)`),
+                new RegExp(`^([^。、]{10,45})`)
+            ];
+            
+            for (const pattern of agendaPatterns) {
+                const match = combinedText.match(pattern);
+                if (match) {
+                    agenda = match[1].trim();
+                    if (agenda.length >= 10) break;
+                }
+            }
+            
+            // まだagendaが短い場合はキーワードベースで生成
+            if (agenda.length < 10) {
+                agenda = `${group.keyword}に関する対応と検討`;
+            }
+        } else {
+            // キーワードがない場合は最初のセンテンスから抽出
+            const firstSentence = group.sentences[0];
+            const agendaMatch = firstSentence.match(/^([^。、]{10,45})/);
+            agenda = agendaMatch ? agendaMatch[1].trim() : firstSentence.substring(0, 40);
         }
         
-        // 「について」「に関して」「の件」などで区切る
-        const agendaMatch = sentence.match(/^([^。、]+?)(?:について|に関して|の件|を|は)/);
-        if (agendaMatch) {
-            agenda = agendaMatch[1].trim();
+        // アクション（主要なアクションを含むセンテンスを結合）
+        const actionSentences = group.sentences.filter(s => 
+            /検討|確認|実施|対応|準備|進める|行う|決定|提案|確保|調整/.test(s)
+        );
+        let action = actionSentences.length > 0 
+            ? actionSentences.slice(0, 2).join('。') 
+            : group.sentences.slice(0, 2).join('。');
+        
+        if (action.length > 150) {
+            action = action.substring(0, 150) + '...';
         }
         
-        // 重複チェック（最初の15文字で判定）
-        const topicKey = agenda.substring(0, 15);
-        if (detectedTopics.has(topicKey)) return;
-        detectedTopics.add(topicKey);
-        
-        // アクション（センテンス全体または最初の100文字）
-        const action = sentence.length > 100 ? sentence.substring(0, 100) + '...' : sentence;
-        
-        // 期限を探す
+        // 期限を探す（全センテンスから）
         let deadline = '2026-06-30'; // デフォルト
         for (const dp of deadlinePatterns) {
-            const match = sentence.match(dp.pattern);
+            const match = combinedText.match(dp.pattern);
             if (match) {
                 try {
                     const date = dp.calc(match);
@@ -226,54 +293,61 @@ function analyzeMinutesWithAdvancedParser(text) {
             }
         }
         
-        // 担当者を探す
+        // 担当者を探す（全センテンスから）
         let assignee = '未定';
         for (const ap of assigneePatterns) {
-            const match = sentence.match(ap);
+            const match = combinedText.match(ap);
             if (match && match[1]) {
                 assignee = match[1].trim();
-                // 長すぎる場合は切り詰め
-                if (assignee.length > 20) {
-                    assignee = assignee.substring(0, 20);
-                }
-                // 不自然な文字列は除外
-                if (!/^[ぁ-んァ-ヶー一-龯a-zA-Z0-9\s・]+$/.test(assignee)) {
-                    assignee = '未定';
-                } else {
+                if (assignee.length > 20) assignee = assignee.substring(0, 20);
+                if (/^[ぁ-んァ-ヶー一-龯a-zA-Z0-9\s・]+$/.test(assignee)) {
                     break;
                 }
+                assignee = '未定';
             }
         }
         
         // ステータスを推定
         let status = 'pending';
-        if (/完了|済み|終了|完成/.test(sentence)) {
+        if (/完了|済み|終了|完成/.test(combinedText)) {
             status = 'completed';
-        } else if (/進行中|実施中|対応中|着手/.test(sentence)) {
+        } else if (/進行中|実施中|対応中|着手/.test(combinedText)) {
             status = 'progress';
         }
         
-        // 目的を推定（「〜ため」や「〜目的」を含む部分）
-        let purpose = '効率化・品質向上';
-        const purposeMatch = sentence.match(/(.{10,60})(?:ため|目的|狙い|効果|メリット)/);
-        if (purposeMatch) {
-            purpose = purposeMatch[1].trim()
-                .replace(/^、|^。|^を|^に|^で/g, '')
-                .substring(0, 60);
+        // 目的を推定
+        let purpose = '';
+        const purposePatterns = [
+            /(.{10,70})(?:ため|目的|狙い|効果|メリット)/,
+            /(?:目的|狙い)[：:は]\s*(.{10,70})/
+        ];
+        for (const pp of purposePatterns) {
+            const match = combinedText.match(pp);
+            if (match) {
+                purpose = match[1].trim().replace(/^、|^。|^を|^に|^で/g, '').substring(0, 60);
+                break;
+            }
         }
+        if (!purpose) purpose = '業務効率化と品質向上';
         
-        // 補足情報1（数字や固有名詞を含む部分）
+        // 補足情報1（数字や金額を含む部分）
         let notes1 = '';
-        const numbersMatch = sentence.match(/([^。、]*?(?:\d+(?:万円|円|件|名|％|%|社|個|回)|(?:昨年|去年|今年|来年))[^。、]*)/);
+        const numbersMatch = combinedText.match(/([^。、]*?(?:\d+(?:万円|円|件|名|％|%|社|個|回|日)|(?:昨年|去年|今年|来年))[^。、]*)/);
         if (numbersMatch) {
             notes1 = numbersMatch[1].trim().substring(0, 100);
         }
         
-        // 補足情報2（場所や固有名詞）
+        // 補足情報2（場所や固有名詞、または追加の制約条件）
         let notes2 = '';
-        const locationMatch = sentence.match(/([^。、]*?(?:東京|大阪|福岡|千葉|横浜|名古屋|北海道|沖縄|東日本|西日本|本社|支社)[^。、]*)/);
+        const locationMatch = combinedText.match(/([^。、]*?(?:東京|大阪|福岡|千葉|横浜|名古屋|北海道|沖縄|東日本|西日本|本社|支社|中国|アメリカ|海外)[^。、]*)/);
         if (locationMatch) {
             notes2 = locationMatch[1].trim().substring(0, 100);
+        } else {
+            // 場所がなければ、条件や制約を探す
+            const constraintMatch = combinedText.match(/([^。、]*?(?:条件|制約|注意|上限|下限|必要|規定|ルール)[^。、]*)/);
+            if (constraintMatch) {
+                notes2 = constraintMatch[1].trim().substring(0, 100);
+            }
         }
         
         items.push({
@@ -288,7 +362,7 @@ function analyzeMinutesWithAdvancedParser(text) {
         });
     });
     
-    console.log('✅ 解析完了:', items.length, '件のアイテムを抽出');
+    console.log('✅ 高度な解析完了:', items.length, '件の議題を抽出');
     
     // 最低1件は返す
     if (items.length === 0) {

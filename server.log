@@ -1,2 +1,36 @@
-Server running at http://localhost:8080/
-OpenAI config loaded: API key found
+
+🚀 ========================================
+🚀 議事録管理システム - サーバー起動
+🚀 ========================================
+📍 URL: http://localhost:8080/
+🤖 AI解析: GenSpark LLM (GPT-5, Gemini-3, Claude-4.5対応)
+✅ GenSpark LLM Config Loaded:
+   API Key: nJtgEjrM... (length: 32)
+   Base URL: https://www.genspark.ai/api/llm_proxy/v1
+   Primary Model: gpt-5
+✅ APIキー: 設定済み
+✅ ベースURL: https://www.genspark.ai/api/llm_proxy/v1
+✅ 使用モデル: gpt-5
+🚀 ========================================
+
+✅ GenSpark LLM Config Loaded:
+   API Key: nJtgEjrM... (length: 32)
+   Base URL: https://www.genspark.ai/api/llm_proxy/v1
+   Primary Model: gpt-5
+
+📥 AI解析リクエスト受信
+   要求モデル: gpt-5
+   メッセージ数: 2
+
+🤖 === AI解析開始 (GenSpark LLM) ===
+入力テキスト長: 15665 文字
+
+🤖 === 高品質議事録解析開始（汎用モード） ===
+入力テキスト長: 15665 文字
+話者グループ数: 163
+話者: 全体, Speaker 1, Speaker 2, Speaker 2, Speaker 2
+センテンス数: 287
+✅ 解析完了: 44 件のアイテムを抽出
+⚠️ アイテム数が多すぎるため、最初の10件に制限します
+✅ 高品質パーサーで解析成功: 10 件
+✅ AI解析完了 - 応答送信: 10 件
