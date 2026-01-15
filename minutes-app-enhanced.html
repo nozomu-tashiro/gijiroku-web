@@ -1778,8 +1778,8 @@
             
             // ========== File Attachment Functions ==========
             renderAttachedFiles(minute) {
-                console.log('renderAttachedFiles called, minute:', minute);
-                console.log('attachedFiles:', minute.attachedFiles);
+                console.log('🔄 renderAttachedFiles called');
+                console.log('   minute.attachedFiles:', minute.attachedFiles);
                 
                 if (!minute.attachedFiles || minute.attachedFiles.length === 0) {
                     return '<div style="color: #999; font-size: 13px;">添付ファイルはありません</div>';
@@ -1802,8 +1802,11 @@
                     const ext = file.name.split('.').pop().toLowerCase();
                     const icon = iconMap[ext] || '📎';
                     
+                    console.log(`   File ${index}: ${file.name}, uploading=${file.uploading}, hasUrl=${!!file.url}`);
+                    
                     // アップロード中の表示
                     if (file.uploading) {
+                        console.log(`   → Rendering as UPLOADING`);
                         html += `
                             <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
                                 <span class="spinner-small" style="width: 16px; height: 16px; border: 2px solid #ffc107; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
@@ -1814,6 +1817,7 @@
                             </div>
                         `;
                     } else {
+                        console.log(`   → Rendering as COMPLETED`);
                         // アップロード完了の表示
                         html += `
                             <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px; transition: all 0.3s;">
@@ -1830,7 +1834,7 @@
                     }
                 });
                 
-                console.log('Rendered HTML:', html);
+                console.log('🔄 renderAttachedFiles complete, HTML length:', html.length);
                 return html;
             },
             
@@ -1890,21 +1894,30 @@
                     // Create FileReader to read file as Data URL
                     const reader = new FileReader();
                     reader.onload = (e) => {
+                        console.log(`✅ File loaded: ${file.name}, tempId: ${tempId}`);
+                        
                         // プレースホルダーを実際のデータで置き換え
                         const fileObj = minute.attachedFiles.find(f => f.id === tempId);
+                        console.log('Found fileObj:', fileObj);
+                        
                         if (fileObj) {
                             fileObj.url = e.target.result; // Data URL
                             fileObj.uploading = false; // アップロード完了
                             delete fileObj.id; // 一時IDを削除
+                            console.log('Updated fileObj:', fileObj);
+                        } else {
+                            console.error('⚠️ fileObj not found for tempId:', tempId);
                         }
                         
                         processedCount++;
+                        console.log(`Processed ${processedCount}/${totalFiles} files`);
                         
                         // Save to localStorage
                         this.saveToLocalStorage();
                         
                         // 再度表示を更新
                         if (filesContainer) {
+                            console.log('Re-rendering attached files...');
                             filesContainer.innerHTML = this.renderAttachedFiles(minute);
                         }
                         
