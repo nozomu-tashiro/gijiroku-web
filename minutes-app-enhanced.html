@@ -158,7 +158,7 @@
     <!-- Main App -->
     <div id="mainApp" style="display: none;">
         <div class="header">
-            <h1 style="cursor: pointer; transition: opacity 0.3s;" onclick="app.navigateHome()" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">📋 会議議事録管理システム</h1>
+            <h1 id="headerLogo" style="cursor: pointer; transition: opacity 0.3s;">📋 会議議事録管理システム</h1>
             <div class="user-section">
                 <div class="user-info">
                     <div id="headerUserName"></div>
@@ -319,7 +319,12 @@
             },
             
             navigateHome() {
-                console.log('🏠 Navigating to home page...');
+                console.log('🏠 ========== navigateHome CALLED ==========');
+                console.log('   Current view:', this.currentView);
+                console.log('   Current board:', this.currentBoard);
+                console.log('   Current department:', this.currentDepartment);
+                console.log('   Current team:', this.currentTeam);
+                
                 // Reset navigation state
                 this.currentView = 'organization';
                 this.currentBoard = null;
@@ -328,8 +333,14 @@
                 this.currentMeeting = null;
                 this.currentMinute = null;
                 
+                console.log('✅ Navigation state reset');
+                console.log('   Calling showOrganization()...');
+                
                 // Show organization view
                 this.showOrganization();
+                
+                console.log('✅ navigateHome COMPLETED');
+                console.log('==========================================');
             },
             
             loadFromLocalStorage() {
@@ -375,6 +386,24 @@
             
             setupEventListeners() {
                 console.log('=== setupEventListeners called ===');
+                
+                // Header logo click listener - Navigate to home
+                const headerLogo = document.getElementById('headerLogo');
+                if (headerLogo) {
+                    headerLogo.addEventListener('click', () => {
+                        console.log('🏠 Header logo clicked!');
+                        this.navigateHome();
+                    });
+                    headerLogo.addEventListener('mouseover', () => {
+                        headerLogo.style.opacity = '0.8';
+                    });
+                    headerLogo.addEventListener('mouseout', () => {
+                        headerLogo.style.opacity = '1';
+                    });
+                    console.log('✅ Header logo listener added');
+                } else {
+                    console.warn('⚠️ headerLogo not found');
+                }
                 
                 // Minute form listener
                 const minuteForm = document.getElementById('minuteForm');
