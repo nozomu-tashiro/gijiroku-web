@@ -216,3 +216,130 @@
 ✅ 高度な解析完了: 77 件の議題を抽出
 ⚠️ アイテム数が多すぎるため、最初の10件に制限します
 ✅ フォールバック成功: 10 件
+✅ GenSpark LLM Config Loaded:
+   API Key: nJtgEjrM... (length: 32)
+   Base URL: https://www.genspark.ai/api/llm_proxy/v1
+   Primary Model: gpt-5
+
+📥 AI解析リクエスト受信
+   要求モデル: gpt-5
+   メッセージ数: 2
+
+🤖 === 本物のAI解析開始 (GenSpark LLM API) ===
+入力テキスト長: 33226 文字
+優先順位: 1) GenSpark API → 2) ローカルパーサー（フォールバック）
+📡 API呼び出し開始...
+   使用モデル: gpt-5
+   プロンプト長: 35042 文字
+❌ AI解析エラー: 401 status code (no body)
+   エラー詳細: AuthenticationError: 401 status code (no body)
+    at APIError.generate (/home/user/webapp/node_modules/openai/core/error.js:48:20)
+    at OpenAI.makeStatusError (/home/user/webapp/node_modules/openai/client.js:165:32)
+    at OpenAI.makeRequest (/home/user/webapp/node_modules/openai/client.js:333:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async analyzeMinutesWithAI (/home/user/webapp/server.js:529:28)
+    at async IncomingMessage.<anonymous> (/home/user/webapp/server.js:641:38) {
+  status: 401,
+  headers: Headers {
+    date: 'Thu, 15 Jan 2026 09:14:10 GMT',
+    'content-type': 'application/json',
+    'content-length': '37',
+    connection: 'keep-alive',
+    server: 'cloudflare',
+    'cf-ray': '9be442e70a8505c6-IAD',
+    'cf-cache-status': 'DYNAMIC',
+    'cache-control': 'no-store, no-cache, must-revalidate, private',
+    expires: '0',
+    'set-cookie': 'session_id=418df1d4-5d0c-467a-a930-ab871a4255c6:bb0f1bbee7995419d72d1855e91c359562e0e921d5c3836b87074c885d01e89d; path=/; Max-Age=1728000; httponly; samesite=lax',
+    'strict-transport-security': 'max-age=2592000',
+    pragma: 'no-cache',
+    'content-security-policy': "frame-ancestors 'self' chrome-extension://gefpcelbgaofbnehfglgibacfejejflp",
+    vary: 'Accept-Encoding',
+    'expect-ct': 'max-age=86400, enforce',
+    'referrer-policy': 'same-origin',
+    'x-frame-options': 'SAMEORIGIN',
+    'x-xss-protection': '1; mode=block',
+    'x-content-type-options': 'nosniff',
+    'alt-svc': 'h3=":443"; ma=86400'
+  },
+  requestID: null,
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined
+}
+❌ AI解析エラー: 401 status code (no body)
+🔄 フォールバック: ローカルパーサーを使用
+
+🤖 === 高度なAI風議事録解析開始 ===
+入力テキスト長: 33226 文字
+話者グループ数: 352
+話者リスト: 全体, 全体, Speaker 1, Speaker 1, Speaker 1
+統合テキスト長: 28996 文字
+総センテンス数: 610
+キーワードセンテンス数: 77
+トピックグループ数: 77
+✅ 高度な解析完了: 77 件の議題を抽出
+⚠️ アイテム数が多すぎるため、最初の10件に制限します
+✅ フォールバック成功: 10 件
+
+📥 AI解析リクエスト受信
+   要求モデル: gpt-5
+   メッセージ数: 2
+
+🤖 === 本物のAI解析開始 (GenSpark LLM API) ===
+入力テキスト長: 54 文字
+優先順位: 1) GenSpark API → 2) ローカルパーサー（フォールバック）
+📡 API呼び出し開始...
+   使用モデル: gpt-5
+   プロンプト長: 1870 文字
+❌ AI解析エラー: 401 status code (no body)
+   エラー詳細: AuthenticationError: 401 status code (no body)
+    at APIError.generate (/home/user/webapp/node_modules/openai/core/error.js:48:20)
+    at OpenAI.makeStatusError (/home/user/webapp/node_modules/openai/client.js:165:32)
+    at OpenAI.makeRequest (/home/user/webapp/node_modules/openai/client.js:333:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async analyzeMinutesWithAI (/home/user/webapp/server.js:529:28)
+    at async IncomingMessage.<anonymous> (/home/user/webapp/server.js:641:38) {
+  status: 401,
+  headers: Headers {
+    date: 'Thu, 15 Jan 2026 09:15:53 GMT',
+    'content-type': 'application/json',
+    'content-length': '37',
+    connection: 'keep-alive',
+    server: 'cloudflare',
+    'cf-ray': '9be4456b9b7ee629-IAD',
+    'cf-cache-status': 'DYNAMIC',
+    'cache-control': 'no-store, no-cache, must-revalidate, private',
+    expires: '0',
+    'set-cookie': 'session_id=48eb0a5b-7169-4a74-867d-33b4b59093f1:274db6f0329cbfc6fa146c26f51301f83b3502e6915222de704e6cc43e791f49; path=/; Max-Age=1728000; httponly; samesite=lax',
+    'strict-transport-security': 'max-age=2592000',
+    pragma: 'no-cache',
+    'content-security-policy': "frame-ancestors 'self' chrome-extension://gefpcelbgaofbnehfglgibacfejejflp",
+    vary: 'Accept-Encoding',
+    'expect-ct': 'max-age=86400, enforce',
+    'referrer-policy': 'same-origin',
+    'x-frame-options': 'SAMEORIGIN',
+    'x-xss-protection': '1; mode=block',
+    'x-content-type-options': 'nosniff',
+    'alt-svc': 'h3=":443"; ma=86400'
+  },
+  requestID: null,
+  error: undefined,
+  code: undefined,
+  param: undefined,
+  type: undefined
+}
+❌ AI解析エラー: 401 status code (no body)
+🔄 フォールバック: ローカルパーサーを使用
+
+🤖 === 高度なAI風議事録解析開始 ===
+入力テキスト長: 54 文字
+話者グループ数: 2
+話者リスト: Speaker 1, Speaker 2
+統合テキスト長: 32 文字
+総センテンス数: 2
+キーワードセンテンス数: 1
+トピックグループ数: 1
+✅ 高度な解析完了: 1 件の議題を抽出
+✅ フォールバック成功: 1 件

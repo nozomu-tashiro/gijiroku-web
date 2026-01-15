@@ -2882,26 +2882,45 @@ ${text}
                         
                         const content = data.choices[0].message.content;
                         console.log('📝 Content type:', typeof content);
-                        console.log('📝 Content length:', content.length);
-                        console.log('📝 Content preview:', content.substring(0, 500));
+                        console.log('📝 Is array:', Array.isArray(content));
                         
-                        // Parse JSON from response
-                        let jsonText = content.trim();
-                        console.log('🔍 Raw JSON text (first 300 chars):', jsonText.substring(0, 300));
+                        let parsedData;
                         
-                        if (jsonText.startsWith('```json')) {
-                            jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-                            console.log('✂️ Removed ```json markers');
-                        } else if (jsonText.startsWith('```')) {
-                            jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-                            console.log('✂️ Removed ``` markers');
+                        // ✅ Check if content is already an array (new server format)
+                        if (Array.isArray(content)) {
+                            console.log('✅ Content is already an array! Using directly.');
+                            console.log('📊 Array length:', content.length);
+                            console.log('📊 First item:', content[0]);
+                            parsedData = content;
+                        } 
+                        // 🔄 If content is a string, parse it (legacy format)
+                        else if (typeof content === 'string') {
+                            console.log('🔄 Content is a string, parsing...');
+                            console.log('📝 Content length:', content.length);
+                            console.log('📝 Content preview:', content.substring(0, 500));
+                            
+                            // Parse JSON from response
+                            let jsonText = content.trim();
+                            console.log('🔍 Raw JSON text (first 300 chars):', jsonText.substring(0, 300));
+                            
+                            if (jsonText.startsWith('```json')) {
+                                jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ```json markers');
+                            } else if (jsonText.startsWith('```')) {
+                                jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ``` markers');
+                            }
+                            
+                            console.log('🔄 Parsing JSON response...');
+                            parsedData = JSON.parse(jsonText);
+                            console.log('✅ Parsed successfully!');
+                        } else {
+                            console.error('❌ Unexpected content type:', typeof content);
+                            throw new Error('Unexpected content type: ' + typeof content);
                         }
                         
-                        console.log('🔄 Parsing JSON response...');
-                        const parsedData = JSON.parse(jsonText);
-                        console.log('✅ Parsed successfully!');
-                        console.log('📊 Parsed data type:', typeof parsedData, 'isArray:', Array.isArray(parsedData));
-                        console.log('📊 Parsed data items:', Array.isArray(parsedData) ? parsedData.length : 'NOT AN ARRAY');
+                        console.log('📊 Final data type:', typeof parsedData, 'isArray:', Array.isArray(parsedData));
+                        console.log('📊 Data items:', Array.isArray(parsedData) ? parsedData.length : 'NOT AN ARRAY');
                         console.log('📊 First item:', parsedData[0]);
                         
                         if (Array.isArray(parsedData)) {

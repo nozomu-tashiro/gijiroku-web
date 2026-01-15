@@ -641,6 +641,8 @@ const server = http.createServer((req, res) => {
                 const analyzedData = await analyzeMinutesWithAI(userMessage.content);
                 
                 // Format response in OpenAI API format
+                // ⚠️ CRITICAL: content should contain the actual array, not a JSON string
+                // Frontend expects to directly use the array without additional parsing
                 const response = {
                     id: 'chatcmpl-' + Date.now(),
                     object: 'chat.completion',
@@ -650,7 +652,7 @@ const server = http.createServer((req, res) => {
                         index: 0,
                         message: {
                             role: 'assistant',
-                            content: JSON.stringify(analyzedData, null, 2)
+                            content: analyzedData  // ✅ Return array directly, not stringified
                         },
                         finish_reason: 'stop'
                     }],
@@ -660,6 +662,11 @@ const server = http.createServer((req, res) => {
                         total_tokens: userMessage.content.length + JSON.stringify(analyzedData).length
                     }
                 };
+                
+                console.log('📤 レスポンス形式:');
+                console.log('   - content type:', typeof response.choices[0].message.content);
+                console.log('   - content is array:', Array.isArray(response.choices[0].message.content));
+                console.log('   - items count:', response.choices[0].message.content.length);
                 
                 console.log('✅ AI解析完了 - 応答送信:', analyzedData.length, '件');
                 
@@ -678,6 +685,7 @@ const server = http.createServer((req, res) => {
                     // Use local parser as fallback
                     const fallbackData = analyzeMinutesWithAdvancedParser(userMessage.content);
                     
+                    // ⚠️ CRITICAL: Return array directly, not as JSON string
                     const response = {
                         id: 'chatcmpl-fallback-' + Date.now(),
                         object: 'chat.completion',
@@ -687,7 +695,7 @@ const server = http.createServer((req, res) => {
                             index: 0,
                             message: {
                                 role: 'assistant',
-                                content: JSON.stringify(fallbackData, null, 2)
+                                content: fallbackData  // ✅ Return array directly
                             },
                             finish_reason: 'stop'
                         }],
@@ -699,6 +707,8 @@ const server = http.createServer((req, res) => {
                     };
                     
                     console.log('✅ フォールバック成功:', fallbackData.length, '件');
+                    console.log('   - フォールバック content type:', typeof response.choices[0].message.content);
+                    console.log('   - フォールバック content is array:', Array.isArray(response.choices[0].message.content));
                     
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify(response));
