@@ -1569,14 +1569,23 @@
                 this.updateBreadcrumb();
                 
                 const content = document.getElementById('contentArea');
-                let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title">
-                    <span>📊 ${minute.meetingName || '会議名'} の議事録詳細</span>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-success" onclick="app.openAIAnalysisModal()" style="background: #28a745;">🤖 AI解析</button>
+                
+                // TOPと同じテーブル風UI - 戻るボタン
+                let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')" style="margin-bottom: 15px; padding: 8px 16px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 3px;">← 戻る</button>`;
+                
+                // TOPと同じヘッダーデザイン
+                const headerColor = this.currentBoard ? '#2c3e50' : '#27ae60';
+                const borderColor = this.currentBoard ? '#3498db' : '#2ecc71';
+                
+                html += `<div style="background: ${headerColor}; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid ${borderColor}; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 18px;">📊</span>
+                        <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${minute.meetingName || '会議名'} の議事録詳細</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm" onclick="app.openAIAnalysisModal()" style="padding: 6px 14px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; font-weight: 600;">🤖 AI解析</button>
                         <div class="dropdown" style="position: relative;">
-                            <button class="btn btn-info" onclick="app.toggleExportMenu()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <button class="btn btn-sm" onclick="app.toggleExportMenu()" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">
                                 📥 エクスポート
                             </button>
                             <div id="exportMenu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-top: 5px; min-width: 180px; z-index: 1000;">
@@ -1587,38 +1596,38 @@
                                 <button onclick="app.exportTXT('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px;">📃 TXT</button>
                             </div>
                         </div>
-                        <button class="btn btn-success" onclick="app.addNewDetailRow()">+ 行を追加</button>
-                        <button class="btn btn-primary" onclick="app.saveDetailTable('${minute.id}')">💾 保存</button>
+                        <button class="btn btn-sm" onclick="app.addNewDetailRow()" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 行を追加</button>
+                        <button class="btn btn-sm" onclick="app.saveDetailTable('${minute.id}')" style="padding: 6px 14px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-weight: 600;">💾 保存</button>
                     </div>
                 </div>`;
                 
-                // 会議情報を表示
-                html += `<div style="background: #f0f0f0; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
-                    <strong>会議名：</strong>${minute.meetingName || ''} &nbsp;&nbsp;
-                    <strong>会議開催日：</strong>${minute.meetingDate || ''} &nbsp;&nbsp;
-                    <strong>サブタイトル：</strong>${minute.subtitle || ''}
+                // 会議情報を表示（コンパクト）
+                html += `<div style="background: #ecf0f1; padding: 10px 15px; margin-bottom: 12px; border-left: 4px solid ${borderColor}; font-size: 13px;">
+                    <strong>会議名：</strong><span style="color: #2c3e50;">${minute.meetingName || ''}</span> &nbsp;&nbsp;
+                    <strong>開催日：</strong><span style="color: #2c3e50;">${minute.meetingDate || ''}</span> &nbsp;&nbsp;
+                    <strong>サブタイトル：</strong><span style="color: #2c3e50;">${minute.subtitle || ''}</span>
                 </div>`;
                 
-                // ファイル添付セクション
-                html += `<div style="background: #fff; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <strong>📎 添付ファイル</strong>
-                        <label for="fileUpload-${minute.id}" class="btn btn-sm btn-success" style="padding: 6px 12px; font-size: 13px; cursor: pointer; margin: 0;">
-                            📁 ファイルを追加
+                // ファイル添付セクション（コンパクト）
+                html += `<div style="background: white; padding: 12px 15px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 3px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="font-size: 13px; color: #2c3e50;">📎 添付ファイル</strong>
+                        <label for="fileUpload-${minute.id}" class="btn btn-sm" style="padding: 5px 12px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; margin: 0; font-weight: 600;">
+                            📁 ファイル追加
                         </label>
                         <input type="file" id="fileUpload-${minute.id}" multiple style="display: none;" onchange="app.handleFileUpload(event, '${minute.id}')">
                     </div>
-                    <div id="attachedFiles-${minute.id}" style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <div id="attachedFiles-${minute.id}" style="display: flex; flex-wrap: wrap; gap: 8px;">
                         ${this.renderAttachedFiles(minute)}
                     </div>
                 </div>`;
                 
-                // Google Sheets風の編集可能テーブル
+                // Google Sheets風の編集可能テーブル（ヘッダー色を統一）
                 html += '<div style="overflow-x: auto;">';
                 html += '<table class="editable-table" style="width: 100%; border-collapse: collapse; background: white;">';
                 html += `
                     <thead>
-                        <tr style="background-color: #4a86e8; color: white;">
+                        <tr style="background-color: ${headerColor}; color: white;">
                             <th style="padding: 10px; border: 1px solid #ccc; width: 3%; text-align: center; font-weight: 600; font-size: 13px;">#</th>
                             <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">議題・アジェンダ</th>
                             <th style="padding: 10px; border: 1px solid #ccc; width: 15%; font-weight: 600; font-size: 13px;">具体的なアクション</th>
@@ -1680,7 +1689,6 @@
                 </table>
                 </div>`;
                 
-                html += '</div>';
                 content.innerHTML = html;
                 
                 // Add cell focus styling
