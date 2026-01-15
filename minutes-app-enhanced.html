@@ -2561,14 +2561,18 @@
         };
         
         app.analyzeMinutesWithAI = async function(text) {
-            console.log('Starting AI analysis...');
+            console.log('=== Starting AI analysis ===');
+            console.log('Text length:', text.length);
             
             // Try OpenAI API first, fallback to simple parser if it fails
             try {
                 // Load OpenAI config
+                console.log('Loading OpenAI config...');
                 const config = await this.loadOpenAIConfig();
+                console.log('Config loaded:', config ? 'YES' : 'NO');
                 
                 if (config && config.api_key) {
+                    console.log('=== API Key found, proceeding with AI analysis ===');
                     const prompt = `あなたは優秀な議事録解析AIアシスタントです。音声認識された議事録テキストから、ビジネスで実用的な構造化データを抽出します。
 
 # 解析対象テキスト
@@ -2705,11 +2709,16 @@ ${text}
                         })
                     });
                     
+                    console.log('Sending request to OpenAI API...');
+                    console.log('Request URL:', '/api/openai/chat/completions');
+                    
                     if (response.ok) {
+                        console.log('=== API Response received successfully ===');
                         const data = await response.json();
                         const content = data.choices[0].message.content;
                         
-                        console.log('AI Response:', content);
+                        console.log('AI Response length:', content.length);
+                        console.log('AI Response preview:', content.substring(0, 200));
                         
                         // Parse JSON from response
                         let jsonText = content.trim();
@@ -2719,10 +2728,12 @@ ${text}
                             jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
                         }
                         
+                        console.log('Parsing JSON response...');
                         const parsedData = JSON.parse(jsonText);
+                        console.log('Parsed data items:', parsedData.length);
                         
                         if (Array.isArray(parsedData)) {
-                            return parsedData.map(item => ({
+                            const result = parsedData.map(item => ({
                                 agenda: item.agenda || '',
                                 action: item.action || '',
                                 assignee: item.assignee || '',
@@ -2732,15 +2743,30 @@ ${text}
                                 notes1: item.notes1 || '',
                                 notes2: item.notes2 || ''
                             }));
+                            console.log('=== AI analysis completed successfully ===');
+                            console.log('Returning', result.length, 'items');
+                            return result;
+                        } else {
+                            console.error('Parsed data is not an array:', typeof parsedData);
                         }
+                    } else {
+                        console.error('API response not OK:', response.status, response.statusText);
+                        const errorText = await response.text();
+                        console.error('Error details:', errorText);
                     }
+                } else {
+                    console.warn('No API key found in config');
                 }
             } catch (error) {
-                console.warn('OpenAI API failed, using simple parser:', error);
+                console.error('=== AI Analysis Error ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.warn('Falling back to simple parser');
             }
             
             // Fallback: Simple text parser
-            console.log('Using simple text parser...');
+            console.log('=== Using simple text parser (fallback) ===');
             return this.parseMinutesText(text);
         };
         

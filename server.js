@@ -167,32 +167,68 @@ const server = http.createServer((req, res) => {
         req.on('end', async () => {
             try {
                 const requestData = JSON.parse(body);
-                const userMessage = requestData.messages.find(m => m.role === 'user')?.content || '';
+                console.log('=== OpenAI API Proxy Request ===');
+                console.log('Model:', requestData.model);
+                console.log('Messages:', requestData.messages.length);
                 
-                console.log('AI Analysis request received');
-                console.log('User message length:', userMessage.length);
+                // Load OpenAI config
+                const config = loadOpenAIConfig();
                 
-                // Simple rule-based parsing for demo purposes
-                const parsedData = parseMinutesText(userMessage);
+                if (!config.api_key) {
+                    console.error('No API key found');
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'No API key configured' }));
+                    return;
+                }
                 
-                // Return mock OpenAI-style response
-                const response = {
-                    id: 'chatcmpl-' + Date.now(),
-                    object: 'chat.completion',
-                    created: Math.floor(Date.now() / 1000),
-                    model: 'gpt-5',
-                    choices: [{
-                        index: 0,
-                        message: {
-                            role: 'assistant',
-                            content: JSON.stringify(parsedData, null, 2)
-                        },
-                        finish_reason: 'stop'
-                    }]
+                console.log('Using OpenAI base URL:', config.base_url);
+                
+                // Forward request to actual OpenAI API
+                const https = require('https');
+                const url = require('url');
+                
+                const apiUrl = new URL(config.base_url + '/chat/completions');
+                
+                const options = {
+                    hostname: apiUrl.hostname,
+                    port: apiUrl.port || 443,
+                    path: apiUrl.pathname,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.api_key}`
+                    }
                 };
                 
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(response));
+                const proxyReq = https.request(options, (proxyRes) => {
+                    let responseBody = '';
+                    
+                    proxyRes.on('data', (chunk) => {
+                        responseBody += chunk.toString();
+                    });
+                    
+                    proxyRes.on('end', () => {
+                        console.log('=== OpenAI API Response ===');
+                        console.log('Status:', proxyRes.statusCode);
+                        console.log('Response length:', responseBody.length);
+                        
+                        res.writeHead(proxyRes.statusCode, {
+                            'Content-Type': 'application/json'
+                        });
+                        res.end(responseBody);
+                    });
+                });
+                
+                proxyReq.on('error', (error) => {
+                    console.error('OpenAI API Error:', error);
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: error.message }));
+                });
+                
+                // Send request to OpenAI
+                proxyReq.write(JSON.stringify(requestData));
+                proxyReq.end();
+                
             } catch (error) {
                 console.error('Error handling AI analysis:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
