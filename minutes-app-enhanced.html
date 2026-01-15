@@ -1802,18 +1802,32 @@
                     const ext = file.name.split('.').pop().toLowerCase();
                     const icon = iconMap[ext] || '📎';
                     
-                    html += `
-                        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px;">
-                            <span style="font-size: 18px;">${icon}</span>
-                            <a href="#" onclick="app.openAttachedFile('${minute.id}', ${index}); return false;" style="text-decoration: none; color: #007bff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
-                                ${file.name}
-                            </a>
-                            <span style="color: #6c757d; font-size: 11px;">${this.formatFileSize(file.size)}</span>
-                            <button onclick="app.deleteAttachedFile('${minute.id}', ${index})" style="padding: 2px 6px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                                ✕
-                            </button>
-                        </div>
-                    `;
+                    // アップロード中の表示
+                    if (file.uploading) {
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 13px;">
+                                <span class="spinner-small" style="width: 16px; height: 16px; border: 2px solid #ffc107; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+                                <span style="color: #856404; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
+                                    ${file.name}
+                                </span>
+                                <span style="color: #856404; font-size: 11px;">アップロード中...</span>
+                            </div>
+                        `;
+                    } else {
+                        // アップロード完了の表示
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px; transition: all 0.3s;">
+                                <span style="font-size: 18px;">${icon}</span>
+                                <a href="#" onclick="app.openAttachedFile('${minute.id}', ${index}); return false;" style="text-decoration: none; color: #007bff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">
+                                    ${file.name}
+                                </a>
+                                <span style="color: #6c757d; font-size: 11px;">${this.formatFileSize(file.size)}</span>
+                                <button onclick="app.deleteAttachedFile('${minute.id}', ${index})" style="padding: 2px 6px; font-size: 11px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">
+                                    ✕
+                                </button>
+                            </div>
+                        `;
+                    }
                 });
                 
                 console.log('Rendered HTML:', html);
@@ -1849,33 +1863,74 @@
                     minute.attachedFiles = [];
                 }
                 
+                // 即座に「アップロード中」の表示を追加
+                const filesContainer = document.getElementById(`attachedFiles-${minuteId}`);
+                let processedCount = 0;
+                const totalFiles = files.length;
+                
                 // Process each file
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
+                Array.from(files).forEach((file, index) => {
+                    // すぐに「アップロード中」プレースホルダーを追加
+                    const tempId = `temp-${Date.now()}-${index}`;
+                    minute.attachedFiles.push({
+                        id: tempId,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        url: null, // まだ読み込み中
+                        uploadDate: new Date().toISOString(),
+                        uploading: true // アップロード中フラグ
+                    });
+                    
+                    // すぐに表示を更新
+                    if (filesContainer) {
+                        filesContainer.innerHTML = this.renderAttachedFiles(minute);
+                    }
                     
                     // Create FileReader to read file as Data URL
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        minute.attachedFiles.push({
-                            name: file.name,
-                            size: file.size,
-                            type: file.type,
-                            url: e.target.result, // Data URL
-                            uploadDate: new Date().toISOString()
-                        });
+                        // プレースホルダーを実際のデータで置き換え
+                        const fileObj = minute.attachedFiles.find(f => f.id === tempId);
+                        if (fileObj) {
+                            fileObj.url = e.target.result; // Data URL
+                            fileObj.uploading = false; // アップロード完了
+                            delete fileObj.id; // 一時IDを削除
+                        }
+                        
+                        processedCount++;
                         
                         // Save to localStorage
                         this.saveToLocalStorage();
                         
-                        // Re-render the attached files section
-                        const filesContainer = document.getElementById(`attachedFiles-${minuteId}`);
+                        // 再度表示を更新
                         if (filesContainer) {
                             filesContainer.innerHTML = this.renderAttachedFiles(minute);
                         }
+                        
+                        // 全てのファイルの処理が完了したら成功メッセージ
+                        if (processedCount === totalFiles) {
+                            this.showSaveSuccessMessage(`✅ ${totalFiles}件のファイルをアップロードしました`);
+                        }
+                    };
+                    
+                    reader.onerror = () => {
+                        // エラー時はプレースホルダーを削除
+                        const fileIndex = minute.attachedFiles.findIndex(f => f.id === tempId);
+                        if (fileIndex !== -1) {
+                            minute.attachedFiles.splice(fileIndex, 1);
+                        }
+                        
+                        // 表示を更新
+                        if (filesContainer) {
+                            filesContainer.innerHTML = this.renderAttachedFiles(minute);
+                        }
+                        
+                        alert(`ファイル「${file.name}」のアップロードに失敗しました`);
                     };
                     
                     reader.readAsDataURL(file);
-                }
+                });
                 
                 // Reset input
                 event.target.value = '';
