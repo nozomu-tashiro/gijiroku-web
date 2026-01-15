@@ -158,7 +158,7 @@
     <!-- Main App -->
     <div id="mainApp" style="display: none;">
         <div class="header">
-            <h1>📋 会議議事録管理システム</h1>
+            <h1 style="cursor: pointer; transition: opacity 0.3s;" onclick="app.navigateHome()" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">📋 会議議事録管理システム</h1>
             <div class="user-section">
                 <div class="user-info">
                     <div id="headerUserName"></div>
@@ -316,6 +316,20 @@
                 
                 this.checkAuth();
                 this.setupEventListeners();
+            },
+            
+            navigateHome() {
+                console.log('🏠 Navigating to home page...');
+                // Reset navigation state
+                this.currentView = 'organization';
+                this.currentBoard = null;
+                this.currentDepartment = null;
+                this.currentTeam = null;
+                this.currentMeeting = null;
+                this.currentMinute = null;
+                
+                // Show organization view
+                this.showOrganization();
             },
             
             loadFromLocalStorage() {
