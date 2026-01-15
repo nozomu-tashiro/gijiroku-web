@@ -1608,15 +1608,15 @@
                         <button class="btn btn-sm" id="deleteSelectedBtn" onclick="app.deleteSelectedRows()" style="padding: 6px 14px; font-size: 12px; background: #c0392b; color: white; border: none; border-radius: 3px; font-weight: 600; display: none;">🗑️ 選択削除 (<span id="selectedCount">0</span>)</button>
                         <button class="btn btn-sm" onclick="app.openAIAnalysisModal()" style="padding: 6px 14px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; font-weight: 600;">🤖 AI解析</button>
                         <div class="dropdown" style="position: relative;">
-                            <button class="btn btn-sm" onclick="app.toggleExportMenu()" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">
+                            <button class="btn btn-sm" id="exportMenuBtn" onclick="app.toggleExportMenu(event)" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">
                                 📥 エクスポート
                             </button>
                             <div id="exportMenu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-top: 5px; min-width: 180px; z-index: 1000;">
-                                <button onclick="app.exportPDF('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📄 PDF</button>
-                                <button onclick="app.exportWord('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📝 Word</button>
-                                <button onclick="app.exportExcel('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📊 Excel</button>
-                                <button onclick="app.exportCSV('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee;">📋 CSV</button>
-                                <button onclick="app.exportTXT('${minute.id}')" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px;">📃 TXT</button>
+                                <button onclick="app.exportPDF()" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">📄 PDF</button>
+                                <button onclick="app.exportWord()" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">📝 Word</button>
+                                <button onclick="app.exportExcel()" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">📊 Excel</button>
+                                <button onclick="app.exportCSV()" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">📋 CSV</button>
+                                <button onclick="app.exportTXT()" style="width: 100%; text-align: left; padding: 10px 15px; border: none; background: none; cursor: pointer; font-size: 14px; transition: background 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='none'">📃 TXT</button>
                             </div>
                         </div>
                         <button class="btn btn-sm" onclick="app.addNewDetailRow()" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 行を追加</button>
@@ -2413,23 +2413,32 @@
         });
         
         // ========== Export Functions ==========
-        app.toggleExportMenu = function() {
+        app.toggleExportMenu = function(event) {
+            if (event) {
+                event.stopPropagation();
+            }
             const menu = document.getElementById('exportMenu');
             if (menu) {
-                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                const isVisible = menu.style.display === 'block';
+                menu.style.display = isVisible ? 'none' : 'block';
+                console.log('Export menu toggled:', menu.style.display);
+            } else {
+                console.error('Export menu not found');
             }
         };
         
         // Close menu when clicking outside
         document.addEventListener('click', function(event) {
             const menu = document.getElementById('exportMenu');
-            const btn = event.target.closest('.btn-info');
-            if (menu && !btn && menu.style.display === 'block') {
+            const exportButton = event.target.closest('[onclick*="toggleExportMenu"]');
+            
+            if (menu && !exportButton && menu.style.display === 'block') {
                 menu.style.display = 'none';
             }
         });
         
-        app.exportCSV = function(minuteId) {
+        app.exportCSV = function() {
+            console.log('Exporting CSV...');
             const minute = this.currentMinute;
             if (!minute || !minute.detailRows) {
                 alert('データが見つかりません');
@@ -2454,7 +2463,8 @@
             this.toggleExportMenu();
         };
         
-        app.exportTXT = function(minuteId) {
+        app.exportTXT = function() {
+            console.log('Exporting TXT...');
             const minute = this.currentMinute;
             if (!minute || !minute.detailRows) {
                 alert('データが見つかりません');
@@ -2490,12 +2500,14 @@
             this.toggleExportMenu();
         };
         
-        app.exportPDF = function(minuteId) {
+        app.exportPDF = function() {
+            console.log('Exporting PDF...');
             alert('📄 PDF形式でのエクスポートには外部ライブラリが必要です。\n\n代わりに、ブラウザの印刷機能（Ctrl+P）を使用して「PDFとして保存」を選択してください。');
             this.toggleExportMenu();
         };
         
-        app.exportWord = function(minuteId) {
+        app.exportWord = function() {
+            console.log('Exporting Word...');
             const minute = this.currentMinute;
             if (!minute || !minute.detailRows) {
                 alert('データが見つかりません');
@@ -2537,7 +2549,8 @@
             this.toggleExportMenu();
         };
         
-        app.exportExcel = function(minuteId) {
+        app.exportExcel = function() {
+            console.log('Exporting Excel...');
             alert('📊 Excel形式でのエクスポートには専用ライブラリが必要です。\n\n代わりにCSV形式をご利用ください（ExcelでCSVを開くことができます）。');
             this.toggleExportMenu();
         };
