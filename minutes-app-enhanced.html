@@ -1080,9 +1080,9 @@
                     html += `
                         <div style="
                             display: grid;
-                            grid-template-columns: 110px 200px 180px 140px 160px 100px 180px;
+                            grid-template-columns: 110px 250px 220px 140px 200px 100px 1fr;
                             align-items: center;
-                            padding: 12px 20px;
+                            padding: 12px 20px 12px 20px;
                             background: #34495e;
                             border-bottom: 2px solid #2c3e50;
                             font-weight: 700;
@@ -1095,7 +1095,7 @@
                             <div>ファシリテーター</div>
                             <div>備考</div>
                             <div style="text-align: center;">ステータス</div>
-                            <div style="text-align: right;">操作</div>
+                            <div style="text-align: right; padding-right: 0;">操作</div>
                         </div>
                     `;
                     
@@ -1119,18 +1119,18 @@
                         
                         // 参加者の表示（改行またはカンマ区切り）
                         const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).join(', ');
-                        const participantsDisplay = participantsList.length > 40 ? participantsList.substring(0, 40) + '...' : participantsList || '-';
+                        const participantsDisplay = participantsList.length > 60 ? participantsList.substring(0, 60) + '...' : participantsList || '-';
                         
                         // 備考の表示
-                        const notesDisplay = (minute.notes || '-').substring(0, 40);
-                        const notesShort = notesDisplay.length >= 40 ? notesDisplay + '...' : notesDisplay;
+                        const notesDisplay = (minute.notes || '-').substring(0, 60);
+                        const notesShort = notesDisplay.length >= 60 ? notesDisplay + '...' : notesDisplay;
                         
                         html += `
                             <div style="
                                 display: grid;
-                                grid-template-columns: 110px 200px 180px 140px 160px 100px 180px;
+                                grid-template-columns: 110px 250px 220px 140px 200px 100px 1fr;
                                 align-items: center;
-                                padding: 10px 20px;
+                                padding: 10px 20px 10px 20px;
                                 background: ${bgColor};
                                 border-bottom: 1px solid #e9ecef;
                                 transition: background 0.2s;
@@ -1145,7 +1145,7 @@
                                         ${status.text}
                                     </span>
                                 </div>
-                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                <div style="display: flex; gap: 6px; justify-content: flex-end; padding-right: 0;">
                                     <button class="detail-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 16px; font-size: 12px; background: ${headerColor}; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
                                     <button class="edit-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
                                     <button class="delete-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
