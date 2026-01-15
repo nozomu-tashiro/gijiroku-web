@@ -46,70 +46,6 @@ function loadOpenAIConfig() {
     };
 }
 
-const server = http.createServer((req, res) => {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-    }
-    
-    // Handle OpenAI config endpoint
-    if (req.url === '/load-openai-config') {
-        const config = loadOpenAIConfig();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(config));
-        return;
-    }
-    
-    // Handle OpenAI API proxy
-    if (req.url === '/api/openai/chat/completions' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => {
-            body += chunk.toString();
-        });
-        req.on('end', async () => {
-            try {
-                const requestData = JSON.parse(body);
-                const userMessage = requestData.messages.find(m => m.role === 'user')?.content || '';
-                
-                console.log('AI Analysis request received');
-                console.log('User message length:', userMessage.length);
-                
-                // Simple rule-based parsing for demo purposes
-                const parsedData = parseMinutesText(userMessage);
-                
-                // Return mock OpenAI-style response
-                const response = {
-                    id: 'chatcmpl-' + Date.now(),
-                    object: 'chat.completion',
-                    created: Math.floor(Date.now() / 1000),
-                    model: 'gpt-5',
-                    choices: [{
-                        index: 0,
-                        message: {
-                            role: 'assistant',
-                            content: JSON.stringify(parsedData, null, 2)
-                        },
-                        finish_reason: 'stop'
-                    }]
-                };
-                
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify(response));
-            } catch (error) {
-                console.error('Error handling AI analysis:', error);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: error.message }));
-            }
-        });
-        return;
-    }
-
 // Simple text parser for meeting minutes
 function parseMinutesText(text) {
     const result = [];
@@ -201,11 +137,75 @@ function parseMinutesText(text) {
     
     return result;
 }
+
+const server = http.createServer((req, res) => {
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
+    
+    // Handle OpenAI config endpoint
+    if (req.url === '/load-openai-config') {
+        const config = loadOpenAIConfig();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(config));
+        return;
+    }
+    
+    // Handle OpenAI API proxy
+    if (req.url === '/api/openai/chat/completions' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+        req.on('end', async () => {
+            try {
+                const requestData = JSON.parse(body);
+                const userMessage = requestData.messages.find(m => m.role === 'user')?.content || '';
+                
+                console.log('AI Analysis request received');
+                console.log('User message length:', userMessage.length);
+                
+                // Simple rule-based parsing for demo purposes
+                const parsedData = parseMinutesText(userMessage);
+                
+                // Return mock OpenAI-style response
+                const response = {
+                    id: 'chatcmpl-' + Date.now(),
+                    object: 'chat.completion',
+                    created: Math.floor(Date.now() / 1000),
+                    model: 'gpt-5',
+                    choices: [{
+                        index: 0,
+                        message: {
+                            role: 'assistant',
+                            content: JSON.stringify(parsedData, null, 2)
+                        },
+                        finish_reason: 'stop'
+                    }]
+                };
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(response));
+            } catch (error) {
+                console.error('Error handling AI analysis:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: error.message }));
+            }
+        });
+        return;
+    }
     
     // Serve static files
-    let filePath = '.' + req.url;
+    let filePath = '.' + req.url.split('?')[0]; // Remove query params
     if (filePath === './') {
-        filePath = './minutes-app-enhanced.html';
+        filePath = './index.html'; // Changed to index.html
     }
     
     const extname = String(path.extname(filePath)).toLowerCase();
@@ -233,7 +233,7 @@ function parseMinutesText(text) {
         if (error) {
             if (error.code === 'ENOENT') {
                 res.writeHead(404, { 'Content-Type': 'text/html' });
-                res.end('<h1>404 Not Found</h1>', 'utf-8');
+                res.end('<h1>404 Not Found</h1><p>File: ' + filePath + '</p>', 'utf-8');
             } else {
                 res.writeHead(500);
                 res.end('Sorry, check with the site admin for error: ' + error.code + ' ..\n');
