@@ -423,8 +423,7 @@
                     // 経営（ボード）レベル
                     board: {
                         id: 'board-1',
-                        name: '経営（ボード）',
-                        meetingCount: 12
+                        name: '経営（ボード）'
                     },
                     
                     departments: [
@@ -432,49 +431,49 @@
                             id: 'dept-1',
                             name: '営業部（営業債権管理部）',
                             teams: [
-                                { id: 'team-1-1', name: '東日本', meetingCount: 8 },
-                                { id: 'team-1-2', name: '西日本', meetingCount: 6 }
+                                { id: 'team-1-1', name: '東日本' },
+                                { id: 'team-1-2', name: '西日本' }
                             ]
                         },
                         {
                             id: 'dept-2',
                             name: '債権管理部',
                             teams: [
-                                { id: 'team-2-1', name: 'コンサルティングデスク', meetingCount: 5 },
-                                { id: 'team-2-2', name: 'エリア担当東①', meetingCount: 4 },
-                                { id: 'team-2-3', name: 'エリア担当東②', meetingCount: 3 },
-                                { id: 'team-2-4', name: 'エリア担当西①', meetingCount: 5 },
-                                { id: 'team-2-5', name: 'エリア担当西②', meetingCount: 4 },
-                                { id: 'team-2-6', name: '法務', meetingCount: 7 },
-                                { id: 'team-2-7', name: '求償', meetingCount: 3 },
-                                { id: 'team-2-8', name: 'サポートデスク通常事務チーム', meetingCount: 4 },
-                                { id: 'team-2-9', name: 'サポートデスク保証実行チーム', meetingCount: 3 }
+                                { id: 'team-2-1', name: 'コンサルティングデスク' },
+                                { id: 'team-2-2', name: 'エリア担当東①' },
+                                { id: 'team-2-3', name: 'エリア担当東②' },
+                                { id: 'team-2-4', name: 'エリア担当西①' },
+                                { id: 'team-2-5', name: 'エリア担当西②' },
+                                { id: 'team-2-6', name: '法務' },
+                                { id: 'team-2-7', name: '求償' },
+                                { id: 'team-2-8', name: 'サポートデスク通常事務チーム' },
+                                { id: 'team-2-9', name: 'サポートデスク保証実行チーム' }
                             ]
                         },
                         {
                             id: 'dept-3',
                             name: '審査契約管理部',
                             teams: [
-                                { id: 'team-3-1', name: '審査', meetingCount: 6 },
-                                { id: 'team-3-2', name: '契約管理', meetingCount: 5 },
-                                { id: 'team-3-3', name: '国際チーム', meetingCount: 4 }
+                                { id: 'team-3-1', name: '審査' },
+                                { id: 'team-3-2', name: '契約管理' },
+                                { id: 'team-3-3', name: '国際チーム' }
                             ]
                         },
                         {
                             id: 'dept-4',
                             name: 'システム部',
                             teams: [
-                                { id: 'team-4-1', name: 'インフラチーム', meetingCount: 7 },
-                                { id: 'team-4-2', name: '開発チーム', meetingCount: 9 }
+                                { id: 'team-4-1', name: 'インフラチーム' },
+                                { id: 'team-4-2', name: '開発チーム' }
                             ]
                         },
                         {
                             id: 'dept-5',
                             name: '人事管理部',
                             teams: [
-                                { id: 'team-5-1', name: '経理', meetingCount: 5 },
-                                { id: 'team-5-2', name: '人事', meetingCount: 6 },
-                                { id: 'team-5-3', name: '管理', meetingCount: 4 }
+                                { id: 'team-5-1', name: '経理' },
+                                { id: 'team-5-2', name: '人事' },
+                                { id: 'team-5-3', name: '管理' }
                             ]
                         }
                     ],
@@ -499,6 +498,14 @@
                         return [];
                     }
                 };
+            },
+            
+            // 会議数を取得するヘルパー関数
+            getMeetingCount(entityId) {
+                if (this.meetingsData && this.meetingsData[entityId]) {
+                    return this.meetingsData[entityId].length;
+                }
+                return 0;
             },
             
             async checkAuth() {
@@ -600,7 +607,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div style="flex: 1;">
                                 <div class="org-item-title">👔 ${this.demoData.board.name}</div>
-                                <div class="org-item-count">${this.demoData.board.meetingCount}件の経営会議</div>
+                                <div class="org-item-count">${this.getMeetingCount(this.demoData.board.id)}件の経営会議</div>
                             </div>
                             <div style="display: flex; gap: 5px;">
                                 <button class="btn btn-sm" onclick="app.editBoard('${this.demoData.board.id}')" style="padding: 4px 8px; font-size: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 4px;">✏️</button>
@@ -619,7 +626,7 @@
                 </div>`;
                 
                 this.demoData.departments.forEach(dept => {
-                    const totalMeetings = dept.teams.reduce((sum, team) => sum + team.meetingCount, 0);
+                    const totalMeetings = dept.teams.reduce((sum, team) => sum + this.getMeetingCount(team.id), 0);
                     html += '<div class="org-section">';
                     html += `<div class="org-section-title" data-dept-id="${dept.id}" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                         <span>${dept.name} <span style="font-size: 13px; color: #666; font-weight: normal;">(${dept.teams.length}チーム・${totalMeetings}件の会議)</span></span>
@@ -637,7 +644,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <div style="flex: 1;">
                                         <div class="org-item-title" style="font-size: 14px;">${team.name}</div>
-                                        <div class="org-item-count">${team.meetingCount}件の会議</div>
+                                        <div class="org-item-count">${this.getMeetingCount(team.id)}件の会議</div>
                                     </div>
                                     <div style="display: flex; gap: 5px;">
                                         <button class="btn btn-sm" onclick="event.stopPropagation(); app.editTeam('${team.id}')" style="padding: 4px 8px; font-size: 11px; background: #6c757d; color: white; border: none; border-radius: 4px;">✏️</button>
@@ -773,7 +780,7 @@
                     html += `
                         <div class="org-item" onclick="app.showTeamView('${team.id}')">
                             <div class="org-item-title">${team.name}</div>
-                            <div class="org-item-count">${team.meetingCount}件の会議</div>
+                            <div class="org-item-count">${this.getMeetingCount(team.id)}件の会議</div>
                         </div>
                     `;
                 });
