@@ -1056,77 +1056,80 @@
                     backAction = 'app.showOrganizationView()';
                 }
                 
-                let html = `<button class="btn btn-secondary back-btn" onclick="${backAction}">← 戻る</button>`;
-                html += '<div class="card">';
-                html += `<div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>📝 ${meeting.name} の議事録一覧（${meeting.date}）</span>
-                    <button class="btn btn-success" onclick="app.openAddMinuteModal('${meetingId}')">+ 議事録を追加</button>
+                // TOPと同じテーブル風UI
+                let html = `<button class="btn btn-secondary back-btn" onclick="${backAction}" style="margin-bottom: 15px; padding: 8px 16px; font-size: 13px; background: #95a5a6; color: white; border: none; border-radius: 3px;">← 戻る</button>`;
+                
+                const headerColor = this.currentBoard ? '#2c3e50' : '#27ae60';
+                const borderColor = this.currentBoard ? '#3498db' : '#2ecc71';
+                
+                html += `<div style="background: ${headerColor}; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid ${borderColor};">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 18px;">📝</span>
+                        <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${meeting.name} の議事録一覧</span>
+                        <span style="color: rgba(255,255,255,0.7); font-size: 12px; margin-left: 8px;">開催日: ${meeting.date}</span>
+                    </div>
+                    <button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>
                 </div>`;
                 
+                html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
+                
                 if (minutes.length === 0) {
-                    html += '<div class="empty-state"><div class="empty-state-icon">📭</div><p>議事録がまだありません</p></div>';
+                    html += '<div style="padding: 40px 20px; text-align: center; color: #7f8c8d; font-size: 14px;">議事録がありません。右上の「+ 議事録追加」ボタンから追加してください。</div>';
                 } else {
-                    // 改善されたテーブル形式（すべてのフィールドを1行で表示）
-                    html += '<table class="minutes-table" style="width: 100%; margin-top: 15px;">';
-                    html += `
-                        <thead>
-                            <tr>
-                                <th style="width: 15%; padding: 12px;">会議名</th>
-                                <th style="width: 12%; padding: 12px;">サブタイトル</th>
-                                <th style="width: 10%; padding: 12px;">開催日</th>
-                                <th style="width: 15%; padding: 12px;">参加者</th>
-                                <th style="width: 10%; padding: 12px;">ファシリテーター</th>
-                                <th style="width: 10%; padding: 12px;">備考</th>
-                                <th style="width: 10%; padding: 12px;">ステータス</th>
-                                <th style="width: 18%; padding: 12px; text-align: right;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    `;
-                    
-                    const statusMap = {
-                        'pending': { class: 'badge-pending', text: '未着手' },
-                        'progress': { class: 'badge-progress', text: '進行中' },
-                        'completed': { class: 'badge-completed', text: '完了' },
-                        'overdue': { class: 'badge-overdue', text: '期限超過' }
-                    };
-                    
-                    minutes.forEach((minute, index) => {
-                        const status = statusMap[minute.status] || statusMap.pending;
-                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).slice(0, 3).join(', ');
-                        const participantsDisplay = participantsList.length > 30 ? participantsList.substring(0, 30) + '...' : participantsList;
-                        
-                        html += `
-                            <tr style="border-bottom: 1px solid #e0e0e0;">
-                                <td style="padding: 12px; font-size: 14px;">${minute.meetingName || ''}</td>
-                                <td style="padding: 12px; font-size: 14px;">${minute.subtitle || ''}</td>
-                                <td style="padding: 12px; font-size: 14px;">${minute.meetingDate || ''}</td>
-                                <td style="padding: 12px; font-size: 13px;" title="${minute.participants || ''}">${participantsDisplay}</td>
-                                <td style="padding: 12px; font-size: 14px;">${minute.facilitator || ''}</td>
-                                <td style="padding: 12px; font-size: 13px;">${(minute.notes || '').substring(0, 20)}${(minute.notes || '').length > 20 ? '...' : ''}</td>
-                                <td style="padding: 12px;">
-                                    <span class="badge ${status.class}" style="padding: 4px 8px; border-radius: 4px; font-size: 12px;">${status.text}</span>
-                                </td>
-                                <td style="padding: 8px 12px; text-align: right;">
-                                    <button class="btn btn-primary detail-minute-btn" data-minute-id="${minute.id}" 
-                                        style="padding: 10px 24px; font-size: 15px; font-weight: 600; margin-right: 8px; border-radius: 6px;">
-                                        📋 詳細
-                                    </button>
-                                    <button class="btn btn-secondary edit-minute-btn" data-minute-id="${minute.id}" 
-                                        style="padding: 8px 16px; font-size: 14px; margin-right: 8px; border-radius: 6px; background: #6c757d; border: none;">
-                                        ✏️ 編集
-                                    </button>
-                                    <button class="btn btn-danger delete-minute-btn" data-minute-id="${minute.id}" 
-                                        style="padding: 6px 10px; font-size: 13px; border-radius: 6px; background: #dc3545; border: none; opacity: 0.7;" 
-                                        title="削除">
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
+                    // 議事録を降順ソート（新しいものが上）
+                    const sortedMinutes = [...minutes].sort((a, b) => {
+                        const dateA = new Date(a.meetingDate || a.created || 0);
+                        const dateB = new Date(b.meetingDate || b.created || 0);
+                        return dateB - dateA; // 降順
                     });
                     
-                    html += '</tbody></table>';
+                    const statusMap = {
+                        'pending': { color: '#f39c12', text: '未着手' },
+                        'progress': { color: '#3498db', text: '進行中' },
+                        'completed': { color: '#27ae60', text: '完了' },
+                        'overdue': { color: '#e74c3c', text: '期限超過' }
+                    };
+                    
+                    sortedMinutes.forEach((minute, index) => {
+                        const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                        const status = statusMap[minute.status] || statusMap.pending;
+                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).slice(0, 2).join(', ');
+                        const participantsDisplay = participantsList.length > 20 ? participantsList.substring(0, 20) + '...' : participantsList;
+                        
+                        html += `
+                            <div style="
+                                display: grid;
+                                grid-template-columns: 100px 1fr 140px 120px 100px 200px;
+                                align-items: center;
+                                padding: 10px 20px;
+                                background: ${bgColor};
+                                border-bottom: 1px solid #e9ecef;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='${bgColor}'">
+                                <div style="font-size: 13px; color: #2c3e50; font-weight: 600;">${minute.meetingDate || '-'}</div>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${minute.subtitle || minute.meetingName || '議事録'}</div>
+                                    <div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;" title="${minute.participants || ''}">${participantsDisplay || '参加者なし'}</div>
+                                </div>
+                                <div style="font-size: 12px; color: #7f8c8d;">
+                                    ${minute.facilitator ? '📌 ' + minute.facilitator : ''}
+                                </div>
+                                <div style="text-align: center;">
+                                    <span style="background: ${status.color}; color: white; padding: 4px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;">
+                                        ${status.text}
+                                    </span>
+                                </div>
+                                <div style="font-size: 11px; color: #95a5a6;">
+                                    ${(minute.notes || '').substring(0, 30)}${(minute.notes || '').length > 30 ? '...' : ''}
+                                </div>
+                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                    <button class="detail-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 16px; font-size: 12px; background: ${headerColor}; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
+                                    <button class="edit-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
+                                    <button class="delete-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                </div>
+                            </div>
+                        `;
+                    });
                 }
                 
                 html += '</div>';
@@ -2122,7 +2125,7 @@
                         }
                     }
                 } else {
-                    // Add new minute
+                    // Add new minute - 配列の先頭に追加（新しいものが上に表示される）
                     const meetingId = this.currentMeeting.id;
                     if (!this.minutesData[meetingId]) {
                         this.minutesData[meetingId] = [];
@@ -2132,10 +2135,12 @@
                         id: `minute-${meetingId}-${Date.now()}`,
                         meetingId: meetingId,
                         ...formData,
-                        archived: false
+                        archived: false,
+                        created: new Date().toISOString() // 作成日時を追加
                     };
                     
-                    this.minutesData[meetingId].push(newMinute);
+                    // unshift()で配列の先頭に追加
+                    this.minutesData[meetingId].unshift(newMinute);
                 }
                 
                 this.saveToLocalStorage(); // Save to localStorage
