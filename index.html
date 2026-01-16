@@ -2384,16 +2384,37 @@
                         assignee: minute.facilitator || '',
                         deadline: minute.meetingDate || '',
                         purpose: '',
-                        status: minute.status || 'pending',
+                        status: minute.status || 'not-held',  // NEW: Default to "会議未実施"
                         notes1: '',
                         notes2: ''
                     }];
                 }
                 
-                // Render rows
+                // Render rows with NEW 3-status system
                 minute.detailRows.forEach((row, index) => {
-                    const statusOptions = ['pending', 'progress', 'completed', 'overdue'];
-                    const statusTexts = { pending: '未着手', progress: '進行中', completed: '完了', overdue: '期限超過' };
+                    // NEW: 3 Status System with Optimal Colors
+                    const statusOptions = ['not-held', 'completed-with-tasks', 'completed-no-tasks'];
+                    const statusConfig = {
+                        'not-held': { 
+                            text: '会議未実施', 
+                            color: '#3498db',  // Blue
+                            bg: '#e3f2fd'
+                        },
+                        'completed-with-tasks': { 
+                            text: '会議終了（残タスクあり）', 
+                            color: '#f39c12',  // Orange
+                            bg: '#fff3cd'
+                        },
+                        'completed-no-tasks': { 
+                            text: '会議終了（残タスクなし）', 
+                            color: '#27ae60',  // Green
+                            bg: '#d1e7dd'
+                        }
+                    };
+                    
+                    // Get current status color
+                    const currentStatus = row.status || 'not-held';
+                    const statusStyle = statusConfig[currentStatus] || statusConfig['not-held'];
                     
                     html += `
                         <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
@@ -2407,8 +2428,21 @@
                             <td data-label="期限" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}">${row.deadline || ''}</td>
                             <td data-label="目的・期待される効果" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
                             <td data-label="ステータス" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
-                                <select class="status-select" data-row="${index}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
-                                    ${statusOptions.map(opt => `<option value="${opt}" ${row.status === opt ? 'selected' : ''}>${statusTexts[opt]}</option>`).join('')}
+                                <select class="status-select" data-row="${index}" 
+                                    style="width: 100%; padding: 8px 30px 8px 8px; border: 2px solid ${statusStyle.color}; border-radius: 6px; font-size: 13px; font-weight: 600; color: ${statusStyle.color}; background: ${statusStyle.bg}; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=\"${encodeURIComponent(statusStyle.color)}\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>'); background-repeat: no-repeat; background-position: right 5px center; background-size: 20px; transition: all 0.2s ease;"
+                                    onchange="this.style.borderColor = event.target.selectedOptions[0].dataset.color; this.style.color = event.target.selectedOptions[0].dataset.color; this.style.background = event.target.selectedOptions[0].dataset.bg;"
+                                    onmouseover="this.style.transform = 'scale(1.02)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';"
+                                    onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';">
+                                    ${statusOptions.map(opt => {
+                                        const config = statusConfig[opt];
+                                        return `<option value="${opt}" 
+                                            data-color="${config.color}" 
+                                            data-bg="${config.bg}"
+                                            ${row.status === opt ? 'selected' : ''}
+                                            style="color: ${config.color}; background: ${config.bg}; font-weight: 600; padding: 8px;">
+                                            ${config.text}
+                                        </option>`;
+                                    }).join('')}
                                 </select>
                             </td>
                             <td data-label="備考1" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes1" data-row="${index}">${row.notes1 || ''}</td>
@@ -2878,13 +2912,14 @@
             },
             
             saveDetailTable(minuteId) {
-                // Show saving indicator
+                // Show saving indicator with animation
                 const saveButton = document.getElementById('saveButton');
                 if (saveButton) {
                     const originalHTML = saveButton.innerHTML;
                     saveButton.innerHTML = '⏳ 保存中...';
                     saveButton.disabled = true;
                     saveButton.style.opacity = '0.6';
+                    saveButton.style.transform = 'scale(0.95)';
                 }
                 
                 // Collect data from all cells
@@ -2930,7 +2965,22 @@
                         
                         this.saveToLocalStorage();
                         
-                        // Show success message on current page (not navigate away)
+                        // Show SUCCESS animation on save button
+                        if (saveButton) {
+                            saveButton.innerHTML = '✅ 保存完了！';
+                            saveButton.style.background = '#27ae60';
+                            saveButton.style.transform = 'scale(1.05)';
+                            saveButton.style.opacity = '1';
+                            
+                            setTimeout(() => {
+                                saveButton.innerHTML = '💾 保存';
+                                saveButton.style.background = '#e74c3c';
+                                saveButton.style.transform = 'scale(1)';
+                                saveButton.disabled = false;
+                            }, 2000);
+                        }
+                        
+                        // Show BIG success toast message
                         this.showSaveSuccessMessage();
                         
                         // Re-render current page to reflect changes (after a small delay to show success message)
@@ -2943,6 +2993,46 @@
             },
             
             showSaveSuccessMessage() {
+                // Create BIG success notification element with animation
+                const notification = document.createElement('div');
+                notification.innerHTML = `
+                    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); z-index: 9999; background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white; padding: 30px 50px; border-radius: 20px; box-shadow: 0 10px 40px rgba(39, 174, 96, 0.4); font-size: 24px; font-weight: 700; text-align: center; animation: successPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+                        <div>保存されました！</div>
+                    </div>
+                `;
+                
+                // Add animation keyframes if not exists
+                if (!document.getElementById('successPopStyle')) {
+                    const style = document.createElement('style');
+                    style.id = 'successPopStyle';
+                    style.textContent = `
+                        @keyframes successPop {
+                            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+                            50% { transform: translate(-50%, -50%) scale(1.1); }
+                            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                        }
+                        @keyframes fadeOut {
+                            from { opacity: 1; }
+                            to { opacity: 0; }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+                
+                document.body.appendChild(notification);
+                
+                // Fade out and remove after 2 seconds
+                setTimeout(() => {
+                    notification.firstElementChild.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 500);
+                }, 2000);
+            },
+            
+            // OLD VERSION BELOW (keeping for reference)
+            showSaveSuccessMessageOLD() {
                 // Create success notification element
                 const notification = document.createElement('div');
                 notification.innerHTML = `
