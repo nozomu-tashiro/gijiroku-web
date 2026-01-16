@@ -782,6 +782,70 @@
 </head>
 <body>
     <!-- Login Page -->
+    <!-- Initial Setup Page -->
+    <div id="setupPage" class="login-container" style="display: none;">
+        <div class="login-box" style="max-width: 500px;">
+            <h1 class="login-title">🎉 初期セットアップ</h1>
+            <p class="login-subtitle">システム管理者アカウントを作成してください</p>
+            <div id="setupAlert"></div>
+            <form id="setupForm">
+                <div class="form-group">
+                    <label for="setupEmail">メールアドレス *</label>
+                    <input type="email" id="setupEmail" placeholder="admin@ielove-partners.jp" required>
+                    <small style="color: #666; font-size: 12px;">※ @ielove-partners.jp ドメインのメールアドレスのみ使用可能</small>
+                </div>
+                <div class="form-group">
+                    <label for="setupName">お名前 *</label>
+                    <input type="text" id="setupName" placeholder="山田 太郎" required>
+                </div>
+                <div class="form-group">
+                    <label for="setupPassword">パスワード *</label>
+                    <input type="password" id="setupPassword" required>
+                    <small style="color: #666; font-size: 12px;">※ 8文字以上、大文字・小文字・数字を含む</small>
+                </div>
+                <div class="form-group">
+                    <label for="setupPasswordConfirm">パスワード確認 *</label>
+                    <input type="password" id="setupPasswordConfirm" required>
+                </div>
+                <button type="submit" class="login-btn" id="setupBtn">確認コードを送信</button>
+            </form>
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #856404;">
+                    ⚠️ この画面は最初の1回のみ表示されます。管理者アカウント作成後は二度と表示されません。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Verification Page -->
+    <div id="verificationPage" class="login-container" style="display: none;">
+        <div class="login-box">
+            <h1 class="login-title">✉️ メール確認</h1>
+            <p class="login-subtitle">確認コードを入力してください</p>
+            <div id="verificationAlert"></div>
+            <div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: #1565c0;">📧 確認コードを送信しました</p>
+                <p style="margin: 0; font-size: 14px; font-weight: 600; color: #0d47a1;" id="verificationEmail"></p>
+            </div>
+            <form id="verificationForm">
+                <div class="form-group">
+                    <label for="verificationCode">確認コード（6桁）*</label>
+                    <input type="text" id="verificationCode" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required 
+                           style="text-align: center; font-size: 24px; letter-spacing: 8px; font-weight: 600;">
+                </div>
+                <button type="submit" class="login-btn" id="verifyBtn">確認</button>
+                <button type="button" class="login-btn" onclick="app.resendVerificationCode()" 
+                        style="margin-top: 10px; background: #6c757d;">
+                    📩 コードを再送信
+                </button>
+            </form>
+            <div style="margin-top: 15px; text-align: center;">
+                <button onclick="app.showSetupPage()" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline;">← 戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Page -->
     <div id="loginPage" class="login-container">
         <div class="login-box">
             <h1 class="login-title">会議議事録管理システム</h1>
@@ -790,17 +854,54 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="email">メールアドレス</label>
-                    <input type="email" id="email" value="admin@example.com" required>
+                    <input type="email" id="email" placeholder="your-email@ielove-partners.jp" required>
                 </div>
                 <div class="form-group">
                     <label for="password">パスワード</label>
-                    <input type="password" id="password" value="Admin@123" required>
+                    <input type="password" id="password" required>
                 </div>
                 <button type="submit" class="login-btn" id="loginBtn">ログイン</button>
             </form>
-            <div class="demo-info">
-                <p><strong>デモアカウント:</strong></p>
-                <p><code>admin@example.com</code> / <code>Admin@123</code></p>
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="#" onclick="app.showRegistrationPage(); return false;" style="color: #667eea; text-decoration: none; font-size: 14px;">✏️ 新規登録はこちら</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Page -->
+    <div id="registrationPage" class="login-container" style="display: none;">
+        <div class="login-box" style="max-width: 500px;">
+            <h1 class="login-title">✏️ 新規登録</h1>
+            <p class="login-subtitle">アカウントを作成してください</p>
+            <div id="registrationAlert"></div>
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="regEmail">メールアドレス *</label>
+                    <input type="email" id="regEmail" placeholder="your-name@ielove-partners.jp" required>
+                    <small style="color: #666; font-size: 12px;">※ @ielove-partners.jp ドメインのメールアドレスのみ使用可能</small>
+                </div>
+                <div class="form-group">
+                    <label for="regName">お名前 *</label>
+                    <input type="text" id="regName" placeholder="山田 太郎" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">パスワード *</label>
+                    <input type="password" id="regPassword" required>
+                    <small style="color: #666; font-size: 12px;">※ 8文字以上、大文字・小文字・数字を含む</small>
+                </div>
+                <div class="form-group">
+                    <label for="regPasswordConfirm">パスワード確認 *</label>
+                    <input type="password" id="regPasswordConfirm" required>
+                </div>
+                <button type="submit" class="login-btn" id="regBtn">登録申請</button>
+            </form>
+            <div style="margin-top: 15px; text-align: center;">
+                <button onclick="app.showLoginPage()" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline;">← ログイン画面に戻る</button>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                    ℹ️ 登録後、管理者の承認が必要です。承認されるまでログインできません。
+                </p>
             </div>
         </div>
     </div>
@@ -814,6 +915,7 @@
                     <div id="headerUserName"></div>
                     <div id="headerUserDept"></div>
                 </div>
+                <button id="adminMenuBtn" class="btn" onclick="app.showUserManagement()" style="margin-right: 10px; padding: 8px 16px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">👥 ユーザー管理</button>
                 <button class="btn btn-warning" onclick="app.resetAllData()" style="margin-right: 10px; padding: 8px 16px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 データリセット</button>
                 <button class="logout-btn" onclick="app.logout()">ログアウト</button>
             </div>
@@ -958,6 +1060,30 @@
             minutesData: {}, // Store minutes data by meetingId
             archivedMinutes: [], // Store archived minutes
             
+            // 🔐 認証システム用データ
+            users: [], // 登録ユーザー一覧
+            pendingVerification: null, // メール確認待ちユーザー
+            verificationCode: null, // 確認コード
+            accessLogs: [], // アクセスログ
+            
+            // ユーザーステータス定数
+            USER_STATUS: {
+                PENDING: 'pending',      // 承認待ち
+                ACTIVE: 'active',        // アクティブ（ログイン可能）
+                SUSPENDED: 'suspended',  // 停止中（ログイン不可）
+                REJECTED: 'rejected'     // 承認拒否
+            },
+            
+            // 役割定数
+            USER_ROLE: {
+                ADMIN: 'admin',          // 管理者
+                USER: 'user',            // 一般ユーザー
+                VIEWER: 'viewer'         // 閲覧者
+            },
+            
+            // 許可ドメイン
+            ALLOWED_DOMAIN: 'ielove-partners.jp'
+            
             init() {
                 // デモデータ（組織構造）は常に読み込む
                 this.loadDemoData();
@@ -965,6 +1091,10 @@
                 // LocalStorageから会議・議事録データを読み込む
                 this.loadFromLocalStorage();
                 
+                // 🔐 認証データを読み込む
+                this.loadAuthData();
+                
+                // 認証チェック
                 this.checkAuth();
                 this.setupEventListeners();
                 this.setupInlineEditListeners();
@@ -1014,6 +1144,28 @@
                 localStorage.setItem('meetingsData', JSON.stringify(this.meetingsData));
                 localStorage.setItem('minutesData', JSON.stringify(this.minutesData));
                 console.log('Saved to localStorage');
+            },
+            
+            // 🔐 認証データの保存・読み込み
+            saveAuthData() {
+                localStorage.setItem('users', JSON.stringify(this.users));
+                localStorage.setItem('accessLogs', JSON.stringify(this.accessLogs));
+                console.log('🔐 Saved auth data to localStorage');
+            },
+            
+            loadAuthData() {
+                const savedUsers = localStorage.getItem('users');
+                const savedLogs = localStorage.getItem('accessLogs');
+                
+                if (savedUsers) {
+                    this.users = JSON.parse(savedUsers);
+                    console.log('🔐 Loaded users from localStorage:', this.users.length, 'users');
+                }
+                
+                if (savedLogs) {
+                    this.accessLogs = JSON.parse(savedLogs);
+                    console.log('🔐 Loaded access logs from localStorage:', this.accessLogs.length, 'logs');
+                }
             },
             
             resetAllData() {
@@ -1228,13 +1380,50 @@
             },
             
             async checkAuth() {
+                // 🔐 初回セットアップチェック
+                const adminUsers = this.users.filter(u => u.role === this.USER_ROLE.ADMIN);
+                if (adminUsers.length === 0) {
+                    // 管理者が1人もいない場合は初回セットアップ画面を表示
+                    this.showSetupPage();
+                    return;
+                }
+                
+                // ログイン済みチェック
                 const token = localStorage.getItem('accessToken');
                 if (token) {
                     // Use stored user info instead of API call
                     const userInfo = localStorage.getItem('userInfo');
                     if (userInfo) {
                         try {
-                            this.currentUser = JSON.parse(userInfo);
+                            const user = JSON.parse(userInfo);
+                            
+                            // 🔐 ユーザーステータスチェック
+                            const currentUser = this.users.find(u => u.email === user.email);
+                            if (!currentUser) {
+                                console.warn('User not found in database');
+                                this.logout();
+                                return;
+                            }
+                            
+                            if (currentUser.status !== this.USER_STATUS.ACTIVE) {
+                                // アクティブでない場合はログアウト
+                                let message = 'アカウントが無効化されています。';
+                                if (currentUser.status === this.USER_STATUS.SUSPENDED) {
+                                    message = '⛔ アカウントが停止されています。\n管理者にお問い合わせください。';
+                                } else if (currentUser.status === this.USER_STATUS.PENDING) {
+                                    message = '⏳ アカウントは承認待ちです。\n管理者の承認をお待ちください。';
+                                } else if (currentUser.status === this.USER_STATUS.REJECTED) {
+                                    message = '❌ アカウントが拒否されました。\n詳細は管理者にお問い合わせください。';
+                                }
+                                alert(message);
+                                this.logout();
+                                return;
+                            }
+                            
+                            // ログ記録
+                            this.logAccess(currentUser.email, 'login_check', 'success');
+                            
+                            this.currentUser = currentUser;
                             this.showMainApp();
                             return;
                         } catch (error) {
@@ -1246,14 +1435,57 @@
             },
             
             showLoginPage() {
+                // すべての画面を非表示
+                document.getElementById('setupPage').style.display = 'none';
+                document.getElementById('verificationPage').style.display = 'none';
+                document.getElementById('registrationPage').style.display = 'none';
                 document.getElementById('loginPage').style.display = 'flex';
                 document.getElementById('mainApp').style.display = 'none';
             },
             
+            showSetupPage() {
+                // すべての画面を非表示
+                document.getElementById('setupPage').style.display = 'flex';
+                document.getElementById('verificationPage').style.display = 'none';
+                document.getElementById('registrationPage').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'none';
+            },
+            
+            showVerificationPage(email) {
+                document.getElementById('setupPage').style.display = 'none';
+                document.getElementById('verificationPage').style.display = 'flex';
+                document.getElementById('registrationPage').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'none';
+                document.getElementById('verificationEmail').textContent = email;
+            },
+            
+            showRegistrationPage() {
+                document.getElementById('setupPage').style.display = 'none';
+                document.getElementById('verificationPage').style.display = 'none';
+                document.getElementById('registrationPage').style.display = 'flex';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'none';
+            },
+            
             showMainApp() {
+                document.getElementById('setupPage').style.display = 'none';
+                document.getElementById('verificationPage').style.display = 'none';
+                document.getElementById('registrationPage').style.display = 'none';
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
                 document.getElementById('headerUserName').textContent = this.currentUser.name;
+                
+                // 🔐 管理者の場合はユーザー管理ボタンを表示
+                const adminMenuBtn = document.getElementById('adminMenuBtn');
+                if (adminMenuBtn) {
+                    if (this.currentUser.role === this.USER_ROLE.ADMIN) {
+                        adminMenuBtn.style.display = 'inline-block';
+                    } else {
+                        adminMenuBtn.style.display = 'none';
+                    }
+                }
                 
                 // ★ 組織ビューを表示（これがないと何も表示されない！）
                 this.showOrganizationView();
@@ -1266,6 +1498,106 @@
                 const alertDiv = document.getElementById('loginAlert');
                 alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
                 setTimeout(() => alertDiv.innerHTML = '', 3000);
+            },
+            
+            showSetupAlert(message, type = 'error') {
+                const alertDiv = document.getElementById('setupAlert');
+                alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => alertDiv.innerHTML = '', 5000);
+            },
+            
+            showVerificationAlert(message, type = 'error') {
+                const alertDiv = document.getElementById('verificationAlert');
+                alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => alertDiv.innerHTML = '', 5000);
+            },
+            
+            showRegistrationAlert(message, type = 'error') {
+                const alertDiv = document.getElementById('registrationAlert');
+                alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                setTimeout(() => alertDiv.innerHTML = '', 5000);
+            },
+            
+            // 🔐 認証ユーティリティ関数
+            validateEmail(email) {
+                // メールアドレスの基本フォーマットチェック
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    return { valid: false, message: '有効なメールアドレスを入力してください' };
+                }
+                
+                // ドメインチェック
+                const domain = email.split('@')[1];
+                if (domain !== this.ALLOWED_DOMAIN) {
+                    return { valid: false, message: `@${this.ALLOWED_DOMAIN} ドメインのメールアドレスのみ使用できます` };
+                }
+                
+                // 既存ユーザーチェック
+                const existingUser = this.users.find(u => u.email === email);
+                if (existingUser) {
+                    return { valid: false, message: 'このメールアドレスは既に登録されています' };
+                }
+                
+                return { valid: true };
+            },
+            
+            validatePassword(password) {
+                // パスワード強度チェック
+                if (password.length < 8) {
+                    return { valid: false, message: 'パスワードは8文字以上必要です' };
+                }
+                
+                // 大文字チェック
+                if (!/[A-Z]/.test(password)) {
+                    return { valid: false, message: 'パスワードには大文字を含める必要があります' };
+                }
+                
+                // 小文字チェック
+                if (!/[a-z]/.test(password)) {
+                    return { valid: false, message: 'パスワードには小文字を含める必要があります' };
+                }
+                
+                // 数字チェック
+                if (!/[0-9]/.test(password)) {
+                    return { valid: false, message: 'パスワードには数字を含める必要があります' };
+                }
+                
+                return { valid: true };
+            },
+            
+            generateVerificationCode() {
+                // 6桁のランダムコードを生成
+                return Math.floor(100000 + Math.random() * 900000).toString();
+            },
+            
+            sendVerificationEmail(email, code) {
+                // 実際のメール送信の代わりに、コンソールに表示
+                console.log('📧 ====================================');
+                console.log('📧 確認コード送信（シミュレーション）');
+                console.log('📧 ====================================');
+                console.log(`📧 宛先: ${email}`);
+                console.log(`📧 確認コード: ${code}`);
+                console.log('📧 ====================================');
+                
+                // アラートでも表示（開発用）
+                alert(`📧 確認コード送信（開発モード）\n\n宛先: ${email}\n確認コード: ${code}\n\n※本番環境では実際のメールが送信されます`);
+                
+                return true;
+            },
+            
+            logAccess(email, action, status, details = '') {
+                const log = {
+                    timestamp: new Date().toISOString(),
+                    email: email,
+                    action: action, // 'login', 'login_check', 'register', 'approve', 'suspend', 'reject'
+                    status: status, // 'success', 'failed', 'blocked'
+                    details: details,
+                    userAgent: navigator.userAgent
+                };
+                
+                this.accessLogs.push(log);
+                this.saveAuthData();
+                console.log('📝 Access log:', log);
             },
             
             updateBreadcrumb() {
@@ -1298,6 +1630,183 @@
                 }
                 
                 breadcrumb.innerHTML = html;
+            },
+            
+            // 🔐 ユーザー管理画面
+            showUserManagement() {
+                if (this.currentUser.role !== this.USER_ROLE.ADMIN) {
+                    alert('❌ 管理者のみアクセスできます');
+                    return;
+                }
+                
+                this.currentView = 'userManagement';
+                this.updateBreadcrumb();
+                
+                const content = document.getElementById('contentArea');
+                let html = '<div class="card">';
+                html += '<div class="card-title">👥 ユーザー管理</div>';
+                
+                // フィルターボタン
+                html += '<div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">';
+                html += '<button class="btn btn-sm" onclick="app.filterUsers(\'all\')" style="background: #667eea; color: white;">すべて</button>';
+                html += '<button class="btn btn-sm" onclick="app.filterUsers(\'pending\')" style="background: #f39c12; color: white;">承認待ち</button>';
+                html += '<button class="btn btn-sm" onclick="app.filterUsers(\'active\')" style="background: #27ae60; color: white;">アクティブ</button>';
+                html += '<button class="btn btn-sm" onclick="app.filterUsers(\'suspended\')" style="background: #e74c3c; color: white;">停止中</button>';
+                html += '</div>';
+                
+                // ユーザー一覧テーブル
+                html += '<div style="overflow-x: auto;">';
+                html += '<table class="minutes-table" style="font-size: 13px;">';
+                html += '<thead><tr>';
+                html += '<th>メールアドレス</th>';
+                html += '<th>名前</th>';
+                html += '<th>役割</th>';
+                html += '<th>ステータス</th>';
+                html += '<th>登録日</th>';
+                html += '<th>アクション</th>';
+                html += '</tr></thead>';
+                html += '<tbody id="userTableBody">';
+                
+                // ユーザーリスト
+                const sortedUsers = [...this.users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                
+                sortedUsers.forEach(user => {
+                    const statusBadge = this.getUserStatusBadge(user.status);
+                    const roleBadge = this.getUserRoleBadge(user.role);
+                    
+                    html += '<tr>';
+                    html += `<td>${user.email}</td>`;
+                    html += `<td>${user.name}</td>`;
+                    html += `<td>${roleBadge}</td>`;
+                    html += `<td>${statusBadge}</td>`;
+                    html += `<td>${new Date(user.createdAt).toLocaleDateString('ja-JP')}</td>`;
+                    html += `<td style="white-space: nowrap;">`;
+                    
+                    // アクションボタン
+                    if (user.status === this.USER_STATUS.PENDING) {
+                        html += `<button class="btn btn-sm" onclick="app.approveUser('${user.id}')" style="background: #27ae60; color: white; margin-right: 5px;">✓ 承認</button>`;
+                        html += `<button class="btn btn-sm" onclick="app.rejectUser('${user.id}')" style="background: #e74c3c; color: white;">✗ 拒否</button>`;
+                    } else if (user.status === this.USER_STATUS.ACTIVE) {
+                        html += `<button class="btn btn-sm" onclick="app.suspendUser('${user.id}')" style="background: #f39c12; color: white; margin-right: 5px;">⏸ 停止</button>`;
+                        html += `<button class="btn btn-sm" onclick="app.deleteUser('${user.id}')" style="background: #e74c3c; color: white;">🗑️ 削除</button>`;
+                    } else if (user.status === this.USER_STATUS.SUSPENDED) {
+                        html += `<button class="btn btn-sm" onclick="app.activateUser('${user.id}')" style="background: #27ae60; color: white; margin-right: 5px;">▶ 有効化</button>`;
+                        html += `<button class="btn btn-sm" onclick="app.deleteUser('${user.id}')" style="background: #e74c3c; color: white;">🗑️ 削除</button>`;
+                    } else if (user.status === this.USER_STATUS.REJECTED) {
+                        html += `<button class="btn btn-sm" onclick="app.deleteUser('${user.id}')" style="background: #e74c3c; color: white;">🗑️ 削除</button>`;
+                    }
+                    
+                    html += '</td>';
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                html += '</div>';
+                html += '</div>';
+                
+                content.innerHTML = html;
+            },
+            
+            getUserStatusBadge(status) {
+                const statusMap = {
+                    [this.USER_STATUS.PENDING]: { text: '承認待ち', color: '#f39c12', bg: '#fff3cd' },
+                    [this.USER_STATUS.ACTIVE]: { text: 'アクティブ', color: '#27ae60', bg: '#d1e7dd' },
+                    [this.USER_STATUS.SUSPENDED]: { text: '停止中', color: '#e74c3c', bg: '#f8d7da' },
+                    [this.USER_STATUS.REJECTED]: { text: '拒否済み', color: '#6c757d', bg: '#e9ecef' }
+                };
+                const config = statusMap[status] || statusMap[this.USER_STATUS.PENDING];
+                return `<span class="badge" style="background: ${config.bg}; color: ${config.color};">${config.text}</span>`;
+            },
+            
+            getUserRoleBadge(role) {
+                const roleMap = {
+                    [this.USER_ROLE.ADMIN]: { text: '管理者', color: '#9c27b0', bg: '#f3e5f5' },
+                    [this.USER_ROLE.USER]: { text: '一般ユーザー', color: '#2196f3', bg: '#e3f2fd' },
+                    [this.USER_ROLE.VIEWER]: { text: '閲覧者', color: '#607d8b', bg: '#eceff1' }
+                };
+                const config = roleMap[role] || roleMap[this.USER_ROLE.USER];
+                return `<span class="badge" style="background: ${config.bg}; color: ${config.color};">${config.text}</span>`;
+            },
+            
+            filterUsers(filter) {
+                const users = filter === 'all' 
+                    ? this.users 
+                    : this.users.filter(u => u.status === filter);
+                
+                // テーブル更新ロジック（現在は全画面再描画）
+                this.showUserManagement();
+            },
+            
+            approveUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return;
+                
+                if (confirm(`${user.name} (${user.email}) を承認しますか？`)) {
+                    user.status = this.USER_STATUS.ACTIVE;
+                    user.approvedAt = new Date().toISOString();
+                    user.approvedBy = this.currentUser.email;
+                    
+                    this.saveAuthData();
+                    this.logAccess(user.email, 'approve', 'success', `Approved by ${this.currentUser.email}`);
+                    alert('✅ ユーザーを承認しました');
+                    this.showUserManagement();
+                }
+            },
+            
+            rejectUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return;
+                
+                if (confirm(`${user.name} (${user.email}) を拒否しますか？\nこのユーザーはログインできなくなります。`)) {
+                    user.status = this.USER_STATUS.REJECTED;
+                    
+                    this.saveAuthData();
+                    this.logAccess(user.email, 'reject', 'success', `Rejected by ${this.currentUser.email}`);
+                    alert('✅ ユーザーを拒否しました');
+                    this.showUserManagement();
+                }
+            },
+            
+            suspendUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return;
+                
+                if (confirm(`${user.name} (${user.email}) を停止しますか？\nこのユーザーはログインできなくなります。`)) {
+                    user.status = this.USER_STATUS.SUSPENDED;
+                    
+                    this.saveAuthData();
+                    this.logAccess(user.email, 'suspend', 'success', `Suspended by ${this.currentUser.email}`);
+                    alert('⏸️ ユーザーを停止しました');
+                    this.showUserManagement();
+                }
+            },
+            
+            activateUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return;
+                
+                if (confirm(`${user.name} (${user.email}) を有効化しますか？`)) {
+                    user.status = this.USER_STATUS.ACTIVE;
+                    
+                    this.saveAuthData();
+                    this.logAccess(user.email, 'activate', 'success', `Activated by ${this.currentUser.email}`);
+                    alert('✅ ユーザーを有効化しました');
+                    this.showUserManagement();
+                }
+            },
+            
+            deleteUser(userId) {
+                const user = this.users.find(u => u.id === userId);
+                if (!user) return;
+                
+                if (confirm(`${user.name} (${user.email}) を完全に削除しますか？\nこの操作は取り消せません。`)) {
+                    this.users = this.users.filter(u => u.id !== userId);
+                    
+                    this.saveAuthData();
+                    this.logAccess(user.email, 'delete', 'success', `Deleted by ${this.currentUser.email}`);
+                    alert('🗑️ ユーザーを削除しました');
+                    this.showUserManagement();
+                }
             },
             
             showOrganizationView() {
@@ -3428,6 +3937,11 @@
             },
             
             async logout() {
+                // ログアウト記録
+                if (this.currentUser) {
+                    this.logAccess(this.currentUser.email, 'logout', 'success');
+                }
+                
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
                 localStorage.removeItem('userInfo');
@@ -3437,10 +3951,11 @@
         };
         
         // Login form handler
+        // 🔐 ログインフォーム
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('loginBtn');
             
@@ -3448,36 +3963,267 @@
             loginBtn.textContent = 'ログイン中...';
             
             try {
-                // Simple client-side authentication
-                // In production, this should be server-side
-                const validUsers = [
-                    {
-                        email: 'admin@example.com',
-                        password: 'Admin@123',
-                        name: '管理者',
-                        department: { name: '経営企画部' },
-                        team: { name: '経営チーム' }
-                    }
-                ];
+                // ユーザー検索
+                const user = app.users.find(u => u.email === email);
                 
-                const user = validUsers.find(u => u.email === email && u.password === password);
-                
-                if (user) {
-                    // Create a mock token
-                    const token = 'mock-token-' + Date.now();
-                    localStorage.setItem('accessToken', token);
-                    localStorage.setItem('userInfo', JSON.stringify(user));
-                    app.currentUser = user;
-                    app.showAlert('✅ ログイン成功！', 'success');
-                    setTimeout(() => app.showMainApp(), 500);
-                } else {
+                if (!user) {
+                    app.logAccess(email, 'login', 'failed', 'User not found');
                     app.showAlert('❌ メールアドレスまたはパスワードが正しくありません', 'error');
+                    return;
                 }
+                
+                // パスワードチェック
+                if (user.password !== password) {
+                    app.logAccess(email, 'login', 'failed', 'Wrong password');
+                    app.showAlert('❌ メールアドレスまたはパスワードが正しくありません', 'error');
+                    return;
+                }
+                
+                // ステータスチェック
+                if (user.status === app.USER_STATUS.PENDING) {
+                    app.logAccess(email, 'login', 'blocked', 'Pending approval');
+                    app.showAlert('⏳ アカウントは承認待ちです。\n管理者の承認をお待ちください。', 'error');
+                    return;
+                }
+                
+                if (user.status === app.USER_STATUS.SUSPENDED) {
+                    app.logAccess(email, 'login', 'blocked', 'Account suspended');
+                    app.showAlert('⛔ アカウントが停止されています。\n管理者にお問い合わせください。', 'error');
+                    return;
+                }
+                
+                if (user.status === app.USER_STATUS.REJECTED) {
+                    app.logAccess(email, 'login', 'blocked', 'Account rejected');
+                    app.showAlert('❌ アカウントが拒否されました。\n詳細は管理者にお問い合わせください。', 'error');
+                    return;
+                }
+                
+                // ログイン成功
+                app.logAccess(email, 'login', 'success');
+                const token = 'token-' + Date.now();
+                localStorage.setItem('accessToken', token);
+                localStorage.setItem('userInfo', JSON.stringify(user));
+                app.currentUser = user;
+                app.showAlert('✅ ログイン成功！', 'success');
+                setTimeout(() => app.showMainApp(), 500);
             } catch (error) {
+                console.error('Login error:', error);
                 app.showAlert(`❌ エラー: ${error.message}`, 'error');
             } finally {
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'ログイン';
+            }
+        });
+        
+        // 🔐 初回セットアップフォーム
+        document.getElementById('setupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('setupEmail').value.trim();
+            const name = document.getElementById('setupName').value.trim();
+            const password = document.getElementById('setupPassword').value;
+            const passwordConfirm = document.getElementById('setupPasswordConfirm').value;
+            const setupBtn = document.getElementById('setupBtn');
+            
+            // バリデーション
+            const emailValidation = app.validateEmail(email);
+            if (!emailValidation.valid) {
+                app.showSetupAlert('❌ ' + emailValidation.message, 'error');
+                return;
+            }
+            
+            if (!name) {
+                app.showSetupAlert('❌ お名前を入力してください', 'error');
+                return;
+            }
+            
+            const passwordValidation = app.validatePassword(password);
+            if (!passwordValidation.valid) {
+                app.showSetupAlert('❌ ' + passwordValidation.message, 'error');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                app.showSetupAlert('❌ パスワードが一致しません', 'error');
+                return;
+            }
+            
+            setupBtn.disabled = true;
+            setupBtn.textContent = '送信中...';
+            
+            try {
+                // 確認コード生成
+                app.verificationCode = app.generateVerificationCode();
+                app.pendingVerification = {
+                    email: email,
+                    name: name,
+                    password: password,
+                    role: app.USER_ROLE.ADMIN,
+                    type: 'setup' // 初回セットアップ
+                };
+                
+                // メール送信（シミュレーション）
+                app.sendVerificationEmail(email, app.verificationCode);
+                
+                // 確認画面へ
+                app.showVerificationPage(email);
+                app.showSetupAlert('✅ 確認コードを送信しました', 'success');
+            } catch (error) {
+                console.error('Setup error:', error);
+                app.showSetupAlert(`❌ エラー: ${error.message}`, 'error');
+            } finally {
+                setupBtn.disabled = false;
+                setupBtn.textContent = '確認コードを送信';
+            }
+        });
+        
+        // 🔐 メール確認フォーム
+        document.getElementById('verificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const code = document.getElementById('verificationCode').value.trim();
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            if (!code || code.length !== 6) {
+                app.showVerificationAlert('❌ 6桁の確認コードを入力してください', 'error');
+                return;
+            }
+            
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = '確認中...';
+            
+            try {
+                if (code !== app.verificationCode) {
+                    app.showVerificationAlert('❌ 確認コードが正しくありません', 'error');
+                    return;
+                }
+                
+                // 確認成功
+                const pendingUser = app.pendingVerification;
+                
+                // 新規ユーザーを作成
+                const newUser = {
+                    id: 'user-' + Date.now(),
+                    email: pendingUser.email,
+                    name: pendingUser.name,
+                    password: pendingUser.password,
+                    role: pendingUser.role,
+                    status: app.USER_STATUS.ACTIVE, // 初回セットアップまたは管理者承認済み
+                    createdAt: new Date().toISOString(),
+                    approvedAt: new Date().toISOString(),
+                    approvedBy: pendingUser.type === 'setup' ? 'system' : 'admin',
+                    department: { name: '経営企画部' }, // デフォルト値
+                    team: { name: '経営チーム' } // デフォルト値
+                };
+                
+                app.users.push(newUser);
+                app.saveAuthData();
+                app.logAccess(newUser.email, 'register', 'success', pendingUser.type === 'setup' ? 'Initial setup' : 'Registration');
+                
+                // クリア
+                app.verificationCode = null;
+                app.pendingVerification = null;
+                
+                if (pendingUser.type === 'setup') {
+                    // 初回セットアップの場合は自動ログイン
+                    const token = 'token-' + Date.now();
+                    localStorage.setItem('accessToken', token);
+                    localStorage.setItem('userInfo', JSON.stringify(newUser));
+                    app.currentUser = newUser;
+                    
+                    app.showVerificationAlert('✅ 管理者アカウントを作成しました！', 'success');
+                    setTimeout(() => app.showMainApp(), 1000);
+                } else {
+                    // 一般登録の場合はログイン画面へ
+                    app.showVerificationAlert('✅ 承認待ちです。管理者の承認をお待ちください。', 'success');
+                    setTimeout(() => app.showLoginPage(), 2000);
+                }
+            } catch (error) {
+                console.error('Verification error:', error);
+                app.showVerificationAlert(`❌ エラー: ${error.message}`, 'error');
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = '確認';
+            }
+        });
+        
+        // 🔐 確認コード再送信
+        app.resendVerificationCode = function() {
+            if (!app.pendingVerification) {
+                app.showVerificationAlert('❌ セッションが切れました。最初からやり直してください。', 'error');
+                return;
+            }
+            
+            // 新しいコードを生成
+            app.verificationCode = app.generateVerificationCode();
+            app.sendVerificationEmail(app.pendingVerification.email, app.verificationCode);
+            app.showVerificationAlert('✅ 確認コードを再送信しました', 'success');
+        };
+        
+        // 🔐 新規登録フォーム
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('regEmail').value.trim();
+            const name = document.getElementById('regName').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const regBtn = document.getElementById('regBtn');
+            
+            // バリデーション
+            const emailValidation = app.validateEmail(email);
+            if (!emailValidation.valid) {
+                app.showRegistrationAlert('❌ ' + emailValidation.message, 'error');
+                return;
+            }
+            
+            if (!name) {
+                app.showRegistrationAlert('❌ お名前を入力してください', 'error');
+                return;
+            }
+            
+            const passwordValidation = app.validatePassword(password);
+            if (!passwordValidation.valid) {
+                app.showRegistrationAlert('❌ ' + passwordValidation.message, 'error');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                app.showRegistrationAlert('❌ パスワードが一致しません', 'error');
+                return;
+            }
+            
+            regBtn.disabled = true;
+            regBtn.textContent = '送信中...';
+            
+            try {
+                // 新規ユーザーを承認待ちで作成
+                const newUser = {
+                    id: 'user-' + Date.now(),
+                    email: email,
+                    name: name,
+                    password: password,
+                    role: app.USER_ROLE.USER, // 一般ユーザー
+                    status: app.USER_STATUS.PENDING, // 承認待ち
+                    createdAt: new Date().toISOString(),
+                    approvedAt: null,
+                    approvedBy: null,
+                    department: { name: '未所属' },
+                    team: { name: '未所属' }
+                };
+                
+                app.users.push(newUser);
+                app.saveAuthData();
+                app.logAccess(email, 'register', 'success', 'Pending approval');
+                
+                app.showRegistrationAlert('✅ 登録申請を送信しました！\n管理者の承認をお待ちください。', 'success');
+                setTimeout(() => app.showLoginPage(), 2000);
+            } catch (error) {
+                console.error('Registration error:', error);
+                app.showRegistrationAlert(`❌ エラー: ${error.message}`, 'error');
+            } finally {
+                regBtn.disabled = false;
+                regBtn.textContent = '登録申請';
             }
         });
         
