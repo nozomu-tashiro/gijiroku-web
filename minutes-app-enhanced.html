@@ -100,6 +100,44 @@
         .badge-overdue { background: #f8d7da; color: #842029; }
         .badge-archived { background: #6c757d; color: white; }
         
+        /* Inline Edit */
+        .inline-edit:hover {
+            background: #f0f8ff !important;
+            outline: 1px solid #667eea;
+        }
+        .inline-edit:focus {
+            background: #fff !important;
+            outline: 2px solid #667eea;
+        }
+        .inline-edit[contenteditable="true"]:empty:before {
+            content: attr(data-placeholder);
+            color: #999;
+        }
+        .status-dropdown {
+            transition: all 0.2s;
+        }
+        .status-dropdown:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+        .save-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-in 2.7s;
+            opacity: 0;
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
         /* Buttons */
         .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: background 0.3s; font-weight: 600; }
         .btn-primary { background: #667eea; color: white; }
@@ -929,6 +967,7 @@
                 
                 this.checkAuth();
                 this.setupEventListeners();
+                this.setupInlineEditListeners();
             },
             
             navigateHome() {
@@ -1788,15 +1827,19 @@
                     });
                     
                     const statusMap = {
-                        'pending': { color: '#f39c12', text: '未着手' },
-                        'progress': { color: '#3498db', text: '進行中' },
-                        'completed': { color: '#27ae60', text: '完了' },
-                        'overdue': { color: '#e74c3c', text: '期限超過' }
+                        'not-held': { color: '#3498db', text: '会議未実施', badge: 'badge-not-held' },
+                        'completed-with-tasks': { color: '#f39c12', text: '会議終了（残タスクあり）', badge: 'badge-completed-with-tasks' },
+                        'completed-no-tasks': { color: '#27ae60', text: '会議終了（残タスクなし）', badge: 'badge-completed-no-tasks' },
+                        // 旧ステータス（互換性）
+                        'pending': { color: '#f39c12', text: '未着手', badge: 'badge-pending' },
+                        'progress': { color: '#3498db', text: '進行中', badge: 'badge-progress' },
+                        'completed': { color: '#27ae60', text: '完了', badge: 'badge-completed' },
+                        'overdue': { color: '#e74c3c', text: '期限超過', badge: 'badge-overdue' }
                     };
                     
                     sortedMinutes.forEach((minute, index) => {
                         const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
-                        const status = statusMap[minute.status] || statusMap.pending;
+                        const status = statusMap[minute.status] || statusMap['not-held'];
                         
                         // 参加者の表示（改行またはカンマ区切り）
                         const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).join(', ');
@@ -1807,7 +1850,7 @@
                         const notesShort = notesDisplay.length >= 60 ? notesDisplay + '...' : notesDisplay;
                         
                         html += `
-                            <div class="meeting-list-row" style="
+                            <div class="meeting-list-row inline-editable-row" data-minute-id="${minute.id}" style="
                                 display: grid;
                                 grid-template-columns: 110px 250px 220px 140px 200px 100px 1fr;
                                 align-items: center;
@@ -1816,19 +1859,20 @@
                                 border-bottom: 1px solid #e9ecef;
                                 transition: background 0.2s;
                             " onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='${bgColor}'">
-                                <div style="font-size: 13px; color: #2c3e50; font-weight: 600;">${minute.meetingDate || '-'}</div>
-                                <div style="font-size: 14px; font-weight: 700; color: #2c3e50;">${minute.subtitle || minute.meetingName || '議事録'}</div>
-                                <div style="font-size: 12px; color: #7f8c8d;" title="${minute.participants || ''}">${participantsDisplay}</div>
-                                <div style="font-size: 12px; color: #7f8c8d;">${minute.facilitator ? '📌 ' + minute.facilitator : '-'}</div>
-                                <div style="font-size: 11px; color: #95a5a6;" title="${minute.notes || ''}">${notesShort}</div>
+                                <div class="inline-edit" data-field="meetingDate" style="font-size: 13px; color: #2c3e50; font-weight: 600; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.meetingDate || '-'}</div>
+                                <div class="inline-edit" data-field="subtitle" style="font-size: 14px; font-weight: 700; color: #2c3e50; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.subtitle || minute.meetingName || '議事録'}</div>
+                                <div class="inline-edit" data-field="participants" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.participants || ''}">${participantsDisplay}</div>
+                                <div class="inline-edit" data-field="facilitator" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.facilitator || '-'}</div>
+                                <div class="inline-edit" data-field="notes" style="font-size: 11px; color: #95a5a6; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.notes || ''}">${minute.notes || '-'}</div>
                                 <div style="text-align: center;">
-                                    <span style="background: ${status.color}; color: white; padding: 4px 10px; border-radius: 3px; font-size: 11px; font-weight: 600;">
-                                        ${status.text}
-                                    </span>
+                                    <select class="status-dropdown" data-field="status" style="background: ${status.color}; color: white; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">
+                                        <option value="not-held" ${minute.status === 'not-held' ? 'selected' : ''}>会議未実施</option>
+                                        <option value="completed-with-tasks" ${minute.status === 'completed-with-tasks' ? 'selected' : ''}>会議終了（残タスクあり）</option>
+                                        <option value="completed-no-tasks" ${minute.status === 'completed-no-tasks' ? 'selected' : ''}>会議終了（残タスクなし）</option>
+                                    </select>
                                 </div>
                                 <div style="display: flex; gap: 6px; justify-content: flex-end; padding-right: 0;">
                                     <button class="detail-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 16px; font-size: 12px; background: ${headerColor}; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
-                                    <button class="edit-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
                                     <button class="delete-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
                                 </div>
                             </div>
@@ -3079,6 +3123,87 @@
                     // HTML5バリデーションを表示
                     form.reportValidity();
                 }
+            },
+            
+            // インライン編集の保存
+            saveInlineEdit(minuteId, field, value) {
+                // 議事録データを更新
+                for (const meetingId in this.minutesData) {
+                    const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) {
+                        minute[field] = value;
+                        this.saveToLocalStorage();
+                        this.showSaveIndicator();
+                        console.log(`✅ Saved ${field}: ${value}`);
+                        return true;
+                    }
+                }
+                return false;
+            },
+            
+            // 保存インジケーターを表示
+            showSaveIndicator() {
+                // 既存のインジケーターを削除
+                const existing = document.getElementById('saveIndicator');
+                if (existing) {
+                    existing.remove();
+                }
+                
+                // 新しいインジケーターを作成
+                const indicator = document.createElement('div');
+                indicator.id = 'saveIndicator';
+                indicator.className = 'save-indicator';
+                indicator.innerHTML = '✓ 保存しました';
+                indicator.style.opacity = '1';
+                document.body.appendChild(indicator);
+                
+                // 3秒後に削除
+                setTimeout(() => {
+                    if (indicator.parentNode) {
+                        indicator.remove();
+                    }
+                }, 3000);
+            },
+            
+            // インライン編集のイベントリスナーを設定
+            setupInlineEditListeners() {
+                // contenteditable要素のblurイベント
+                document.addEventListener('blur', (e) => {
+                    if (e.target.classList.contains('inline-edit')) {
+                        const row = e.target.closest('.inline-editable-row');
+                        if (row) {
+                            const minuteId = row.dataset.minuteId;
+                            const field = e.target.dataset.field;
+                            const value = e.target.textContent.trim();
+                            
+                            if (value && value !== '-') {
+                                this.saveInlineEdit(minuteId, field, value);
+                            }
+                        }
+                    }
+                }, true);
+                
+                // ステータスドロップダウンの変更
+                document.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('status-dropdown')) {
+                        const row = e.target.closest('.inline-editable-row');
+                        if (row) {
+                            const minuteId = row.dataset.minuteId;
+                            const field = e.target.dataset.field;
+                            const value = e.target.value;
+                            
+                            this.saveInlineEdit(minuteId, field, value);
+                            
+                            // ドロップダウンの色を更新
+                            const statusColors = {
+                                'not-held': '#3498db',
+                                'completed-with-tasks': '#f39c12',
+                                'completed-no-tasks': '#27ae60'
+                            };
+                            e.target.style.background = statusColors[value] || '#999';
+                        }
+                    }
+                }, true);
             },
             
             archiveMinute(minuteId) {
