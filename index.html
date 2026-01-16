@@ -497,6 +497,100 @@
                 font-size: 16px;
             }
             
+            /* 会議リスト - ヘッダー非表示、カード形式 */
+            .meeting-list-header {
+                display: none !important;
+            }
+            
+            .meeting-list-row {
+                display: block !important;
+                padding: 14px !important;
+                margin-bottom: 12px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+            }
+            
+            .meeting-list-row > div {
+                display: block !important;
+                padding: 6px 0 !important;
+                border-bottom: 1px solid #f0f0f0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            .meeting-list-row > div:last-child {
+                border-bottom: none;
+                padding-top: 12px !important;
+            }
+            
+            .meeting-list-row > div:nth-child(1)::before {
+                content: "会議日: ";
+                font-weight: 600;
+                color: #667eea;
+                display: inline;
+                margin-right: 6px;
+            }
+            
+            .meeting-list-row > div:nth-child(2)::before {
+                content: "サブタイトル: ";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+            }
+            
+            .meeting-list-row > div:nth-child(3)::before {
+                content: "参加者: ";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+            }
+            
+            .meeting-list-row > div:nth-child(4)::before {
+                content: "ファシリテーター: ";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+            }
+            
+            .meeting-list-row > div:nth-child(5)::before {
+                content: "備考: ";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+            }
+            
+            .meeting-list-row > div:nth-child(6)::before {
+                content: "ステータス: ";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+            }
+            
+            .meeting-list-row > div:last-child {
+                display: flex !important;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .meeting-list-row > div:last-child::before {
+                content: "操作";
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 6px;
+            }
+            
+            .meeting-list-row button {
+                width: 100% !important;
+                padding: 10px !important;
+                font-size: 14px !important;
+            }
+            
             /* 組織アイテムのgridレイアウト上書き（重要！） */
             .org-item[style*="grid-template-columns"] {
                 display: flex !important;
@@ -1570,7 +1664,7 @@
                 } else {
                     // ヘッダー行を追加
                     html += `
-                        <div style="
+                        <div class="meeting-list-header" style="
                             display: grid;
                             grid-template-columns: 110px 250px 220px 140px 200px 100px 1fr;
                             align-items: center;
@@ -1618,7 +1712,7 @@
                         const notesShort = notesDisplay.length >= 60 ? notesDisplay + '...' : notesDisplay;
                         
                         html += `
-                            <div style="
+                            <div class="meeting-list-row" style="
                                 display: grid;
                                 grid-template-columns: 110px 250px 220px 140px 200px 100px 1fr;
                                 align-items: center;
