@@ -1,10 +1,8 @@
-name = "minutes-app"
-compatibility_date = "2024-01-15"
-pages_build_output_dir = "."
+name = "gijiroku-web"
+compatibility_date = "2024-01-16"
 
-[build]
-command = ""
-cwd = ""
+[site]
+bucket = "."
 
 [[pages]]
-name = "minutes-app"
+name = "gijiroku-web"

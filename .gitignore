@@ -3,21 +3,25 @@ node_modules/
 
 # Logs
 *.log
-server.log
+npm-debug.log*
 
-# OS files
-.DS_Store
-Thumbs.db
+# Environment variables
+.env
+.env.local
+.env.production
 
-# Editor
+# IDE
 .vscode/
 .idea/
 
-# Environment
-.env
-.env.local
+# OS
+.DS_Store
+Thumbs.db
 
-# Build output
-dist/
-build/
-.cache/
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Test files (keep only production files)
+test_auth.html
