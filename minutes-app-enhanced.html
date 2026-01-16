@@ -2396,7 +2396,7 @@
                         assignee: minute.facilitator || '',
                         deadline: minute.meetingDate || '',
                         purpose: '',
-                        status: minute.status || 'not-held',  // NEW: Default to "会議未実施"
+                        status: minute.status || 'pending',  // Default to "未着手"
                         notes1: '',
                         notes2: ''
                     }];
@@ -2404,23 +2404,28 @@
                 
                 // Render rows with NEW 3-status system
                 minute.detailRows.forEach((row, index) => {
-                    // NEW: 3 Status System with Optimal Colors
-                    const statusOptions = ['not-held', 'completed-with-tasks', 'completed-no-tasks'];
+                    // 4 Status System (Original)
+                    const statusOptions = ['pending', 'progress', 'completed', 'overdue'];
                     const statusConfig = {
-                        'not-held': { 
-                            text: '会議未実施', 
+                        'pending': { 
+                            text: '未着手', 
                             color: '#f39c12',  // Orange
                             bg: '#fff3cd'
                         },
-                        'completed-with-tasks': { 
-                            text: '会議終了（残タスクあり）', 
+                        'progress': { 
+                            text: '進行中', 
+                            color: '#3498db',  // Blue
+                            bg: '#d9edf7'
+                        },
+                        'completed': { 
+                            text: '完了', 
+                            color: '#27ae60',  // Green
+                            bg: '#d1e7dd'
+                        },
+                        'overdue': { 
+                            text: '期限超過', 
                             color: '#e74c3c',  // Red
                             bg: '#f8d7da'
-                        },
-                        'completed-no-tasks': { 
-                            text: '会議終了（残タスクなし）', 
-                            color: '#3498db',  // Blue
-                            bg: '#e3f2fd'
                         }
                     };
                     
@@ -2835,7 +2840,7 @@
                     assignee: '',
                     deadline: new Date().toISOString().split('T')[0],
                     purpose: '',
-                    status: 'not-held',  // 新しいステータス
+                    status: 'pending',  // 未着手
                     notes1: '',
                     notes2: ''
                 });
