@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データリセット</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: background 0.3s;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .info h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .info pre {
+            background: #fff;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 データリセット</h1>
+        <p>LocalStorageのデータをクリアして初回セットアップ画面を表示します</p>
+        
+        <div id="success" class="success"></div>
+        
+        <button class="btn btn-danger" onclick="clearData()">🗑️ データをクリア</button>
+        <button class="btn btn-primary" onclick="goToApp()">➡️ アプリに移動</button>
+        
+        <div class="info">
+            <h3>📊 現在のデータ:</h3>
+            <div id="dataInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        function showData() {
+            const users = localStorage.getItem('users');
+            const token = localStorage.getItem('accessToken');
+            const logs = localStorage.getItem('accessLogs');
+            
+            const dataInfo = document.getElementById('dataInfo');
+            dataInfo.innerHTML = `
+                <pre>
+ユーザー数: ${users ? JSON.parse(users).length : 0}
+トークン: ${token ? '存在する' : 'なし'}
+ログ数: ${logs ? JSON.parse(logs).length : 0}
+                </pre>
+            `;
+        }
+        
+        function clearData() {
+            // すべてのLocalStorageをクリア
+            localStorage.clear();
+            
+            // 成功メッセージを表示
+            const success = document.getElementById('success');
+            success.textContent = '✅ データをクリアしました！「アプリに移動」ボタンで初回セットアップ画面が表示されます。';
+            success.style.display = 'block';
+            
+            // データ表示を更新
+            showData();
+        }
+        
+        function goToApp() {
+            window.location.href = '/';
+        }
+        
+        // 初期表示
+        showData();
+    </script>
+</body>
+</html>

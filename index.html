@@ -1082,7 +1082,7 @@
             },
             
             // 許可ドメイン
-            ALLOWED_DOMAIN: 'ielove-partners.jp'
+            ALLOWED_DOMAIN: 'ielove-partners.jp',
             
             init() {
                 // デモデータ（組織構造）は常に読み込む
@@ -1381,12 +1381,21 @@
             
             async checkAuth() {
                 // 🔐 初回セットアップチェック
+                console.log('🔐 checkAuth called');
+                console.log('🔐 Total users:', this.users.length);
+                console.log('🔐 Users data:', this.users);
+                
                 const adminUsers = this.users.filter(u => u.role === this.USER_ROLE.ADMIN);
+                console.log('🔐 Admin users:', adminUsers.length);
+                
                 if (adminUsers.length === 0) {
                     // 管理者が1人もいない場合は初回セットアップ画面を表示
+                    console.log('🔐 No admin users found - showing setup page');
                     this.showSetupPage();
                     return;
                 }
+                
+                console.log('🔐 Admin exists - checking login status');
                 
                 // ログイン済みチェック
                 const token = localStorage.getItem('accessToken');
@@ -1441,6 +1450,20 @@
                 document.getElementById('registrationPage').style.display = 'none';
                 document.getElementById('loginPage').style.display = 'flex';
                 document.getElementById('mainApp').style.display = 'none';
+                
+                // 🔐 保存されたログイン情報を自動入力
+                const rememberedEmail = localStorage.getItem('rememberedEmail');
+                const rememberedPassword = localStorage.getItem('rememberedPassword');
+                
+                if (rememberedEmail && rememberedPassword) {
+                    const emailInput = document.getElementById('email');
+                    const passwordInput = document.getElementById('password');
+                    
+                    if (emailInput) emailInput.value = rememberedEmail;
+                    if (passwordInput) passwordInput.value = rememberedPassword;
+                    
+                    console.log('🔐 Remembered credentials loaded');
+                }
             },
             
             showSetupPage() {
@@ -3942,9 +3965,12 @@
                     this.logAccess(this.currentUser.email, 'logout', 'success');
                 }
                 
+                // セッション情報のみクリア（ログイン情報は保持）
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
                 localStorage.removeItem('userInfo');
+                // 💡 rememberedEmail と rememberedPassword は保持して次回自動入力
+                
                 this.currentUser = null;
                 this.showLoginPage();
             }
@@ -4003,6 +4029,11 @@
                 const token = 'token-' + Date.now();
                 localStorage.setItem('accessToken', token);
                 localStorage.setItem('userInfo', JSON.stringify(user));
+                
+                // 🔐 ログイン情報を記憶
+                localStorage.setItem('rememberedEmail', email);
+                localStorage.setItem('rememberedPassword', password);
+                
                 app.currentUser = user;
                 app.showAlert('✅ ログイン成功！', 'success');
                 setTimeout(() => app.showMainApp(), 500);
