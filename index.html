@@ -90,6 +90,10 @@
         
         /* Status Badge */
         .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-not-held { background: #e3f2fd; color: #1565c0; }
+        .badge-completed-with-tasks { background: #fff3cd; color: #856404; }
+        .badge-completed-no-tasks { background: #d1e7dd; color: #0f5132; }
+        /* 旧ステータス（互換性のため残す） */
         .badge-pending { background: #fff3cd; color: #856404; }
         .badge-progress { background: #cfe2ff; color: #084298; }
         .badge-completed { background: #d1e7dd; color: #0f5132; }
@@ -115,21 +119,40 @@
         .modal-content { 
             background: white; 
             border-radius: 10px; 
-            padding: 30px; 
+            padding: 0;
             max-width: 600px; 
             width: 100%; 
             max-height: 90vh; 
             overflow-y: auto;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             animation: slideUp 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header-sticky {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 20px 30px 15px 30px;
+            border-bottom: 2px solid #667eea;
+            z-index: 10;
+            border-radius: 10px 10px 0 0;
         }
         .modal-title { 
             font-size: 20px; 
             font-weight: 600; 
-            margin-bottom: 20px; 
+            margin-bottom: 15px; 
             color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 12px;
+        }
+        .modal-actions-top {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        #minuteForm {
+            padding: 20px 30px 30px 30px;
+            flex: 1;
+            overflow-y: auto;
         }
         .form-group { margin-bottom: 20px; }
         .form-group label { 
@@ -430,38 +453,30 @@
                 height: 100vh;
                 max-height: 100vh;
                 border-radius: 0;
+                padding: 0;
+            }
+            .modal-header-sticky {
                 padding: 16px;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
+                border-radius: 0;
             }
             .modal-title { 
                 font-size: 17px;
-                position: sticky;
-                top: 0;
-                background: white;
-                padding: 12px 0 15px 0;
-                z-index: 10;
-                border-bottom: 2px solid #667eea;
-                margin-bottom: 20px;
-                flex-shrink: 0;
+                margin-bottom: 12px;
+            }
+            .modal-actions-top {
+                flex-direction: row;
+                gap: 8px;
+            }
+            .modal-actions-top .btn {
+                flex: 1;
+                min-height: 44px;
+                font-size: 14px;
+            }
+            #minuteForm {
+                padding: 16px;
             }
             .modal-actions {
-                flex-direction: column-reverse;
-                gap: 10px;
-                position: sticky;
-                bottom: 0;
-                background: white;
-                padding: 15px 0 0 0;
-                margin-top: auto;
-                border-top: 1px solid #e9ecef;
-                padding-top: 15px;
-                flex-shrink: 0;
-            }
-            .modal-actions .btn {
-                width: 100%;
-                min-height: 48px;
-                font-size: 15px;
+                display: none !important;
             }
             
             /* フォーム */
@@ -775,7 +790,13 @@
     <!-- Edit/Add Minute Modal -->
     <div id="minuteModal" class="modal">
         <div class="modal-content">
-            <h2 class="modal-title" id="modalTitle">議事録を追加</h2>
+            <div class="modal-header-sticky">
+                <h2 class="modal-title" id="modalTitle">議事録を追加</h2>
+                <div class="modal-actions-top">
+                    <button type="button" class="btn btn-secondary" onclick="app.closeModal()">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="app.submitMinuteForm()">保存</button>
+                </div>
+            </div>
             <form id="minuteForm">
                 <div class="form-group">
                     <label for="minuteMeetingName">会議名 *</label>
@@ -805,15 +826,10 @@
                 <div class="form-group">
                     <label for="minuteStatus">ステータス *</label>
                     <select id="minuteStatus" required>
-                        <option value="pending">未着手</option>
-                        <option value="progress">進行中</option>
-                        <option value="completed">完了</option>
-                        <option value="overdue">期限超過</option>
+                        <option value="not-held">会議未実施</option>
+                        <option value="completed-with-tasks">会議終了（残タスクあり）</option>
+                        <option value="completed-no-tasks">会議終了（残タスクなし）</option>
                     </select>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="app.closeModal()">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
                 </div>
             </form>
         </div>
@@ -2159,12 +2175,16 @@
                 this.updateBreadcrumb();
                 
                 const statusMap = {
+                    'not-held': { class: 'badge-not-held', text: '会議未実施' },
+                    'completed-with-tasks': { class: 'badge-completed-with-tasks', text: '会議終了（残タスクあり）' },
+                    'completed-no-tasks': { class: 'badge-completed-no-tasks', text: '会議終了（残タスクなし）' },
+                    // 旧ステータス（互換性）
                     'pending': { class: 'badge-pending', text: '未着手' },
                     'progress': { class: 'badge-progress', text: '進行中' },
                     'completed': { class: 'badge-completed', text: '完了' },
                     'overdue': { class: 'badge-overdue', text: '期限超過' }
                 };
-                const status = statusMap[minute.status];
+                const status = statusMap[minute.status] || statusMap['not-held'];
                 
                 const content = document.getElementById('contentArea');
                 let html = `<button class="btn btn-secondary back-btn" onclick="app.showMeetingView('${this.currentMeeting.id}')">← 戻る</button>`;
@@ -2380,12 +2400,16 @@
             
             getStatusText(status) {
                 const statusMap = {
+                    'not-held': '会議未実施',
+                    'completed-with-tasks': '会議終了（残タスクあり）',
+                    'completed-no-tasks': '会議終了（残タスクなし）',
+                    // 旧ステータスとの互換性
                     'pending': '未着手',
                     'progress': '進行中',
                     'completed': '完了',
                     'overdue': '期限超過'
                 };
-                return statusMap[status] || '未着手';
+                return statusMap[status] || '会議未実施';
             },
             
             addNewRow() {
@@ -3044,6 +3068,17 @@
                 this.saveToLocalStorage(); // Save to localStorage
                 this.closeModal();
                 this.showMeetingView(this.currentMeeting.id);
+            },
+            
+            submitMinuteForm() {
+                // バリデーションチェック
+                const form = document.getElementById('minuteForm');
+                if (form.checkValidity()) {
+                    this.saveMinute();
+                } else {
+                    // HTML5バリデーションを表示
+                    form.reportValidity();
+                }
             },
             
             archiveMinute(minuteId) {
