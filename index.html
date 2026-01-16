@@ -6,7 +6,14 @@
     <title>会議議事録管理システム - Enhanced</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; min-height: 100vh; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; 
+            background: #f5f7fa; 
+            min-height: 100vh;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            -webkit-text-size-adjust: 100%;
+        }
         
         /* Header */
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
@@ -32,10 +39,32 @@
         
         /* Organization Tree */
         .org-tree { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .org-item { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .org-item { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
         .org-item:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); }
-        .org-item-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-        .org-item-count { font-size: 13px; opacity: 0.9; }
+        .org-item-title { 
+            font-size: 16px; 
+            font-weight: 600; 
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
+        }
+        .org-item-count { 
+            font-size: 13px; 
+            opacity: 0.9;
+            word-wrap: break-word;
+        }
         
         /* Hierarchical Organization Tree */
         .org-hierarchy { display: flex; flex-direction: column; gap: 25px; }
@@ -173,10 +202,13 @@
                 margin-bottom: 15px;
             }
             .card-title { 
-                font-size: 16px;
+                font-size: 15px;
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
+                word-break: keep-all;
+                overflow-wrap: break-word;
+                line-height: 1.5;
             }
             
             /* 組織ツリー - 1カラム表示 */
@@ -185,11 +217,27 @@
                 gap: 12px;
             }
             .org-item { 
-                padding: 18px;
+                padding: 16px;
                 touch-action: manipulation;
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
             }
-            .org-item-title { font-size: 15px; }
-            .org-item-count { font-size: 12px; }
+            .org-item-title { 
+                font-size: 15px;
+                line-height: 1.5;
+                word-break: keep-all;
+                overflow-wrap: break-word;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            .org-item-count { 
+                font-size: 12px;
+                margin-top: 6px;
+            }
             
             /* サブアイテム - 1カラム */
             .sub-items { 
@@ -235,9 +283,12 @@
             .minutes-table td { 
                 display: block;
                 text-align: left;
-                padding: 8px 0;
+                padding: 10px 0;
                 border: none;
                 border-bottom: 1px solid #f0f0f0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                line-height: 1.6;
             }
             .minutes-table td:last-child {
                 border-bottom: none;
@@ -247,8 +298,9 @@
                 font-weight: 600;
                 color: #667eea;
                 display: block;
-                margin-bottom: 4px;
+                margin-bottom: 6px;
                 font-size: 12px;
+                word-break: keep-all;
             }
             
             /* 編集可能テーブル - カード形式 */
@@ -268,9 +320,12 @@
             }
             .editable-table td {
                 display: block;
-                padding: 8px 0;
+                padding: 10px 0;
                 border: none;
                 border-bottom: 1px solid #f0f0f0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                line-height: 1.6;
             }
             .editable-table td:last-child {
                 border-bottom: none;
@@ -280,8 +335,16 @@
                 font-weight: 600;
                 color: #4A90E2;
                 display: block;
-                margin-bottom: 4px;
+                margin-bottom: 6px;
                 font-size: 12px;
+                word-break: keep-all;
+            }
+            .editable-table .editable-cell {
+                min-height: 40px;
+                padding: 8px;
+                background: #f8f9fa;
+                border-radius: 4px;
+                margin-top: 4px;
             }
             
             /* ボタン - タッチ対応 */
