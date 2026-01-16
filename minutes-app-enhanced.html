@@ -90,9 +90,9 @@
         
         /* Status Badge */
         .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .badge-not-held { background: #e3f2fd; color: #1565c0; }
-        .badge-completed-with-tasks { background: #fff3cd; color: #856404; }
-        .badge-completed-no-tasks { background: #d1e7dd; color: #0f5132; }
+        .badge-not-held { background: #fff3cd; color: #856404; }  /* オレンジ */
+        .badge-completed-with-tasks { background: #f8d7da; color: #842029; }  /* 赤 */
+        .badge-completed-no-tasks { background: #e3f2fd; color: #1565c0; }  /* 青 */
         /* 旧ステータス（互換性のため残す） */
         .badge-pending { background: #fff3cd; color: #856404; }
         .badge-progress { background: #cfe2ff; color: #084298; }
@@ -1827,9 +1827,9 @@
                     });
                     
                     const statusMap = {
-                        'not-held': { color: '#3498db', text: '会議未実施', badge: 'badge-not-held' },
-                        'completed-with-tasks': { color: '#f39c12', text: '会議終了（残タスクあり）', badge: 'badge-completed-with-tasks' },
-                        'completed-no-tasks': { color: '#27ae60', text: '会議終了（残タスクなし）', badge: 'badge-completed-no-tasks' },
+                        'not-held': { color: '#f39c12', text: '会議未実施', badge: 'badge-not-held' },  // オレンジ
+                        'completed-with-tasks': { color: '#e74c3c', text: '会議終了（残タスクあり）', badge: 'badge-completed-with-tasks' },  // 赤
+                        'completed-no-tasks': { color: '#3498db', text: '会議終了（残タスクなし）', badge: 'badge-completed-no-tasks' },  // 青
                         // 旧ステータス（互換性）
                         'pending': { color: '#f39c12', text: '未着手', badge: 'badge-pending' },
                         'progress': { color: '#3498db', text: '進行中', badge: 'badge-progress' },
@@ -1859,13 +1859,25 @@
                                 border-bottom: 1px solid #e9ecef;
                                 transition: background 0.2s;
                             " onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='${bgColor}'">
-                                <div class="inline-edit" data-field="meetingDate" style="font-size: 13px; color: #2c3e50; font-weight: 600; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.meetingDate || '-'}</div>
+                                <div style="display: flex; align-items: center; gap: 6px; position: relative;">
+                                    <span style="font-size: 16px; cursor: pointer; user-select: none;" onclick="app.showDatePicker('${minute.id}')" title="カレンダーから日付を選択">📅</span>
+                                    <div class="inline-edit" data-field="meetingDate" style="font-size: 13px; color: #2c3e50; font-weight: 600; cursor: text; padding: 4px; border-radius: 3px; flex: 1;" contenteditable="true">${minute.meetingDate || '-'}</div>
+                                    <input type="date" id="datePicker-${minute.id}" style="position: absolute; left: 0; top: 0; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="app.updateMeetingDate('${minute.id}', this.value)">
+                                </div>
                                 <div class="inline-edit" data-field="subtitle" style="font-size: 14px; font-weight: 700; color: #2c3e50; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.subtitle || minute.meetingName || '議事録'}</div>
                                 <div class="inline-edit" data-field="participants" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.participants || ''}">${participantsDisplay}</div>
                                 <div class="inline-edit" data-field="facilitator" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.facilitator || '-'}</div>
                                 <div class="inline-edit" data-field="notes" style="font-size: 11px; color: #95a5a6; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.notes || ''}">${minute.notes || '-'}</div>
                                 <div style="text-align: center;">
-                                    <select class="status-dropdown" data-field="status" style="background: ${status.color}; color: white; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; border: none; cursor: pointer;">
+                                    <select class="status-dropdown" data-field="status" 
+                                        style="background: ${status.color}; color: white; padding: 6px 24px 6px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; appearance: none; 
+                                        background-image: url('data:image/svg+xml;utf8,<svg fill=\"white\" height=\"20\" viewBox=\"0 0 24 24\" width=\"20\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>'); 
+                                        background-repeat: no-repeat; 
+                                        background-position: right 4px center; 
+                                        background-size: 16px; 
+                                        transition: all 0.2s ease;"
+                                        onmouseover="this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';"
+                                        onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';">
                                         <option value="not-held" ${minute.status === 'not-held' ? 'selected' : ''}>会議未実施</option>
                                         <option value="completed-with-tasks" ${minute.status === 'completed-with-tasks' ? 'selected' : ''}>会議終了（残タスクあり）</option>
                                         <option value="completed-no-tasks" ${minute.status === 'completed-no-tasks' ? 'selected' : ''}>会議終了（残タスクなし）</option>
@@ -2397,18 +2409,18 @@
                     const statusConfig = {
                         'not-held': { 
                             text: '会議未実施', 
-                            color: '#3498db',  // Blue
-                            bg: '#e3f2fd'
-                        },
-                        'completed-with-tasks': { 
-                            text: '会議終了（残タスクあり）', 
                             color: '#f39c12',  // Orange
                             bg: '#fff3cd'
                         },
+                        'completed-with-tasks': { 
+                            text: '会議終了（残タスクあり）', 
+                            color: '#e74c3c',  // Red
+                            bg: '#f8d7da'
+                        },
                         'completed-no-tasks': { 
                             text: '会議終了（残タスクなし）', 
-                            color: '#27ae60',  // Green
-                            bg: '#d1e7dd'
+                            color: '#3498db',  // Blue
+                            bg: '#e3f2fd'
                         }
                     };
                     
@@ -3286,14 +3298,43 @@
                             
                             // ドロップダウンの色を更新
                             const statusColors = {
-                                'not-held': '#3498db',
-                                'completed-with-tasks': '#f39c12',
-                                'completed-no-tasks': '#27ae60'
+                                'not-held': '#f39c12',  // オレンジ
+                                'completed-with-tasks': '#e74c3c',  // 赤
+                                'completed-no-tasks': '#3498db'  // 青
                             };
                             e.target.style.background = statusColors[value] || '#999';
                         }
                     }
                 }, true);
+            },
+            
+            // 📅 カレンダーピッカーを表示
+            showDatePicker(minuteId) {
+                const datePicker = document.getElementById(`datePicker-${minuteId}`);
+                if (datePicker) {
+                    datePicker.showPicker();
+                }
+            },
+            
+            // 📅 会議日を更新
+            updateMeetingDate(minuteId, newDate) {
+                if (!newDate) return;
+                
+                // Find and update minute
+                for (const meetingId in this.minutesData) {
+                    const minute = this.minutesData[meetingId].find(m => m.id === minuteId);
+                    if (minute) {
+                        minute.meetingDate = newDate;
+                        this.saveToLocalStorage();
+                        
+                        // 保存成功を表示
+                        this.showSaveIndicator();
+                        
+                        // 再描画
+                        this.showMeetingView(this.currentMeeting.id);
+                        break;
+                    }
+                }
             },
             
             archiveMinute(minuteId) {
