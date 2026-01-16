@@ -128,6 +128,321 @@
         .editable-cell:focus { outline: 2px solid #4A90E2; outline-offset: -2px; background-color: #fff; }
         .editable-row:nth-child(even) { background-color: #f9f9f9; }
         .btn-sm { padding: 4px 8px; font-size: 12px; }
+        
+        /* ============================================
+           📱 スマホ対応 - レスポンシブデザイン
+           ============================================ */
+        @media screen and (max-width: 768px) {
+            /* ヘッダー - コンパクト化 */
+            .header { 
+                padding: 12px 15px; 
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            .header h1 { 
+                font-size: 16px; 
+                text-align: center;
+                cursor: pointer;
+            }
+            .user-section { 
+                justify-content: space-between;
+                font-size: 12px;
+            }
+            .user-info { font-size: 11px; }
+            .logout-btn { 
+                padding: 6px 12px; 
+                font-size: 12px;
+            }
+            
+            /* コンテナ - 余白削減 */
+            .container { 
+                padding: 15px 10px; 
+            }
+            
+            /* パンくずリスト - コンパクト */
+            .breadcrumb { 
+                font-size: 12px;
+                gap: 5px;
+            }
+            
+            /* カード */
+            .card { 
+                padding: 15px; 
+                border-radius: 8px;
+                margin-bottom: 15px;
+            }
+            .card-title { 
+                font-size: 16px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            /* 組織ツリー - 1カラム表示 */
+            .org-tree { 
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .org-item { 
+                padding: 18px;
+                touch-action: manipulation;
+            }
+            .org-item-title { font-size: 15px; }
+            .org-item-count { font-size: 12px; }
+            
+            /* サブアイテム - 1カラム */
+            .sub-items { 
+                grid-template-columns: 1fr;
+                padding-left: 10px;
+                gap: 10px;
+            }
+            
+            /* 議事録リスト */
+            .meeting-list { gap: 10px; }
+            .meeting-item { 
+                padding: 15px;
+                touch-action: manipulation;
+            }
+            .meeting-title { font-size: 15px; }
+            .meeting-meta { 
+                font-size: 12px;
+                gap: 10px;
+                flex-direction: column;
+            }
+            
+            /* テーブル → カード形式 */
+            .minutes-table { 
+                border: 0;
+                font-size: 13px;
+            }
+            .minutes-table thead { 
+                display: none; 
+            }
+            .minutes-table tbody {
+                display: block;
+            }
+            .minutes-table tr { 
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 12px;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                touch-action: manipulation;
+            }
+            .minutes-table td { 
+                display: block;
+                text-align: left;
+                padding: 8px 0;
+                border: none;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            .minutes-table td:last-child {
+                border-bottom: none;
+            }
+            .minutes-table td::before { 
+                content: attr(data-label);
+                font-weight: 600;
+                color: #667eea;
+                display: block;
+                margin-bottom: 4px;
+                font-size: 12px;
+            }
+            
+            /* 編集可能テーブル - カード形式 */
+            .editable-table thead {
+                display: none;
+            }
+            .editable-table tbody {
+                display: block;
+            }
+            .editable-table tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                padding: 12px;
+                background: white;
+            }
+            .editable-table td {
+                display: block;
+                padding: 8px 0;
+                border: none;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            .editable-table td:last-child {
+                border-bottom: none;
+            }
+            .editable-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: #4A90E2;
+                display: block;
+                margin-bottom: 4px;
+                font-size: 12px;
+            }
+            
+            /* ボタン - タッチ対応 */
+            .btn { 
+                padding: 12px 18px;
+                font-size: 14px;
+                min-height: 44px;
+                touch-action: manipulation;
+            }
+            .btn-sm {
+                padding: 8px 12px;
+                min-height: 36px;
+            }
+            .action-btns { 
+                flex-direction: column;
+                gap: 8px;
+            }
+            .action-btns .btn {
+                width: 100%;
+            }
+            
+            /* モーダル - 全画面表示 */
+            .modal { 
+                padding: 0;
+            }
+            .modal-content { 
+                max-width: 100%;
+                width: 100%;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+                padding: 20px;
+                overflow-y: auto;
+            }
+            .modal-title { 
+                font-size: 18px;
+                position: sticky;
+                top: 0;
+                background: white;
+                padding-bottom: 15px;
+                z-index: 1;
+            }
+            .modal-actions {
+                flex-direction: column-reverse;
+                gap: 8px;
+                position: sticky;
+                bottom: 0;
+                background: white;
+                padding-top: 15px;
+                margin-top: 20px;
+            }
+            .modal-actions .btn {
+                width: 100%;
+            }
+            
+            /* フォーム */
+            .form-group { 
+                margin-bottom: 15px; 
+            }
+            .form-group label { 
+                font-size: 13px; 
+            }
+            .form-group input, 
+            .form-group textarea, 
+            .form-group select { 
+                padding: 12px;
+                font-size: 16px; /* iOS zoom防止 */
+                min-height: 44px;
+            }
+            .form-group textarea {
+                min-height: 120px;
+            }
+            
+            /* 詳細グリッド - 1カラム */
+            .detail-grid { 
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .detail-section { 
+                margin-bottom: 20px; 
+            }
+            .detail-content { 
+                padding: 12px;
+                font-size: 14px;
+            }
+            
+            /* ログインページ */
+            .login-box { 
+                padding: 30px 20px;
+                margin: 0;
+                max-width: 100%;
+                border-radius: 0;
+            }
+            .login-title { 
+                font-size: 20px; 
+            }
+            .login-subtitle { 
+                font-size: 13px; 
+            }
+            .demo-info { 
+                font-size: 12px;
+                padding: 12px;
+            }
+            
+            /* Empty State */
+            .empty-state { 
+                padding: 40px 20px; 
+            }
+            .empty-state-icon { 
+                font-size: 36px; 
+            }
+            
+            /* 組織階層 */
+            .org-section { 
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            .org-section-title { 
+                font-size: 15px;
+                margin-bottom: 12px;
+            }
+            .org-level-title { 
+                font-size: 13px;
+                margin-bottom: 12px;
+            }
+            
+            /* バッジ */
+            .badge { 
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+            
+            /* タッチ操作の改善 */
+            * {
+                -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+            }
+            
+            /* スクロール最適化 */
+            body {
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* AI解析用テキストエリア */
+            #minutesText {
+                min-height: 200px;
+                font-size: 16px;
+            }
+        }
+        
+        /* タブレット対応 (768px - 1024px) */
+        @media screen and (min-width: 769px) and (max-width: 1024px) {
+            .org-tree { 
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .sub-items { 
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .detail-grid { 
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1733,23 +2048,23 @@
                     
                     html += `
                         <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
+                            <td data-label="選択" style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
                                 <input type="checkbox" class="row-checkbox" data-row="${index}" onchange="app.updateDeleteButtonState()" style="cursor: pointer; width: 16px; height: 16px;">
                             </td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500; font-size: 12px;">${index + 1}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="agenda" data-row="${index}">${row.agenda || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="action" data-row="${index}">${row.action || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="assignee" data-row="${index}">${row.assignee || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}">${row.deadline || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
+                            <td data-label="#" style="padding: 8px; border: 1px solid #d0d0d0; text-align: center; color: #666; font-weight: 500; font-size: 12px;">${index + 1}</td>
+                            <td data-label="議題・アジェンダ" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="agenda" data-row="${index}">${row.agenda || ''}</td>
+                            <td data-label="具体的なアクション" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="action" data-row="${index}">${row.action || ''}</td>
+                            <td data-label="担当者" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="assignee" data-row="${index}">${row.assignee || ''}</td>
+                            <td data-label="期限" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}">${row.deadline || ''}</td>
+                            <td data-label="目的・期待される効果" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
+                            <td data-label="ステータス" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
                                 <select class="status-select" data-row="${index}" style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;">
                                     ${statusOptions.map(opt => `<option value="${opt}" ${row.status === opt ? 'selected' : ''}>${statusTexts[opt]}</option>`).join('')}
                                 </select>
                             </td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes1" data-row="${index}">${row.notes1 || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes2" data-row="${index}">${row.notes2 || ''}</td>
-                            <td style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
+                            <td data-label="備考1" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes1" data-row="${index}">${row.notes1 || ''}</td>
+                            <td data-label="備考2" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="notes2" data-row="${index}">${row.notes2 || ''}</td>
+                            <td data-label="削除" style="padding: 8px; border: 1px solid #d0d0d0; text-align: center;">
                                 <button class="btn btn-danger btn-sm" onclick="app.deleteDetailRow(${index})" style="padding: 4px 8px; font-size: 11px;">🗑️</button>
                             </td>
                         </tr>
