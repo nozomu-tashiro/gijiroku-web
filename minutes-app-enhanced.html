@@ -2466,7 +2466,7 @@
                             <td data-label="ステータス" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
                                 <select class="status-select" data-row="${index}" 
                                     style="width: 100%; padding: 8px 30px 8px 8px; border: 2px solid ${statusStyle.color}; border-radius: 6px; font-size: 13px; font-weight: 600; color: ${statusStyle.color}; background: ${statusStyle.bg}; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=\"${encodeURIComponent(statusStyle.color)}\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>'); background-repeat: no-repeat; background-position: right 5px center; background-size: 20px; transition: all 0.2s ease;"
-                                    onchange="this.style.borderColor = event.target.selectedOptions[0].dataset.color; this.style.color = event.target.selectedOptions[0].dataset.color; this.style.background = event.target.selectedOptions[0].dataset.bg;"
+                                    onchange="app.updateStatusColors(this);"
                                     onmouseover="this.style.transform = 'scale(1.02)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';"
                                     onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';">
                                     ${statusOptions.map(opt => {
@@ -3388,6 +3388,22 @@
                         this.showMinuteDetailTable(this.currentMinute.id);
                     }, 500);
                 }
+            },
+            
+            // 🎨 ステータス選択時に即座に色を変更
+            updateStatusColors(selectElement) {
+                const selectedOption = selectElement.selectedOptions[0];
+                const color = selectedOption.dataset.color;
+                const bg = selectedOption.dataset.bg;
+                
+                // Update border, text color, and background
+                selectElement.style.borderColor = color;
+                selectElement.style.color = color;
+                selectElement.style.background = bg;
+                
+                // Update SVG arrow color
+                const svgArrow = `data:image/svg+xml;utf8,<svg fill="${encodeURIComponent(color)}" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>`;
+                selectElement.style.backgroundImage = `url('${svgArrow}')`;
             },
             
             archiveMinute(minuteId) {
