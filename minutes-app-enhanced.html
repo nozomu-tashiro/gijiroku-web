@@ -2409,43 +2409,47 @@
                         assignee: minute.facilitator || '',
                         deadline: minute.meetingDate || '',
                         purpose: '',
-                        status: minute.status || 'pending',  // Default to "未着手"
+                        status: 'pending',  // 旧4ステータス: 未着手
                         notes1: '',
                         notes2: ''
                     }];
                 }
                 
-                // Render rows with NEW 3-status system
+                // Render rows with ORIGINAL 4-status system
                 minute.detailRows.forEach((row, index) => {
-                    // NEW: 3 Status System with Optimal Colors
-                    const statusOptions = ['not-held', 'completed-with-tasks', 'completed-no-tasks'];
+                    // ORIGINAL: 4 Status System (未着手・進行中・完了・期限超過)
+                    const statusOptions = ['pending', 'progress', 'completed', 'overdue'];
                     const statusConfig = {
-                        'not-held': { 
-                            text: '会議未実施', 
-                            color: '#f39c12',  // Orange
-                            bg: '#fff3cd'
+                        'pending': { 
+                            text: '未着手', 
+                            color: '#999',  // Gray
+                            bg: '#f5f5f5'
                         },
-                        'completed-with-tasks': { 
-                            text: '会議終了（残タスクあり）', 
-                            color: '#e74c3c',  // Red
-                            bg: '#f8d7da'
+                        'progress': { 
+                            text: '進行中', 
+                            color: '#999',  // Gray
+                            bg: '#f5f5f5'
                         },
-                        'completed-no-tasks': { 
-                            text: '会議終了（残タスクなし）', 
-                            color: '#3498db',  // Blue
-                            bg: '#e3f2fd'
+                        'completed': { 
+                            text: '完了', 
+                            color: '#999',  // Gray
+                            bg: '#f5f5f5'
+                        },
+                        'overdue': { 
+                            text: '期限超過', 
+                            color: '#999',  // Gray
+                            bg: '#f5f5f5'
                         }
                     };
                     
-                    // 旧ステータスを新ステータスに自動変換
-                    if (row.status === 'pending') row.status = 'not-held';
-                    if (row.status === 'progress') row.status = 'completed-with-tasks';
-                    if (row.status === 'completed') row.status = 'completed-no-tasks';
-                    if (row.status === 'overdue') row.status = 'completed-with-tasks';
+                    // 新ステータスを旧ステータスに自動変換（逆変換）
+                    if (row.status === 'not-held') row.status = 'pending';
+                    if (row.status === 'completed-with-tasks') row.status = 'progress';
+                    if (row.status === 'completed-no-tasks') row.status = 'completed';
                     
                     // Get current status color
-                    const currentStatus = row.status || 'not-held';
-                    const statusStyle = statusConfig[currentStatus] || statusConfig['not-held'];
+                    const currentStatus = row.status || 'pending';
+                    const statusStyle = statusConfig[currentStatus] || statusConfig['pending'];
                     
                     html += `
                         <tr id="detail-row-${index}" class="editable-row" style="background: ${index % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
@@ -2466,17 +2470,10 @@
                             <td data-label="目的・期待される効果" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
                             <td data-label="ステータス" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
                                 <select class="status-select" data-row="${index}" 
-                                    style="width: 100%; padding: 8px 30px 8px 8px; border: 2px solid ${statusStyle.color}; border-radius: 6px; font-size: 13px; font-weight: 600; color: ${statusStyle.color}; background: ${statusStyle.bg}; cursor: pointer; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg fill=\"${encodeURIComponent(statusStyle.color)}\" height=\"24\" viewBox=\"0 0 24 24\" width=\"24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>'); background-repeat: no-repeat; background-position: right 5px center; background-size: 20px; transition: all 0.2s ease;"
-                                    onchange="app.updateStatusColors(this);"
-                                    onmouseover="this.style.transform = 'scale(1.02)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';"
-                                    onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';">
+                                    style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; cursor: pointer;">
                                     ${statusOptions.map(opt => {
                                         const config = statusConfig[opt];
-                                        return `<option value="${opt}" 
-                                            data-color="${config.color}" 
-                                            data-bg="${config.bg}"
-                                            ${row.status === opt ? 'selected' : ''}
-                                            style="color: ${config.color}; background: ${config.bg}; font-weight: 600; padding: 8px;">
+                                        return `<option value="${opt}" ${row.status === opt ? 'selected' : ''}>
                                             ${config.text}
                                         </option>`;
                                     }).join('')}
