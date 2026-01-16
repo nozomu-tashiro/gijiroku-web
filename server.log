@@ -5,7 +5,7 @@
 📍 URL: http://localhost:8080/
 🤖 AI解析: OpenAI API (GPT-4o - 最高品質)
 ✅ OpenAI API Config Loaded:
-   API Key: nJtgEjrMqMeJzodz4rX6... (length: 32)
+   API Key: sk-proj-NBvjEfgMxDfe... (length: 164)
    Base URL: https://www.genspark.ai/api/llm_proxy/v1
    Primary Model: gpt-4o
 ✅ APIキー: 設定済み
@@ -22,7 +22,7 @@
 入力テキスト長: 80 文字
 優先順位: 1) OpenAI GPT-4o → 2) ローカルパーサー（フォールバック）
 ✅ OpenAI API Config Loaded:
-   API Key: nJtgEjrMqMeJzodz4rX6... (length: 32)
+   API Key: sk-proj-NBvjEfgMxDfe... (length: 164)
    Base URL: https://www.genspark.ai/api/llm_proxy/v1
    Primary Model: gpt-4o
 ✅ OpenAI Client initialized successfully
@@ -39,16 +39,16 @@
     at async IncomingMessage.<anonymous> (/home/user/webapp/server.js:560:38) {
   status: 401,
   headers: Headers {
-    date: 'Fri, 16 Jan 2026 02:10:54 GMT',
+    date: 'Fri, 16 Jan 2026 02:14:45 GMT',
     'content-type': 'application/json',
     'content-length': '37',
     connection: 'keep-alive',
     server: 'cloudflare',
-    'cf-ray': '9bea1441b963c953-IAD',
+    'cf-ray': '9bea19e2f93472d4-IAD',
     'cf-cache-status': 'DYNAMIC',
     'cache-control': 'no-store, no-cache, must-revalidate, private',
     expires: '0',
-    'set-cookie': 'session_id=57df870c-891d-4e78-b7aa-6fa06719069a:30aa509d8bbad05033b85e885c60718c0e9a128ada3453ffb407f9314cf3a606; path=/; Max-Age=1728000; httponly; samesite=lax',
+    'set-cookie': 'session_id=8e1cc496-df06-4d8d-817f-1eb198bee26b:3e97655c3a7778dc2f6cb5af111688a8803eec863f4f96804b3ba33eec25dd38; path=/; Max-Age=1728000; httponly; samesite=lax',
     'strict-transport-security': 'max-age=2592000',
     pragma: 'no-cache',
     'content-security-policy': "frame-ancestors 'self' chrome-extension://gefpcelbgaofbnehfglgibacfejejflp",
@@ -102,16 +102,16 @@
     at async IncomingMessage.<anonymous> (/home/user/webapp/server.js:560:38) {
   status: 401,
   headers: Headers {
-    date: 'Fri, 16 Jan 2026 02:11:00 GMT',
+    date: 'Fri, 16 Jan 2026 02:14:51 GMT',
     'content-type': 'application/json',
     'content-length': '37',
     connection: 'keep-alive',
     server: 'cloudflare',
-    'cf-ray': '9bea1464d85f819d-IAD',
+    'cf-ray': '9bea1a0cfebf058a-IAD',
     'cf-cache-status': 'DYNAMIC',
     'cache-control': 'no-store, no-cache, must-revalidate, private',
     expires: '0',
-    'set-cookie': 'session_id=ce1cf6f7-de74-45ea-9aa7-338a7e5bfaf7:2bb8f32710d9079cf53030ac2f6bc317b707340b2f7f6cde40254f3a05ec0eb9; path=/; Max-Age=1728000; httponly; samesite=lax',
+    'set-cookie': 'session_id=e045b762-0efb-4978-8525-d5993b54973d:8d39fd75e14040f6cde02fa0ce42f4d3ba1d7c13f2183e1abb80de6f0ef33cd6; path=/; Max-Age=1728000; httponly; samesite=lax',
     'strict-transport-security': 'max-age=2592000',
     pragma: 'no-cache',
     'content-security-policy': "frame-ancestors 'self' chrome-extension://gefpcelbgaofbnehfglgibacfejejflp",
