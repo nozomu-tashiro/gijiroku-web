@@ -2417,30 +2417,31 @@
                 
                 // Render rows with NEW 3-status system
                 minute.detailRows.forEach((row, index) => {
-                    // 4 Status System (Original)
-                    const statusOptions = ['pending', 'progress', 'completed', 'overdue'];
+                    // NEW: 3 Status System with Optimal Colors
+                    const statusOptions = ['not-held', 'completed-with-tasks', 'completed-no-tasks'];
                     const statusConfig = {
-                        'pending': { 
-                            text: '未着手', 
+                        'not-held': { 
+                            text: '会議未実施', 
                             color: '#f39c12',  // Orange
                             bg: '#fff3cd'
                         },
-                        'progress': { 
-                            text: '進行中', 
-                            color: '#3498db',  // Blue
-                            bg: '#d9edf7'
-                        },
-                        'completed': { 
-                            text: '完了', 
-                            color: '#27ae60',  // Green
-                            bg: '#d1e7dd'
-                        },
-                        'overdue': { 
-                            text: '期限超過', 
+                        'completed-with-tasks': { 
+                            text: '会議終了（残タスクあり）', 
                             color: '#e74c3c',  // Red
                             bg: '#f8d7da'
+                        },
+                        'completed-no-tasks': { 
+                            text: '会議終了（残タスクなし）', 
+                            color: '#3498db',  // Blue
+                            bg: '#e3f2fd'
                         }
                     };
+                    
+                    // 旧ステータスを新ステータスに自動変換
+                    if (row.status === 'pending') row.status = 'not-held';
+                    if (row.status === 'progress') row.status = 'completed-with-tasks';
+                    if (row.status === 'completed') row.status = 'completed-no-tasks';
+                    if (row.status === 'overdue') row.status = 'completed-with-tasks';
                     
                     // Get current status color
                     const currentStatus = row.status || 'not-held';
