@@ -7,13 +7,13 @@ const OpenAI = require('openai');
 
 const PORT = 8080;
 
-// GenSpark supported AI models (in priority order)
+// OpenAI supported AI models (in priority order)
 const AI_MODELS = {
-    primary: 'gpt-5',           // 最優先: GPT-5 (最新、最高精度)
+    primary: 'gpt-4o',          // 最優先: GPT-4o (OpenAI最新、最高精度)
     fallback: [
-        'gpt-5.2',              // フォールバック1: GPT-5.2
-        'gpt-5.1',              // フォールバック2: GPT-5.1
-        'gpt-5-mini'            // フォールバック3: GPT-5-mini (高速)
+        'gpt-4-turbo',          // フォールバック1: GPT-4 Turbo
+        'gpt-4',                // フォールバック2: GPT-4
+        'gpt-3.5-turbo'         // フォールバック3: GPT-3.5 Turbo (高速・低コスト)
     ]
 };
 
@@ -48,10 +48,10 @@ function loadOpenAIConfig() {
         
         // Fallback to environment variables
         apiKey = apiKey || process.env.OPENAI_API_KEY || process.env.GENSPARK_TOKEN;
-        baseUrl = baseUrl || process.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1';
+        baseUrl = baseUrl || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
         
-        console.log('✅ GenSpark LLM Config Loaded:');
-        console.log('   API Key:', apiKey ? `${apiKey.substring(0, 8)}... (length: ${apiKey.length})` : '❌ NOT FOUND');
+        console.log('✅ OpenAI API Config Loaded:');
+        console.log('   API Key:', apiKey ? `${apiKey.substring(0, 20)}... (length: ${apiKey.length})` : '❌ NOT FOUND');
         console.log('   Base URL:', baseUrl);
         console.log('   Primary Model:', AI_MODELS.primary);
         
@@ -775,7 +775,7 @@ server.listen(PORT, () => {
     console.log('🚀 議事録管理システム - サーバー起動');
     console.log('🚀 ========================================');
     console.log('📍 URL: http://localhost:' + PORT + '/');
-    console.log('🤖 AI解析: GenSpark LLM (GPT-5, Gemini-3, Claude-4.5対応)');
+    console.log('🤖 AI解析: OpenAI API (GPT-4o - 最高品質)');
     
     const config = loadOpenAIConfig();
     if (config && config.api_key) {
