@@ -2437,7 +2437,13 @@
                             <td data-label="議題・アジェンダ" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="agenda" data-row="${index}">${row.agenda || ''}</td>
                             <td data-label="具体的なアクション" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="action" data-row="${index}">${row.action || ''}</td>
                             <td data-label="担当者" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="assignee" data-row="${index}">${row.assignee || ''}</td>
-                            <td data-label="期限" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}">${row.deadline || ''}</td>
+                            <td data-label="期限" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px; position: relative;">
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-size: 14px; cursor: pointer; user-select: none;" onclick="app.showDeadlinePicker(${index})" title="カレンダーから日付を選択">📅</span>
+                                    <div contenteditable="true" class="editable-cell" data-field="deadline" data-row="${index}" style="flex: 1;">${row.deadline || ''}</div>
+                                    <input type="date" id="deadlinePicker-${index}" style="position: absolute; left: 0; top: 0; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="app.updateDeadline(${index}, this.value)">
+                                </div>
+                            </td>
                             <td data-label="目的・期待される効果" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 13px;" contenteditable="true" class="editable-cell" data-field="purpose" data-row="${index}">${row.purpose || ''}</td>
                             <td data-label="ステータス" style="padding: 8px; border: 1px solid #d0d0d0; font-size: 12px;">
                                 <select class="status-select" data-row="${index}" 
@@ -2829,7 +2835,7 @@
                     assignee: '',
                     deadline: new Date().toISOString().split('T')[0],
                     purpose: '',
-                    status: 'pending',
+                    status: 'not-held',  // 新しいステータス
                     notes1: '',
                     notes2: ''
                 });
@@ -3334,6 +3340,35 @@
                         this.showMeetingView(this.currentMeeting.id);
                         break;
                     }
+                }
+            },
+            
+            // 📅 期限のカレンダーピッカーを表示
+            showDeadlinePicker(rowIndex) {
+                const deadlinePicker = document.getElementById(`deadlinePicker-${rowIndex}`);
+                if (deadlinePicker) {
+                    deadlinePicker.showPicker();
+                }
+            },
+            
+            // 📅 期限を更新
+            updateDeadline(rowIndex, newDate) {
+                if (!newDate || !this.currentMinute) return;
+                
+                // Update the deadline in detailRows
+                if (this.currentMinute.detailRows && this.currentMinute.detailRows[rowIndex]) {
+                    this.currentMinute.detailRows[rowIndex].deadline = newDate;
+                    
+                    // Save to localStorage
+                    this.saveToLocalStorage();
+                    
+                    // Show success message
+                    this.showSaveSuccessMessage();
+                    
+                    // Re-render the table
+                    setTimeout(() => {
+                        this.showMinuteDetailTable(this.currentMinute.id);
+                    }, 500);
                 }
             },
             
