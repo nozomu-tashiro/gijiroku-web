@@ -2343,11 +2343,24 @@
                     </div>
                 </div>`;
                 
-                // 会議情報を表示（コンパクト）
+                // 会議情報を表示（コンパクト）+ ステータス（旧4つのステータス）
+                const minuteStatusMap = {
+                    'pending': '未着手',
+                    'progress': '進行中',
+                    'completed': '完了',
+                    'overdue': '期限超過',
+                    // 新ステータスの互換性
+                    'not-held': '未着手',
+                    'completed-with-tasks': '進行中',
+                    'completed-no-tasks': '完了'
+                };
+                const displayStatus = minuteStatusMap[minute.status] || '未着手';
+                
                 html += `<div style="background: #ecf0f1; padding: 10px 15px; margin-bottom: 12px; border-left: 4px solid ${borderColor}; font-size: 13px;">
                     <strong>会議名：</strong><span style="color: #2c3e50;">${minute.meetingName || ''}</span> &nbsp;&nbsp;
                     <strong>開催日：</strong><span style="color: #2c3e50;">${minute.meetingDate || ''}</span> &nbsp;&nbsp;
-                    <strong>サブタイトル：</strong><span style="color: #2c3e50;">${minute.subtitle || ''}</span>
+                    <strong>サブタイトル：</strong><span style="color: #2c3e50;">${minute.subtitle || ''}</span> &nbsp;&nbsp;
+                    <strong>ステータス：</strong><span style="color: #2c3e50;">${displayStatus}</span>
                 </div>`;
                 
                 // ファイル添付セクション（コンパクト）
