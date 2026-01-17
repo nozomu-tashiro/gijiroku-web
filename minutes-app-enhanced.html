@@ -4468,7 +4468,7 @@
                     console.warn('OpenAI API failed, using fallback parser:', apiError);
                     progressText.textContent = 'AI API利用不可。簡易解析を使用中...';
                     // Use fallback simple parser
-                    analysisResult = this.simpleParseMinutes(text);
+                    analysisResult = this.parseMinutesText(text);
                 }
                 
                 progressText.textContent = '解析完了！データを取り込み中...';
