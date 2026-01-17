@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会議議事録管理システム - Enhanced</title>
-    
-    <!-- JSZip for .docx file parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -4432,107 +4428,21 @@
             document.getElementById('aiAnalysisModal').classList.remove('active');
         };
         
-        app.handleAIAnalysisFile = async function(event) {
+        app.handleAIAnalysisFile = function(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const fileName = file.name;
-            const fileExt = fileName.split('.').pop().toLowerCase();
             document.getElementById('aiAnalysisFileName').textContent = fileName;
             
-            try {
-                let text = '';
-                
-                if (fileExt === 'docx') {
-                    // Handle Word documents (.docx)
-                    console.log('Processing .docx file...');
-                    text = await this.extractTextFromDocx(file);
-                } else if (fileExt === 'pdf') {
-                    // Handle PDF files
-                    console.log('Processing .pdf file...');
-                    alert('⚠️ PDF解析は現在開発中です。テキストファイルまたはWordファイル（.docx）をご利用ください。');
-                    return;
-                } else {
-                    // Handle plain text files (.txt, etc.)
-                    console.log('Processing text file...');
-                    text = await this.readFileAsText(file);
-                }
-                
-                if (text) {
-                    document.getElementById('aiAnalysisText').value = text;
-                    console.log('File loaded successfully. Text length:', text.length);
-                } else {
-                    alert('⚠️ ファイルの読み込みに失敗しました。');
-                }
-            } catch (error) {
-                console.error('File reading error:', error);
-                alert(`❌ ファイルの読み込みに失敗しました: ${error.message}`);
-            }
-        };
-        
-        app.readFileAsText = function(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(new Error('ファイルの読み込みに失敗しました'));
-                reader.readAsText(file, 'UTF-8');
-            });
-        };
-        
-        app.extractTextFromDocx = async function(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                
-                reader.onload = async (e) => {
-                    try {
-                        const arrayBuffer = e.target.result;
-                        
-                        // Use JSZip to extract .docx content
-                        const zip = new JSZip();
-                        const zipContent = await zip.loadAsync(arrayBuffer);
-                        
-                        // Extract document.xml from .docx
-                        const documentXml = await zipContent.file('word/document.xml').async('string');
-                        
-                        // Parse XML and extract text
-                        const parser = new DOMParser();
-                        const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
-                        
-                        // Extract all text nodes
-                        const textNodes = xmlDoc.getElementsByTagName('w:t');
-                        let text = '';
-                        
-                        for (let i = 0; i < textNodes.length; i++) {
-                            text += textNodes[i].textContent + ' ';
-                        }
-                        
-                        // Extract text from paragraphs for better formatting
-                        const paragraphs = xmlDoc.getElementsByTagName('w:p');
-                        let formattedText = '';
-                        
-                        for (let i = 0; i < paragraphs.length; i++) {
-                            const pTexts = paragraphs[i].getElementsByTagName('w:t');
-                            let pText = '';
-                            
-                            for (let j = 0; j < pTexts.length; j++) {
-                                pText += pTexts[j].textContent;
-                            }
-                            
-                            if (pText.trim()) {
-                                formattedText += pText + '\n';
-                            }
-                        }
-                        
-                        resolve(formattedText || text);
-                    } catch (error) {
-                        console.error('Error extracting text from .docx:', error);
-                        reject(new Error('Wordファイルの解析に失敗しました。ファイルが破損している可能性があります。'));
-                    }
-                };
-                
-                reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
-                reader.readAsArrayBuffer(file);
-            });
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                document.getElementById('aiAnalysisText').value = text;
+            };
+            
+            // Read as text
+            reader.readAsText(file);
         };
         
         app.startAIAnalysis = async function() {
@@ -4547,16 +4457,20 @@
             const progressDiv = document.getElementById('aiAnalysisProgress');
             const progressText = document.getElementById('aiAnalysisProgressText');
             progressDiv.style.display = 'block';
-            progressText.textContent = 'テキスト解析中...';
+            progressText.textContent = 'AI解析中...';
             
             try {
-                // Use simple text parser (OpenAI API is not available in static site)
-                console.log('Starting text analysis...');
-                progressText.textContent = 'テキストを解析しています...';
+                // Try OpenAI API first
+                let analysisResult;
+                try {
+                    analysisResult = await this.analyzeMinutesWithAI(text);
+                } catch (apiError) {
+                    console.warn('OpenAI API failed, using fallback parser:', apiError);
+                    progressText.textContent = 'AI API利用不可。簡易解析を使用中...';
+                    // Use fallback simple parser
+                    analysisResult = this.simpleParseMinutes(text);
+                }
                 
-                const analysisResult = this.parseMinutesText(text);
-                
-                console.log('Analysis result:', analysisResult);
                 progressText.textContent = '解析完了！データを取り込み中...';
                 
                 // Add analyzed rows to the current minute
@@ -4575,138 +4489,359 @@
                     this.closeAIAnalysisModal();
                     this.showMinuteDetailTable(this.currentMinute.id);
                     
-                    alert(`✅ 解析完了！${analysisResult.length}件のアイテムを追加しました。`);
+                    alert(`✅ AI解析完了！${analysisResult.length}件のアイテムを追加しました。`);
                 } else {
                     alert('⚠️ 解析結果が空です。テキストの形式を確認してください。');
                 }
             } catch (error) {
-                console.error('Analysis error:', error);
-                alert(`❌ 解析に失敗しました: ${error.message}`);
+                console.error('AI Analysis error:', error);
+                alert(`❌ AI解析に失敗しました: ${error.message}`);
             } finally {
                 progressDiv.style.display = 'none';
             }
         };
         
         app.analyzeMinutesWithAI = async function(text) {
-            console.log('=== Starting text analysis (local parser) ===');
+            console.log('=== Starting AI analysis ===');
             console.log('Text length:', text.length);
             
-            // Note: OpenAI API integration removed for static site
-            // Using local text parser instead
-            console.log('Using local parseMinutesText function...');
+            // Try OpenAI API first, fallback to simple parser if it fails
+            try {
+                // Load OpenAI config
+                console.log('Loading OpenAI config...');
+                const config = await this.loadOpenAIConfig();
+                console.log('Config loaded:', config ? 'YES' : 'NO');
+                
+                if (config && config.api_key) {
+                    console.log('=== API Key found, proceeding with AI analysis ===');
+                    const prompt = `あなたは優秀な議事録解析AIアシスタントです。音声認識された議事録テキストから、ビジネスで実用的な構造化データを抽出します。
+
+# 解析対象テキスト
+${text}
+
+# あなたのタスク
+以下の3ステップで議事録を解析してください：
+
+## ステップ1: 議事録の全体理解
+- 会議の主要テーマと目的を把握する
+- 議論の流れと重要な決定事項を特定する
+- 発言者の役割と責任範囲を理解する
+
+## ステップ2: アクションアイテムの抽出
+議事録から以下のような実行可能な項目を抽出してください：
+- 明確な決定事項（「〜することになった」「〜で合意した」など）
+- タスクや作業項目（「〜を調査する」「〜に連絡する」など）
+- 期限付きの約束事項（「〜までに提出」「〜月までに完了」など）
+- 検討・検証が必要な課題（「〜を検討する」「〜を確認する」など）
+- フォローアップが必要な事項
+
+## ステップ3: 構造化データへの変換
+各アクションアイテムについて、以下の8項目を慎重に分析して抽出してください：
+
+### 1. 議題・アジェンダ (agenda)
+- **何について議論されたのか**の要約（1-2文）
+- 背景や経緯を含めた議題の本質を記述
+- 例: 「ロジクール倉庫の完成に伴う撤去業者の選定について」
+
+### 2. 具体的なアクション (action)
+- **誰が何をするのか**を明確に記述
+- 動詞を使った具体的な行動（「〜を調査」「〜に連絡」「〜を確認」）
+- 例: 「トップクリーンの提携業者3社と合同対応の可能性を確認する」
+
+### 3. 担当者 (assignee)
+- 実施責任者の名前（発言者や指名された人物）
+- 名前が不明な場合は役職や部門名（「営業部」「担当者」など）
+- 複数いる場合はカンマ区切り
+- 例: 「山田太郎」「営業部担当」
+
+### 4. 期限 (deadline)
+- YYYY-MM-DD形式で記述（例: 2025-03-15）
+- 「来年3月」→「2026-03-31」のように具体的な日付に変換
+- 「1ヶ月後」→現在日を基準に計算
+- 期限の記載がない場合は空文字 ""
+
+### 5. 目的・期待される効果 (purpose)
+- **なぜこれを実施するのか**の理由
+- 期待される結果やビジネスインパクト
+- コスト削減、効率化、品質向上などの効果
+- 例: 「撤去費用を現状の1.5〜2倍から削減し、コスト最適化を図る」
+
+### 6. ステータス (status)
+- テキストから文脈を判断して以下のいずれかを選択：
+  - **pending**: 未着手、これから実施予定
+  - **progress**: 現在進行中、検討中、調査中
+  - **completed**: 既に完了、決定済み
+  - **overdue**: 期限を過ぎている（明示的な記載がある場合のみ）
+- デフォルトは "pending"
+
+### 7. 備考1 (notes1)
+- 補足情報や制約条件
+- 関連する追加コンテキスト
+- 例: 「現在トートクリエイトに依頼中、直接依頼の場合は単価1.5〜2倍」
+
+### 8. 備考2 (notes2)
+- その他の参考情報
+- 関係者からのコメントや懸念事項
+- 例: 「ロジクール倉庫完成後は自社対応可能」
+
+# 出力フォーマット
+必ず以下の有効なJSON配列形式で出力してください：
+
+[
+  {
+    "agenda": "議題の要約（具体的に）",
+    "action": "実行すべき具体的なアクション",
+    "assignee": "担当者名または役職",
+    "deadline": "YYYY-MM-DD または空文字",
+    "purpose": "実施する理由と期待される効果",
+    "status": "pending | progress | completed | overdue",
+    "notes1": "補足情報や制約条件",
+    "notes2": "その他の参考情報"
+  }
+]
+
+# 重要な注意事項
+- **品質重視**: 音声テキストをそのまま入れるのではなく、ビジネス文書として整理された文章にする
+- **文脈理解**: 会話の流れから暗黙的な情報も読み取る
+- **重複排除**: 同じ内容が繰り返されている場合は1つにまとめる
+- **優先順位**: 重要度が高い項目から順に並べる
+- **具体性**: 曖昧な表現を避け、5W1H（誰が、何を、いつ、どこで、なぜ、どのように）を明確にする
+- **JSON形式**: 必ず有効なJSONとして出力（改行や特殊文字は適切にエスケープ）
+
+それでは解析を開始してください。必ずJSON配列のみを返してください（説明文は不要です）。`;
+
+                    const response = await fetch('/api/openai/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-5',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: `あなたは日本のビジネス会議の議事録解析に特化したAIアシスタントです。
+
+専門知識:
+- 日本のビジネス文化と会議慣習の理解
+- 音声認識テキスト（話し言葉）から書き言葉への変換
+- 曖昧な発言から具体的なアクションアイテムの抽出
+- ビジネス上の優先順位と重要度の判断
+
+解析方針:
+1. 会議の文脈を深く理解し、暗黙的な情報も読み取る
+2. 口語表現を整理し、ビジネス文書として適切な表現に変換
+3. 重複や冗長な内容を統合し、簡潔で明確な項目にまとめる
+4. 実行可能性が高い具体的なアクションを優先的に抽出
+5. 必ず有効なJSON配列形式で返す（説明文や前置きは不要）
+
+品質基準:
+- 各項目は独立して理解できる完結した内容であること
+- 担当者と期限が明確な項目を優先すること
+- 曖昧さを排除し、5W1Hが明確であること`
+                                },
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ],
+                            temperature: 0.2,
+                            max_tokens: 6000
+                        })
+                    });
+                    
+                    console.log('Sending request to OpenAI API...');
+                    console.log('Request URL:', '/api/openai/chat/completions');
+                    
+                    if (response.ok) {
+                        console.log('=== API Response received successfully ===');
+                        const data = await response.json();
+                        console.log('📦 Full API Response:', data);
+                        
+                        const content = data.choices[0].message.content;
+                        console.log('📝 Content type:', typeof content);
+                        console.log('📝 Is array:', Array.isArray(content));
+                        
+                        let parsedData;
+                        
+                        // ✅ Check if content is already an array (new server format)
+                        if (Array.isArray(content)) {
+                            console.log('✅ Content is already an array! Using directly.');
+                            console.log('📊 Array length:', content.length);
+                            console.log('📊 First item:', content[0]);
+                            parsedData = content;
+                        } 
+                        // 🔄 If content is a string, parse it (legacy format)
+                        else if (typeof content === 'string') {
+                            console.log('🔄 Content is a string, parsing...');
+                            console.log('📝 Content length:', content.length);
+                            console.log('📝 Content preview:', content.substring(0, 500));
+                            
+                            // Parse JSON from response
+                            let jsonText = content.trim();
+                            console.log('🔍 Raw JSON text (first 300 chars):', jsonText.substring(0, 300));
+                            
+                            if (jsonText.startsWith('```json')) {
+                                jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ```json markers');
+                            } else if (jsonText.startsWith('```')) {
+                                jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ``` markers');
+                            }
+                            
+                            console.log('🔄 Parsing JSON response...');
+                            parsedData = JSON.parse(jsonText);
+                            console.log('✅ Parsed successfully!');
+                        } else {
+                            console.error('❌ Unexpected content type:', typeof content);
+                            throw new Error('Unexpected content type: ' + typeof content);
+                        }
+                        
+                        console.log('📊 Final data type:', typeof parsedData, 'isArray:', Array.isArray(parsedData));
+                        console.log('📊 Data items:', Array.isArray(parsedData) ? parsedData.length : 'NOT AN ARRAY');
+                        console.log('📊 First item:', parsedData[0]);
+                        
+                        if (Array.isArray(parsedData)) {
+                            console.log('✅ Data is array, mapping to result format...');
+                            const result = parsedData.map((item, idx) => {
+                                console.log(`📄 Item ${idx + 1}:`, item);
+                                return {
+                                    agenda: item.agenda || '',
+                                    action: item.action || '',
+                                    assignee: item.assignee || '',
+                                    deadline: item.deadline || '',
+                                    purpose: item.purpose || '',
+                                    status: item.status || 'pending',
+                                    notes1: item.notes1 || '',
+                                    notes2: item.notes2 || ''
+                                };
+                            });
+                            console.log('🎉 AI analysis completed successfully!');
+                            console.log('📦 Returning', result.length, 'structured items');
+                            console.log('📦 Result sample:', result[0]);
+                            return result;
+                        } else {
+                            console.error('Parsed data is not an array:', typeof parsedData);
+                        }
+                    } else {
+                        console.error('API response not OK:', response.status, response.statusText);
+                        const errorText = await response.text();
+                        console.error('Error details:', errorText);
+                    }
+                } else {
+                    console.warn('No API key found in config');
+                }
+            } catch (error) {
+                console.error('=== AI Analysis Error ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.warn('Falling back to simple parser');
+            }
+            
+            // Fallback: Simple text parser
+            console.log('=== Using simple text parser (fallback) ===');
             return this.parseMinutesText(text);
         };
         
         app.parseMinutesText = function(text) {
-            console.log('parseMinutesText: Starting analysis...');
-            console.log('Text length:', text.length);
-            
             const results = [];
             const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             
-            console.log('Total lines:', lines.length);
-            
             // Pattern matching for Japanese meeting minutes
             const patterns = {
-                // Match: Speaker 1: text or Speaker 1 text
-                speaker: /^(Speaker|話者|発言者)\s*(\d+|[A-Z])?[:：]?\s*(.+)$/i,
                 // Match: • **Text**: description, 担当: person, 期限: date
                 withDetails: /[•・]\s*\*?\*?([^:：]+?)\*?\*?[:：]\s*(.+?)(?:担当[:：]\s*([^、,]+?))?(?:期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?))?\s*$/,
                 // Match: • Text
                 simple: /[•・]\s*(.+)$/,
                 // Date pattern
-                date: /([0-9]{4})[-年/]([0-9]{1,2})[-月/]([0-9]{1,2})/,
-                // Extract assignee pattern
-                assigneePattern: /(?:担当|依頼先|責任者)[:：]?\s*([^\s、,。]+)/,
-                // Extract deadline pattern
-                deadlinePattern: /(?:期限|納期|締切|まで)[:：]?\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/
+                date: /([0-9]{4})[-年/]([0-9]{1,2})[-月/]([0-9]{1,2})/
             };
-            
-            // First pass: collect all dialogue
-            const speakers = [];
-            let currentSpeaker = null;
-            let currentText = '';
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                const speakerMatch = line.match(patterns.speaker);
                 
-                if (speakerMatch) {
-                    // Save previous speaker's text
-                    if (currentSpeaker && currentText) {
-                        speakers.push({
-                            speaker: currentSpeaker,
-                            text: currentText.trim()
-                        });
+                // Try detailed pattern first
+                let match = line.match(patterns.withDetails);
+                if (match) {
+                    const agenda = match[1].trim();
+                    const action = match[2].trim();
+                    const assignee = match[3] ? match[3].trim() : '';
+                    const deadlineStr = match[4] || '';
+                    
+                    // Parse deadline
+                    let deadline = '';
+                    if (deadlineStr) {
+                        const dateMatch = deadlineStr.match(patterns.date);
+                        if (dateMatch) {
+                            const year = dateMatch[1];
+                            const month = dateMatch[2].padStart(2, '0');
+                            const day = dateMatch[3].padStart(2, '0');
+                            deadline = `${year}-${month}-${day}`;
+                        }
                     }
                     
-                    // Start new speaker
-                    currentSpeaker = speakerMatch[1] + (speakerMatch[2] || '');
-                    currentText = speakerMatch[3];
-                } else if (currentSpeaker) {
-                    // Continue current speaker's text
-                    currentText += ' ' + line;
-                } else {
-                    // No speaker detected, treat as general text
-                    currentText += ' ' + line;
+                    results.push({
+                        agenda: agenda,
+                        action: action,
+                        assignee: assignee,
+                        deadline: deadline,
+                        purpose: '',
+                        status: 'pending',
+                        notes1: '',
+                        notes2: ''
+                    });
+                    continue;
                 }
-            }
-            
-            // Save last speaker
-            if (currentSpeaker && currentText) {
-                speakers.push({
-                    speaker: currentSpeaker,
-                    text: currentText.trim()
-                });
-            }
-            
-            console.log('Extracted speakers:', speakers.length);
-            
-            // Second pass: extract action items
-            const allText = speakers.length > 0 
-                ? speakers.map(s => s.text).join(' ') 
-                : text;
-            
-            // Split by sentences
-            const sentences = allText.split(/[。！？\n]/).filter(s => s.trim().length > 10);
-            
-            console.log('Total sentences:', sentences.length);
-            
-            for (const sentence of sentences) {
-                const trimmed = sentence.trim();
-                if (!trimmed) continue;
                 
-                // Extract assignee
-                const assigneeMatch = trimmed.match(patterns.assigneePattern);
-                const assignee = assigneeMatch ? assigneeMatch[1].trim() : '';
-                
-                // Extract deadline
-                let deadline = '';
-                const deadlineMatch = trimmed.match(patterns.deadlinePattern);
-                if (deadlineMatch) {
-                    const dateMatch = deadlineMatch[1].match(patterns.date);
-                    if (dateMatch) {
-                        const year = dateMatch[1];
-                        const month = dateMatch[2].padStart(2, '0');
-                        const day = dateMatch[3].padStart(2, '0');
-                        deadline = `${year}-${month}-${day}`;
+                // Try simple pattern
+                match = line.match(patterns.simple);
+                if (match) {
+                    const text = match[1].trim();
+                    
+                    // Extract assignee if present
+                    let assignee = '';
+                    let cleanText = text;
+                    const assigneeMatch = text.match(/担当[:：]\s*([^、,]+)/);
+                    if (assigneeMatch) {
+                        assignee = assigneeMatch[1].trim();
+                        cleanText = text.replace(/担当[:：]\s*[^、,]+/, '').trim();
                     }
+                    
+                    // Extract deadline if present
+                    let deadline = '';
+                    const deadlineMatch = cleanText.match(/期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/);
+                    if (deadlineMatch) {
+                        const dateMatch = deadlineMatch[1].match(patterns.date);
+                        if (dateMatch) {
+                            const year = dateMatch[1];
+                            const month = dateMatch[2].padStart(2, '0');
+                            const day = dateMatch[3].padStart(2, '0');
+                            deadline = `${year}-${month}-${day}`;
+                        }
+                        cleanText = cleanText.replace(/期限[:：]\s*[0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?/, '').trim();
+                    }
+                    
+                    results.push({
+                        agenda: cleanText,
+                        action: cleanText,
+                        assignee: assignee,
+                        deadline: deadline,
+                        purpose: '',
+                        status: 'pending',
+                        notes1: '',
+                        notes2: ''
+                    });
                 }
-                
-                // Clean text (remove assignee and deadline info)
-                let cleanText = trimmed
-                    .replace(patterns.assigneePattern, '')
-                    .replace(patterns.deadlinePattern, '')
-                    .trim();
-                
-                // Skip if text is too short
-                if (cleanText.length < 5) continue;
-                
+            }
+            
+            // If no items found, create a default one
+            if (results.length === 0) {
                 results.push({
-                    agenda: cleanText,
-                    action: cleanText,
-                    assignee: assignee,
-                    deadline: deadline,
+                    agenda: text.substring(0, 100),
+                    action: text.substring(0, 100),
+                    assignee: '',
+                    deadline: '',
                     purpose: '',
                     status: 'pending',
                     notes1: '',
@@ -4714,41 +4849,35 @@
                 });
             }
             
-            console.log('Extracted items:', results.length);
-            
-            // If no items found, create chunks from the text
-            if (results.length === 0) {
-                const chunks = [];
-                const chunkSize = 200;
-                
-                for (let i = 0; i < text.length; i += chunkSize) {
-                    const chunk = text.substring(i, Math.min(i + chunkSize, text.length)).trim();
-                    if (chunk.length > 20) {
-                        chunks.push(chunk);
-                    }
-                }
-                
-                for (const chunk of chunks.slice(0, 5)) { // Max 5 items
-                    results.push({
-                        agenda: chunk,
-                        action: chunk,
-                        assignee: '',
-                        deadline: '',
-                        purpose: '',
-                        status: 'pending',
-                        notes1: '',
-                        notes2: ''
-                    });
-                }
-                
-                console.log('Created default chunks:', results.length);
-            }
-            
-            console.log('Final results:', results.length);
             return results;
         };
         
-        // Note: loadOpenAIConfig function removed - not needed for static site
+        app.loadOpenAIConfig = async function() {
+            try {
+                // Try to load from environment variables or config file
+                // In browser, we'll use a simple approach - check if config is available
+                const response = await fetch('/load-openai-config', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => null);
+                
+                if (response && response.ok) {
+                    return await response.json();
+                }
+                
+                // Fallback: use environment variables if available
+                // This would be injected by the server
+                return {
+                    api_key: window.OPENAI_API_KEY || null,
+                    base_url: window.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
+                };
+            } catch (error) {
+                console.error('Failed to load OpenAI config:', error);
+                return null;
+            }
+        };
         
         console.log('=== Setting window.app ===');
         // Make app globally accessible for onclick handlers
