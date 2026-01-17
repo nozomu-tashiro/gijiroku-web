@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会議議事録管理システム - Enhanced</title>
+    
+    <!-- JSZip for .docx file parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -4428,21 +4432,107 @@
             document.getElementById('aiAnalysisModal').classList.remove('active');
         };
         
-        app.handleAIAnalysisFile = function(event) {
+        app.handleAIAnalysisFile = async function(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const fileName = file.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
             document.getElementById('aiAnalysisFileName').textContent = fileName;
             
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const text = e.target.result;
-                document.getElementById('aiAnalysisText').value = text;
-            };
-            
-            // Read as text
-            reader.readAsText(file);
+            try {
+                let text = '';
+                
+                if (fileExt === 'docx') {
+                    // Handle Word documents (.docx)
+                    console.log('Processing .docx file...');
+                    text = await this.extractTextFromDocx(file);
+                } else if (fileExt === 'pdf') {
+                    // Handle PDF files
+                    console.log('Processing .pdf file...');
+                    alert('⚠️ PDF解析は現在開発中です。テキストファイルまたはWordファイル（.docx）をご利用ください。');
+                    return;
+                } else {
+                    // Handle plain text files (.txt, etc.)
+                    console.log('Processing text file...');
+                    text = await this.readFileAsText(file);
+                }
+                
+                if (text) {
+                    document.getElementById('aiAnalysisText').value = text;
+                    console.log('File loaded successfully. Text length:', text.length);
+                } else {
+                    alert('⚠️ ファイルの読み込みに失敗しました。');
+                }
+            } catch (error) {
+                console.error('File reading error:', error);
+                alert(`❌ ファイルの読み込みに失敗しました: ${error.message}`);
+            }
+        };
+        
+        app.readFileAsText = function(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(new Error('ファイルの読み込みに失敗しました'));
+                reader.readAsText(file, 'UTF-8');
+            });
+        };
+        
+        app.extractTextFromDocx = async function(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    try {
+                        const arrayBuffer = e.target.result;
+                        
+                        // Use JSZip to extract .docx content
+                        const zip = new JSZip();
+                        const zipContent = await zip.loadAsync(arrayBuffer);
+                        
+                        // Extract document.xml from .docx
+                        const documentXml = await zipContent.file('word/document.xml').async('string');
+                        
+                        // Parse XML and extract text
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
+                        
+                        // Extract all text nodes
+                        const textNodes = xmlDoc.getElementsByTagName('w:t');
+                        let text = '';
+                        
+                        for (let i = 0; i < textNodes.length; i++) {
+                            text += textNodes[i].textContent + ' ';
+                        }
+                        
+                        // Extract text from paragraphs for better formatting
+                        const paragraphs = xmlDoc.getElementsByTagName('w:p');
+                        let formattedText = '';
+                        
+                        for (let i = 0; i < paragraphs.length; i++) {
+                            const pTexts = paragraphs[i].getElementsByTagName('w:t');
+                            let pText = '';
+                            
+                            for (let j = 0; j < pTexts.length; j++) {
+                                pText += pTexts[j].textContent;
+                            }
+                            
+                            if (pText.trim()) {
+                                formattedText += pText + '\n';
+                            }
+                        }
+                        
+                        resolve(formattedText || text);
+                    } catch (error) {
+                        console.error('Error extracting text from .docx:', error);
+                        reject(new Error('Wordファイルの解析に失敗しました。ファイルが破損している可能性があります。'));
+                    }
+                };
+                
+                reader.onerror = () => reject(new Error('ファイルの読み込みに失敗しました'));
+                reader.readAsArrayBuffer(file);
+            });
         };
         
         app.startAIAnalysis = async function() {
