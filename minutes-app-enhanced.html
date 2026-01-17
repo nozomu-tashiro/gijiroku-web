@@ -4547,20 +4547,16 @@
             const progressDiv = document.getElementById('aiAnalysisProgress');
             const progressText = document.getElementById('aiAnalysisProgressText');
             progressDiv.style.display = 'block';
-            progressText.textContent = 'AI解析中...';
+            progressText.textContent = 'テキスト解析中...';
             
             try {
-                // Try OpenAI API first
-                let analysisResult;
-                try {
-                    analysisResult = await this.analyzeMinutesWithAI(text);
-                } catch (apiError) {
-                    console.warn('OpenAI API failed, using fallback parser:', apiError);
-                    progressText.textContent = 'AI API利用不可。簡易解析を使用中...';
-                    // Use fallback simple parser
-                    analysisResult = this.simpleParseMinutes(text);
-                }
+                // Use simple text parser (OpenAI API is not available in static site)
+                console.log('Starting text analysis...');
+                progressText.textContent = 'テキストを解析しています...';
                 
+                const analysisResult = this.parseMinutesText(text);
+                
+                console.log('Analysis result:', analysisResult);
                 progressText.textContent = '解析完了！データを取り込み中...';
                 
                 // Add analyzed rows to the current minute
@@ -4579,13 +4575,13 @@
                     this.closeAIAnalysisModal();
                     this.showMinuteDetailTable(this.currentMinute.id);
                     
-                    alert(`✅ AI解析完了！${analysisResult.length}件のアイテムを追加しました。`);
+                    alert(`✅ 解析完了！${analysisResult.length}件のアイテムを追加しました。`);
                 } else {
                     alert('⚠️ 解析結果が空です。テキストの形式を確認してください。');
                 }
             } catch (error) {
-                console.error('AI Analysis error:', error);
-                alert(`❌ AI解析に失敗しました: ${error.message}`);
+                console.error('Analysis error:', error);
+                alert(`❌ 解析に失敗しました: ${error.message}`);
             } finally {
                 progressDiv.style.display = 'none';
             }
@@ -4835,103 +4831,115 @@ ${text}
         };
         
         app.parseMinutesText = function(text) {
+            console.log('parseMinutesText: Starting analysis...');
+            console.log('Text length:', text.length);
+            
             const results = [];
             const lines = text.split('\n').map(l => l.trim()).filter(l => l);
             
+            console.log('Total lines:', lines.length);
+            
             // Pattern matching for Japanese meeting minutes
             const patterns = {
+                // Match: Speaker 1: text or Speaker 1 text
+                speaker: /^(Speaker|話者|発言者)\s*(\d+|[A-Z])?[:：]?\s*(.+)$/i,
                 // Match: • **Text**: description, 担当: person, 期限: date
                 withDetails: /[•・]\s*\*?\*?([^:：]+?)\*?\*?[:：]\s*(.+?)(?:担当[:：]\s*([^、,]+?))?(?:期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?))?\s*$/,
                 // Match: • Text
                 simple: /[•・]\s*(.+)$/,
                 // Date pattern
-                date: /([0-9]{4})[-年/]([0-9]{1,2})[-月/]([0-9]{1,2})/
+                date: /([0-9]{4})[-年/]([0-9]{1,2})[-月/]([0-9]{1,2})/,
+                // Extract assignee pattern
+                assigneePattern: /(?:担当|依頼先|責任者)[:：]?\s*([^\s、,。]+)/,
+                // Extract deadline pattern
+                deadlinePattern: /(?:期限|納期|締切|まで)[:：]?\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/
             };
+            
+            // First pass: collect all dialogue
+            const speakers = [];
+            let currentSpeaker = null;
+            let currentText = '';
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
+                const speakerMatch = line.match(patterns.speaker);
                 
-                // Try detailed pattern first
-                let match = line.match(patterns.withDetails);
-                if (match) {
-                    const agenda = match[1].trim();
-                    const action = match[2].trim();
-                    const assignee = match[3] ? match[3].trim() : '';
-                    const deadlineStr = match[4] || '';
-                    
-                    // Parse deadline
-                    let deadline = '';
-                    if (deadlineStr) {
-                        const dateMatch = deadlineStr.match(patterns.date);
-                        if (dateMatch) {
-                            const year = dateMatch[1];
-                            const month = dateMatch[2].padStart(2, '0');
-                            const day = dateMatch[3].padStart(2, '0');
-                            deadline = `${year}-${month}-${day}`;
-                        }
+                if (speakerMatch) {
+                    // Save previous speaker's text
+                    if (currentSpeaker && currentText) {
+                        speakers.push({
+                            speaker: currentSpeaker,
+                            text: currentText.trim()
+                        });
                     }
                     
-                    results.push({
-                        agenda: agenda,
-                        action: action,
-                        assignee: assignee,
-                        deadline: deadline,
-                        purpose: '',
-                        status: 'pending',
-                        notes1: '',
-                        notes2: ''
-                    });
-                    continue;
-                }
-                
-                // Try simple pattern
-                match = line.match(patterns.simple);
-                if (match) {
-                    const text = match[1].trim();
-                    
-                    // Extract assignee if present
-                    let assignee = '';
-                    let cleanText = text;
-                    const assigneeMatch = text.match(/担当[:：]\s*([^、,]+)/);
-                    if (assigneeMatch) {
-                        assignee = assigneeMatch[1].trim();
-                        cleanText = text.replace(/担当[:：]\s*[^、,]+/, '').trim();
-                    }
-                    
-                    // Extract deadline if present
-                    let deadline = '';
-                    const deadlineMatch = cleanText.match(/期限[:：]\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/);
-                    if (deadlineMatch) {
-                        const dateMatch = deadlineMatch[1].match(patterns.date);
-                        if (dateMatch) {
-                            const year = dateMatch[1];
-                            const month = dateMatch[2].padStart(2, '0');
-                            const day = dateMatch[3].padStart(2, '0');
-                            deadline = `${year}-${month}-${day}`;
-                        }
-                        cleanText = cleanText.replace(/期限[:：]\s*[0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?/, '').trim();
-                    }
-                    
-                    results.push({
-                        agenda: cleanText,
-                        action: cleanText,
-                        assignee: assignee,
-                        deadline: deadline,
-                        purpose: '',
-                        status: 'pending',
-                        notes1: '',
-                        notes2: ''
-                    });
+                    // Start new speaker
+                    currentSpeaker = speakerMatch[1] + (speakerMatch[2] || '');
+                    currentText = speakerMatch[3];
+                } else if (currentSpeaker) {
+                    // Continue current speaker's text
+                    currentText += ' ' + line;
+                } else {
+                    // No speaker detected, treat as general text
+                    currentText += ' ' + line;
                 }
             }
             
-            // If no items found, create a default one
-            if (results.length === 0) {
+            // Save last speaker
+            if (currentSpeaker && currentText) {
+                speakers.push({
+                    speaker: currentSpeaker,
+                    text: currentText.trim()
+                });
+            }
+            
+            console.log('Extracted speakers:', speakers.length);
+            
+            // Second pass: extract action items
+            const allText = speakers.length > 0 
+                ? speakers.map(s => s.text).join(' ') 
+                : text;
+            
+            // Split by sentences
+            const sentences = allText.split(/[。！？\n]/).filter(s => s.trim().length > 10);
+            
+            console.log('Total sentences:', sentences.length);
+            
+            for (const sentence of sentences) {
+                const trimmed = sentence.trim();
+                if (!trimmed) continue;
+                
+                // Extract assignee
+                const assigneeMatch = trimmed.match(patterns.assigneePattern);
+                const assignee = assigneeMatch ? assigneeMatch[1].trim() : '';
+                
+                // Extract deadline
+                let deadline = '';
+                const deadlineMatch = trimmed.match(patterns.deadlinePattern);
+                if (deadlineMatch) {
+                    const dateMatch = deadlineMatch[1].match(patterns.date);
+                    if (dateMatch) {
+                        const year = dateMatch[1];
+                        const month = dateMatch[2].padStart(2, '0');
+                        const day = dateMatch[3].padStart(2, '0');
+                        deadline = `${year}-${month}-${day}`;
+                    }
+                }
+                
+                // Clean text (remove assignee and deadline info)
+                let cleanText = trimmed
+                    .replace(patterns.assigneePattern, '')
+                    .replace(patterns.deadlinePattern, '')
+                    .trim();
+                
+                // Skip if text is too short
+                if (cleanText.length < 5) continue;
+                
                 results.push({
-                    agenda: text.substring(0, 100),
-                    action: text.substring(0, 100),
-                    assignee: '',
-                    deadline: '',
+                    agenda: cleanText,
+                    action: cleanText,
+                    assignee: assignee,
+                    deadline: deadline,
                     purpose: '',
                     status: 'pending',
                     notes1: '',
@@ -4939,6 +4947,37 @@ ${text}
                 });
             }
             
+            console.log('Extracted items:', results.length);
+            
+            // If no items found, create chunks from the text
+            if (results.length === 0) {
+                const chunks = [];
+                const chunkSize = 200;
+                
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    const chunk = text.substring(i, Math.min(i + chunkSize, text.length)).trim();
+                    if (chunk.length > 20) {
+                        chunks.push(chunk);
+                    }
+                }
+                
+                for (const chunk of chunks.slice(0, 5)) { // Max 5 items
+                    results.push({
+                        agenda: chunk,
+                        action: chunk,
+                        assignee: '',
+                        deadline: '',
+                        purpose: '',
+                        status: 'pending',
+                        notes1: '',
+                        notes2: ''
+                    });
+                }
+                
+                console.log('Created default chunks:', results.length);
+            }
+            
+            console.log('Final results:', results.length);
             return results;
         };
         
