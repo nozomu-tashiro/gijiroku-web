@@ -4588,12 +4588,245 @@
         };
         
         app.analyzeMinutesWithAI = async function(text) {
-            console.log('=== Starting text analysis (local parser) ===');
+            console.log('=== Starting AI analysis ===');
             console.log('Text length:', text.length);
             
-            // Note: OpenAI API integration removed for static site
-            // Using local text parser instead
-            console.log('Using local parseMinutesText function...');
+            // Try OpenAI API first, fallback to simple parser if it fails
+            try {
+                // Load OpenAI config
+                console.log('Loading OpenAI config...');
+                const config = await this.loadOpenAIConfig();
+                console.log('Config loaded:', config ? 'YES' : 'NO');
+                
+                if (config && config.api_key) {
+                    console.log('=== API Key found, proceeding with AI analysis ===');
+                    const prompt = `あなたは優秀な議事録解析AIアシスタントです。音声認識された議事録テキストから、ビジネスで実用的な構造化データを抽出します。
+
+# 解析対象テキスト
+${text}
+
+# あなたのタスク
+以下の3ステップで議事録を解析してください：
+
+## ステップ1: 議事録の全体理解
+- 会議の主要テーマと目的を把握する
+- 議論の流れと重要な決定事項を特定する
+- 発言者の役割と責任範囲を理解する
+
+## ステップ2: アクションアイテムの抽出
+議事録から以下のような実行可能な項目を抽出してください：
+- 明確な決定事項（「〜することになった」「〜で合意した」など）
+- タスクや作業項目（「〜を調査する」「〜に連絡する」など）
+- 期限付きの約束事項（「〜までに提出」「〜月までに完了」など）
+- 検討・検証が必要な課題（「〜を検討する」「〜を確認する」など）
+- フォローアップが必要な事項
+
+## ステップ3: 構造化データへの変換
+各アクションアイテムについて、以下の8項目を慎重に分析して抽出してください：
+
+### 1. 議題・アジェンダ (agenda)
+- **何について議論されたのか**の要約（1-2文）
+- 背景や経緯を含めた議題の本質を記述
+- 例: 「ロジクール倉庫の完成に伴う撤去業者の選定について」
+
+### 2. 具体的なアクション (action)
+- **誰が何をするのか**を明確に記述
+- 動詞を使った具体的な行動（「〜を調査」「〜に連絡」「〜を確認」）
+- 例: 「トップクリーンの提携業者3社と合同対応の可能性を確認する」
+
+### 3. 担当者 (assignee)
+- 実施責任者の名前（発言者や指名された人物）
+- 名前が不明な場合は役職や部門名（「営業部」「担当者」など）
+- 複数いる場合はカンマ区切り
+- 例: 「山田太郎」「営業部担当」
+
+### 4. 期限 (deadline)
+- YYYY-MM-DD形式で記述（例: 2025-03-15）
+- 「来年3月」→「2026-03-31」のように具体的な日付に変換
+- 「1ヶ月後」→現在日を基準に計算
+- 期限の記載がない場合は空文字 ""
+
+### 5. 目的・期待される効果 (purpose)
+- **なぜこれを実施するのか**の理由
+- 期待される結果やビジネスインパクト
+- コスト削減、効率化、品質向上などの効果
+- 例: 「撤去費用を現状の1.5〜2倍から削減し、コスト最適化を図る」
+
+### 6. ステータス (status)
+- テキストから文脈を判断して以下のいずれかを選択：
+  - **pending**: 未着手、これから実施予定
+  - **progress**: 現在進行中、検討中、調査中
+  - **completed**: 既に完了、決定済み
+  - **overdue**: 期限を過ぎている（明示的な記載がある場合のみ）
+- デフォルトは "pending"
+
+### 7. 備考1 (notes1)
+- 補足情報や制約条件
+- 関連する追加コンテキスト
+- 例: 「現在トートクリエイトに依頼中、直接依頼の場合は単価1.5〜2倍」
+
+### 8. 備考2 (notes2)
+- その他の参考情報
+- 関係者からのコメントや懸念事項
+- 例: 「ロジクール倉庫完成後は自社対応可能」
+
+# 出力フォーマット
+必ず以下の有効なJSON配列形式で出力してください：
+
+[
+  {
+    "agenda": "議題の要約（具体的に）",
+    "action": "実行すべき具体的なアクション",
+    "assignee": "担当者名または役職",
+    "deadline": "YYYY-MM-DD または空文字",
+    "purpose": "実施する理由と期待される効果",
+    "status": "pending | progress | completed | overdue",
+    "notes1": "補足情報や制約条件",
+    "notes2": "その他の参考情報"
+  }
+]
+
+# 重要な注意事項
+- **品質重視**: 音声テキストをそのまま入れるのではなく、ビジネス文書として整理された文章にする
+- **文脈理解**: 会話の流れから暗黙的な情報も読み取る
+- **重複排除**: 同じ内容が繰り返されている場合は1つにまとめる
+- **優先順位**: 重要度が高い項目から順に並べる
+- **具体性**: 曖昧な表現を避け、5W1H（誰が、何を、いつ、どこで、なぜ、どのように）を明確にする
+- **JSON形式**: 必ず有効なJSONとして出力（改行や特殊文字は適切にエスケープ）
+
+それでは解析を開始してください。必ずJSON配列のみを返してください（説明文は不要です）。`;
+
+                    const response = await fetch('/api/openai/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-5',
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: `あなたは日本のビジネス会議の議事録解析に特化したAIアシスタントです。
+
+専門知識:
+- 日本のビジネス文化と会議慣習の理解
+- 音声認識テキスト（話し言葉）から書き言葉への変換
+- 曖昧な発言から具体的なアクションアイテムの抽出
+- ビジネス上の優先順位と重要度の判断
+
+解析方針:
+1. 会議の文脈を深く理解し、暗黙的な情報も読み取る
+2. 口語表現を整理し、ビジネス文書として適切な表現に変換
+3. 重複や冗長な内容を統合し、簡潔で明確な項目にまとめる
+4. 実行可能性が高い具体的なアクションを優先的に抽出
+5. 必ず有効なJSON配列形式で返す（説明文や前置きは不要）
+
+品質基準:
+- 各項目は独立して理解できる完結した内容であること
+- 担当者と期限が明確な項目を優先すること
+- 曖昧さを排除し、5W1Hが明確であること`
+                                },
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ],
+                            temperature: 0.2,
+                            max_tokens: 6000
+                        })
+                    });
+                    
+                    console.log('Sending request to OpenAI API...');
+                    console.log('Request URL:', '/api/openai/chat/completions');
+                    
+                    if (response.ok) {
+                        console.log('=== API Response received successfully ===');
+                        const data = await response.json();
+                        console.log('📦 Full API Response:', data);
+                        
+                        const content = data.choices[0].message.content;
+                        console.log('📝 Content type:', typeof content);
+                        console.log('📝 Is array:', Array.isArray(content));
+                        
+                        let parsedData;
+                        
+                        // ✅ Check if content is already an array (new server format)
+                        if (Array.isArray(content)) {
+                            console.log('✅ Content is already an array! Using directly.');
+                            console.log('📊 Array length:', content.length);
+                            console.log('📊 First item:', content[0]);
+                            parsedData = content;
+                        } 
+                        // 🔄 If content is a string, parse it (legacy format)
+                        else if (typeof content === 'string') {
+                            console.log('🔄 Content is a string, parsing...');
+                            console.log('📝 Content length:', content.length);
+                            console.log('📝 Content preview:', content.substring(0, 500));
+                            
+                            // Parse JSON from response
+                            let jsonText = content.trim();
+                            console.log('🔍 Raw JSON text (first 300 chars):', jsonText.substring(0, 300));
+                            
+                            if (jsonText.startsWith('```json')) {
+                                jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ```json markers');
+                            } else if (jsonText.startsWith('```')) {
+                                jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                                console.log('✂️ Removed ``` markers');
+                            }
+                            
+                            console.log('🔄 Parsing JSON response...');
+                            parsedData = JSON.parse(jsonText);
+                            console.log('✅ Parsed successfully!');
+                        } else {
+                            console.error('❌ Unexpected content type:', typeof content);
+                            throw new Error('Unexpected content type: ' + typeof content);
+                        }
+                        
+                        console.log('📊 Final data type:', typeof parsedData, 'isArray:', Array.isArray(parsedData));
+                        console.log('📊 Data items:', Array.isArray(parsedData) ? parsedData.length : 'NOT AN ARRAY');
+                        console.log('📊 First item:', parsedData[0]);
+                        
+                        if (Array.isArray(parsedData)) {
+                            console.log('✅ Data is array, mapping to result format...');
+                            const result = parsedData.map((item, idx) => {
+                                console.log(`📄 Item ${idx + 1}:`, item);
+                                return {
+                                    agenda: item.agenda || '',
+                                    action: item.action || '',
+                                    assignee: item.assignee || '',
+                                    deadline: item.deadline || '',
+                                    purpose: item.purpose || '',
+                                    status: item.status || 'pending',
+                                    notes1: item.notes1 || '',
+                                    notes2: item.notes2 || ''
+                                };
+                            });
+                            console.log('🎉 AI analysis completed successfully!');
+                            console.log('📦 Returning', result.length, 'structured items');
+                            console.log('📦 Result sample:', result[0]);
+                            return result;
+                        } else {
+                            console.error('Parsed data is not an array:', typeof parsedData);
+                        }
+                    } else {
+                        console.error('API response not OK:', response.status, response.statusText);
+                        const errorText = await response.text();
+                        console.error('Error details:', errorText);
+                    }
+                } else {
+                    console.warn('No API key found in config');
+                }
+            } catch (error) {
+                console.error('=== AI Analysis Error ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.warn('Falling back to simple parser');
+            }
+            
+            // Fallback: Simple text parser
+            console.log('=== Using simple text parser (fallback) ===');
             return this.parseMinutesText(text);
         };
         
@@ -4748,7 +4981,32 @@
             return results;
         };
         
-        // Note: loadOpenAIConfig function removed - not needed for static site
+        app.loadOpenAIConfig = async function() {
+            try {
+                // Try to load from environment variables or config file
+                // In browser, we'll use a simple approach - check if config is available
+                const response = await fetch('/load-openai-config', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => null);
+                
+                if (response && response.ok) {
+                    return await response.json();
+                }
+                
+                // Fallback: use environment variables if available
+                // This would be injected by the server
+                return {
+                    api_key: window.OPENAI_API_KEY || null,
+                    base_url: window.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
+                };
+            } catch (error) {
+                console.error('Failed to load OpenAI config:', error);
+                return null;
+            }
+        };
         
         console.log('=== Setting window.app ===');
         // Make app globally accessible for onclick handlers
