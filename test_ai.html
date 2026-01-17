@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>AI解析テスト</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <h1>AI解析テスト</h1>
+    <textarea id="testText" rows="10" cols="80">
+Speaker 1: 今月の売上目標について確認します。担当：営業部、期限：2026-02-28
+
+Speaker 2: 了解しました。新しいキャンペーンを開始します。
+
+Speaker 3: Webサイトの更新も必要です。担当：田中さん、期限：2026-02-15
+    </textarea>
+    <br>
+    <button onclick="testAnalysis()">解析実行</button>
+    <div id="result"></div>
+    
+    <script>
+        function parseMinutesText(text) {
+            console.log('parseMinutesText: Starting analysis...');
+            console.log('Text length:', text.length);
+            
+            const results = [];
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            
+            console.log('Total lines:', lines.length);
+            
+            const patterns = {
+                speaker: /^(Speaker|話者|発言者)\s*(\d+|[A-Z])?[:：]?\s*(.+)$/i,
+                assigneePattern: /(?:担当|依頼先|責任者)[:：]?\s*([^\s、,。]+)/,
+                deadlinePattern: /(?:期限|納期|締切|まで)[:：]?\s*([0-9]{4}[-年/][0-9]{1,2}[-月/][0-9]{1,2}日?)/,
+                date: /([0-9]{4})[-年/]([0-9]{1,2})[-年/]([0-9]{1,2})/
+            };
+            
+            const speakers = [];
+            let currentSpeaker = null;
+            let currentText = '';
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const speakerMatch = line.match(patterns.speaker);
+                
+                if (speakerMatch) {
+                    if (currentSpeaker && currentText) {
+                        speakers.push({
+                            speaker: currentSpeaker,
+                            text: currentText.trim()
+                        });
+                    }
+                    
+                    currentSpeaker = speakerMatch[1] + (speakerMatch[2] || '');
+                    currentText = speakerMatch[3];
+                } else if (currentSpeaker) {
+                    currentText += ' ' + line;
+                } else {
+                    currentText += ' ' + line;
+                }
+            }
+            
+            if (currentSpeaker && currentText) {
+                speakers.push({
+                    speaker: currentSpeaker,
+                    text: currentText.trim()
+                });
+            }
+            
+            console.log('Extracted speakers:', speakers.length);
+            
+            const allText = speakers.length > 0 
+                ? speakers.map(s => s.text).join(' ') 
+                : text;
+            
+            const sentences = allText.split(/[。！？\n]/).filter(s => s.trim().length > 10);
+            
+            console.log('Total sentences:', sentences.length);
+            
+            for (const sentence of sentences) {
+                const trimmed = sentence.trim();
+                if (!trimmed) continue;
+                
+                const assigneeMatch = trimmed.match(patterns.assigneePattern);
+                const assignee = assigneeMatch ? assigneeMatch[1].trim() : '';
+                
+                let deadline = '';
+                const deadlineMatch = trimmed.match(patterns.deadlinePattern);
+                if (deadlineMatch) {
+                    const dateMatch = deadlineMatch[1].match(patterns.date);
+                    if (dateMatch) {
+                        const year = dateMatch[1];
+                        const month = dateMatch[2].padStart(2, '0');
+                        const day = dateMatch[3].padStart(2, '0');
+                        deadline = `${year}-${month}-${day}`;
+                    }
+                }
+                
+                let cleanText = trimmed
+                    .replace(patterns.assigneePattern, '')
+                    .replace(patterns.deadlinePattern, '')
+                    .trim();
+                
+                if (cleanText.length < 5) continue;
+                
+                results.push({
+                    agenda: cleanText,
+                    action: cleanText,
+                    assignee: assignee,
+                    deadline: deadline,
+                    status: 'pending'
+                });
+            }
+            
+            console.log('Extracted items:', results.length);
+            
+            if (results.length === 0) {
+                const chunks = [];
+                const chunkSize = 200;
+                
+                for (let i = 0; i < text.length; i += chunkSize) {
+                    const chunk = text.substring(i, Math.min(i + chunkSize, text.length)).trim();
+                    if (chunk.length > 20) {
+                        chunks.push(chunk);
+                    }
+                }
+                
+                for (const chunk of chunks.slice(0, 5)) {
+                    results.push({
+                        agenda: chunk,
+                        action: chunk,
+                        assignee: '',
+                        deadline: '',
+                        status: 'pending'
+                    });
+                }
+            }
+            
+            console.log('Final results:', results.length);
+            return results;
+        }
+        
+        function testAnalysis() {
+            const text = document.getElementById('testText').value;
+            console.log('=== Test started ===');
+            console.log('Input text:', text);
+            
+            try {
+                const result = parseMinutesText(text);
+                console.log('=== Result ===', result);
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>
