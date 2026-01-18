@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会議議事録管理システム - Enhanced</title>
+    <!-- Supabase認証ライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -1047,6 +1049,23 @@
 
     <script>
         console.log('=== Script Loading Started ===');
+        
+        // Supabase設定と認証チェック
+        const SUPABASE_URL = 'https://ksgdkplktmnozrzkezb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_xmcwyNjUW4mtPLJVM1jOJw_52PXv9UW';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // 認証チェック（即座に実行）
+        (async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                // 未ログインの場合は認証ページにリダイレクト
+                window.location.href = 'supabase-auth.html';
+                return;
+            }
+            console.log('✅ ログイン済み:', session.user.email);
+        })();
+        
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
         
         const app = {
@@ -4935,6 +4954,35 @@ ${text}
             console.log('DOM loaded, calling app.init()');
             app.init();
         });
+        
+        // Supabaseログアウト機能
+        app.logout = async function() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                console.log('✅ ログアウト成功');
+                window.location.href = 'supabase-auth.html';
+            } catch (error) {
+                console.error('❌ ログアウトエラー:', error);
+                alert('ログアウトに失敗しました: ' + error.message);
+            }
+        };
+        
+        // ログイン中のユーザー情報を表示
+        (async function displayUserInfo() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session && session.user) {
+                const userNameEl = document.getElementById('headerUserName');
+                const userDeptEl = document.getElementById('headerUserDept');
+                if (userNameEl) {
+                    userNameEl.textContent = session.user.email;
+                }
+                if (userDeptEl) {
+                    userDeptEl.textContent = 'Supabase認証済み';
+                }
+            }
+        })();
         
         // Immediate check
         console.log('=== Script Loading Completed ===');
