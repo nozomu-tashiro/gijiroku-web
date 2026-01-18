@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ログイン - 会議議事録管理システム</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -216,11 +216,25 @@
     </div>
 
     <script>
+        console.log('🔄 認証ページ読み込み開始');
+        
+        // Supabaseライブラリの読み込み確認
+        if (typeof window.supabase === 'undefined') {
+            console.error('❌ Supabaseライブラリが読み込まれていません');
+            alert('エラー: 認証ライブラリの読み込みに失敗しました。ページをリロードしてください。');
+        } else {
+            console.log('✅ Supabaseライブラリ読み込み成功');
+        }
+        
         // Supabase設定
         const SUPABASE_URL = 'https://ksgdkplktmnozrzkezb.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_xmcwyNjUW4mtPLJVM1jOJw_52PXv9UW';
         
+        console.log('🔧 Supabaseクライアント初期化中...');
+        console.log('URL:', SUPABASE_URL);
+        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabaseクライアント作成完了');
         
         // メッセージ表示
         function showMessage(text, type = 'info') {
