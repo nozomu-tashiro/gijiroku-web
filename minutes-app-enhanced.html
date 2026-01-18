@@ -1042,6 +1042,9 @@
         }
     </style>
 
+    <!-- Mammoth.js for Word document reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
     <script>
         console.log('=== Script Loading Started ===');
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
@@ -4428,21 +4431,43 @@
             document.getElementById('aiAnalysisModal').classList.remove('active');
         };
         
-        app.handleAIAnalysisFile = function(event) {
+        app.handleAIAnalysisFile = async function(event) {
             const file = event.target.files[0];
             if (!file) return;
             
             const fileName = file.name;
             document.getElementById('aiAnalysisFileName').textContent = fileName;
             
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const text = e.target.result;
-                document.getElementById('aiAnalysisText').value = text;
-            };
+            // Check file type
+            const fileExtension = fileName.split('.').pop().toLowerCase();
             
-            // Read as text
-            reader.readAsText(file);
+            try {
+                let text = '';
+                
+                if (fileExtension === 'docx') {
+                    // Handle Word document with mammoth.js
+                    console.log('Reading .docx file with mammoth.js...');
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                    text = result.value;
+                    console.log('✅ .docx file read successfully');
+                } else {
+                    // Handle plain text files
+                    console.log('Reading text file...');
+                    text = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = (e) => reject(e);
+                        reader.readAsText(file, 'UTF-8');
+                    });
+                    console.log('✅ Text file read successfully');
+                }
+                
+                document.getElementById('aiAnalysisText').value = text;
+            } catch (error) {
+                console.error('❌ File reading error:', error);
+                alert('ファイルの読み込みに失敗しました。別のファイル形式で試してください。\n\nエラー: ' + error.message);
+            }
         };
         
         app.startAIAnalysis = async function() {
