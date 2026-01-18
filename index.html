@@ -4502,12 +4502,56 @@
         };
         
         app.analyzeMinutesWithAI = async function(text) {
-            console.log('=== Starting AI analysis ===');
+            console.log('=== Starting AI analysis with Cloudflare Worker ===');
             console.log('Text length:', text.length);
             
-            // Try OpenAI API first, fallback to simple parser if it fails
+            // Cloudflare Worker URL
+            const WORKER_URL = 'https://gijiroku-ai-worker.tashiro.workers.dev';
+            
             try {
-                // Load OpenAI config
+                console.log('Sending request to Cloudflare Worker...');
+                
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Worker API Error: ${errorData.error || 'Unknown error'}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.data)) {
+                    console.log('✅ AI analysis completed:', result.data.length, 'items');
+                    return result.data;
+                } else {
+                    throw new Error('Invalid response format from Worker');
+                }
+            } catch (error) {
+                console.error('❌ Cloudflare Worker request failed:', error);
+                console.log('Falling back to local parser...');
+                
+                // Fallback to local parser
+                try {
+                    return this.parseMinutesText(text);
+                } catch (fallbackError) {
+                    console.error('❌ Local parser also failed:', fallbackError);
+                    throw new Error('Both AI analysis and local parser failed');
+                }
+            }
+        };
+        
+        // OLD CODE - Remove loadOpenAIConfig logic
+        app._oldAnalyzeMinutesWithAI = async function(text) {
+            console.log('=== OLD: Starting AI analysis ===');
+            console.log('Text length:', text.length);
+            
+            try {
                 console.log('Loading OpenAI config...');
                 const config = await this.loadOpenAIConfig();
                 console.log('Config loaded:', config ? 'YES' : 'NO');
@@ -4852,32 +4896,7 @@ ${text}
             return results;
         };
         
-        app.loadOpenAIConfig = async function() {
-            try {
-                // Try to load from environment variables or config file
-                // In browser, we'll use a simple approach - check if config is available
-                const response = await fetch('/load-openai-config', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }).catch(() => null);
-                
-                if (response && response.ok) {
-                    return await response.json();
-                }
-                
-                // Fallback: use environment variables if available
-                // This would be injected by the server
-                return {
-                    api_key: window.OPENAI_API_KEY || null,
-                    base_url: window.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
-                };
-            } catch (error) {
-                console.error('Failed to load OpenAI config:', error);
-                return null;
-            }
-        };
+        // loadOpenAIConfig is no longer needed - using Cloudflare Worker instead
         
         console.log('=== Setting window.app ===');
         // Make app globally accessible for onclick handlers
