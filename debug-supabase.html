@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Supabase接続テスト</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <h1>Supabase接続テスト</h1>
+    <div id="result"></div>
+    
+    <script>
+        const SUPABASE_URL = 'https://kkgdolplxtnnozvzewzo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Z2RvbHBseHRubm96dnpld3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3MTQyMjUsImV4cCI6MjA4NDI5MDIyNX0.7ViGgLtEWCeJbzGRg5PmELsaF_OGja1YopCQM6UbIXU';
+        
+        console.log('Testing Supabase connection...');
+        console.log('URL:', SUPABASE_URL);
+        console.log('Key (first 50 chars):', SUPABASE_ANON_KEY.substring(0, 50) + '...');
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase client created:', supabase);
+        
+        // テスト: ユーザー登録
+        async function testSignup() {
+            try {
+                const email = 'test@ielove-partners.jp';
+                const password = 'TestPassword123!';
+                
+                console.log('Attempting signup with:', email);
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('Signup error:', error);
+                    document.getElementById('result').innerHTML = `
+                        <h2>❌ エラー</h2>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `;
+                } else {
+                    console.log('Signup success:', data);
+                    document.getElementById('result').innerHTML = `
+                        <h2>✅ 成功</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (e) {
+                console.error('Exception:', e);
+                document.getElementById('result').innerHTML = `
+                    <h2>❌ 例外</h2>
+                    <pre>${e.message}\n${e.stack}</pre>
+                `;
+            }
+        }
+        
+        // ページロード後に実行
+        setTimeout(testSignup, 1000);
+    </script>
+</body>
+</html>
