@@ -157,7 +157,7 @@
         // Auth0設定
         const AUTH0_DOMAIN = 'dev-rwf7lnc4pwl8t41e.us.auth0.com';
         const AUTH0_CLIENT_ID = 'oE00LwfFgmPxr25BIpB9DYgt0buR4ohk';
-        const REDIRECT_URI = window.location.origin + '/';
+        const REDIRECT_URI = window.location.href.split('?')[0]; // 現在のページURLをそのまま使う
         const ALLOWED_DOMAIN = '@ielove-partners.jp';
         
         let auth0Client = null;
