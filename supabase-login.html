@@ -549,40 +549,6 @@
             try {
                 console.log('📝 新規登録試行:', email);
                 
-                // 既存ユーザーチェック（重複登録防止）
-                // まず、ダミーパスワードでログインを試みる
-                console.log('🔍 既存ユーザーをチェック中...');
-                const { data: checkData, error: checkError } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: 'dummy-check-password-' + Math.random()
-                });
-                
-                // ログインエラーの内容を確認
-                if (checkError) {
-                    // "Invalid login credentials" なら、ユーザーが存在しないか、パスワードが違う
-                    // それ以外のエラー（例: Email not confirmed）なら、ユーザーは既に存在する
-                    if (!checkError.message.includes('Invalid login credentials')) {
-                        console.warn('⚠️ ユーザーが既に存在します:', checkError.message);
-                        showGlobalMessage('❌ このメールアドレスは既に登録されています。ログインしてください。', 'error');
-                        showLoading(false);
-                        document.getElementById('signupBtn').disabled = false;
-                        return;
-                    }
-                }
-                
-                // ログインが成功した場合（ありえないが念のため）
-                if (checkData && checkData.user) {
-                    console.warn('⚠️ ユーザーが既に存在し、ログインできました');
-                    showGlobalMessage('❌ このメールアドレスは既に登録されています。ログインしてください。', 'error');
-                    // ログアウト
-                    await supabase.auth.signOut();
-                    showLoading(false);
-                    document.getElementById('signupBtn').disabled = false;
-                    return;
-                }
-                
-                console.log('✓ 新規ユーザーであることを確認');
-                
                 // 新規登録を実行
                 const { data, error } = await supabase.auth.signUp({
                     email: email,
@@ -591,6 +557,7 @@
                 
                 if (error) {
                     console.error('❌ 新規登録エラー:', error);
+                    console.error('エラー詳細:', JSON.stringify(error, null, 2));
                     
                     if (error.message.includes('User already registered')) {
                         showGlobalMessage('❌ このメールアドレスは既に登録されています。<br>既にアカウントをお持ちの方は<a href="#" onclick="document.getElementById(\'loginTab\').click(); return false;">ログイン</a>してください。', 'error');
@@ -600,6 +567,21 @@
                         showGlobalMessage(`❌ 登録エラー: ${error.message}`, 'error');
                     }
                     
+                    showLoading(false);
+                    document.getElementById('signupBtn').disabled = false;
+                    return;
+                }
+                
+                // 登録レスポンスを詳しくログ出力
+                console.log('✅ 新規登録レスポンス:', JSON.stringify(data, null, 2));
+                console.log('ユーザー情報:', data.user);
+                console.log('identities:', data.user?.identities);
+                
+                // Supabaseは既存ユーザーでもエラーを返さないことがある（セキュリティ上の理由）
+                // identities が空の場合、既存ユーザーの可能性が高い
+                if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+                    console.warn('⚠️ このメールアドレスは既に登録されています（identities が空）');
+                    showGlobalMessage('❌ このメールアドレスは既に登録されています。<br>既にアカウントをお持ちの方は<a href="#" onclick="document.getElementById(\'loginTab\').click(); return false;">ログイン</a>してください。', 'error');
                     showLoading(false);
                     document.getElementById('signupBtn').disabled = false;
                     return;
