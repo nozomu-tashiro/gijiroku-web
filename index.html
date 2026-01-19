@@ -1173,8 +1173,8 @@
                 // デモデータ（組織構造）は常に読み込む
                 this.loadDemoData();
                 
-                // LocalStorageから会議・議事録データを読み込む
-                this.loadFromLocalStorage();
+                // Supabase + localStorageから会議・議事録データを読み込む
+                this.loadAllData();
                 
                 // 🔐 認証データを読み込む
                 this.loadAuthData();
@@ -1225,10 +1225,259 @@
                 }
             },
             
+            // 🚀 Supabaseからデータを取得
+            async loadMeetingsFromSupabase() {
+                console.log('📥 Supabaseから会議データを取得中...');
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('meetings')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) {
+                        console.error('❌ 会議データ取得エラー:', error);
+                        return [];
+                    }
+                    
+                    console.log('✅ 会議データ取得成功:', data.length, '件');
+                    return data;
+                    
+                } catch (error) {
+                    console.error('❌ 予期しないエラー:', error);
+                    return [];
+                }
+            },
+            
+            async loadMinutesFromSupabase() {
+                console.log('📥 Supabaseから議事録データを取得中...');
+                
+                try {
+                    const { data, error } = await supabase
+                        .from('meeting_minutes')
+                        .select(`
+                            *,
+                            participants (*),
+                            agenda_items (*),
+                            tasks (*)
+                        `)
+                        .order('created_at', { ascending: false});
+                    
+                    if (error) {
+                        console.error('❌ 議事録データ取得エラー:', error);
+                        return [];
+                    }
+                    
+                    console.log('✅ 議事録データ取得成功:', data.length, '件');
+                    return data;
+                    
+                } catch (error) {
+                    console.error('❌ 予期しないエラー:', error);
+                    return [];
+                }
+            },
+            
+            // 🔄 統合データ読み込み（Supabase + localStorage）
+            async loadAllData() {
+                console.log('📊 データ読み込み開始（Supabase優先）...');
+                
+                try {
+                    // Supabaseからデータを取得
+                    const supabaseMeetings = await this.loadMeetingsFromSupabase();
+                    const supabaseMinutes = await this.loadMinutesFromSupabase();
+                    
+                    // localStorageからもデータを取得（バックアップ・互換性のため）
+                    const savedMeetings = localStorage.getItem('meetingsData');
+                    const savedMinutes = localStorage.getItem('minutesData');
+                    
+                    const localMeetings = savedMeetings ? JSON.parse(savedMeetings) : {};
+                    const localMinutes = savedMinutes ? JSON.parse(savedMinutes) : {};
+                    
+                    // データをマージ（Supabaseを優先）
+                    if (supabaseMeetings.length > 0) {
+                        // Supabaseデータを使用
+                        this.meetingsData = {};
+                        supabaseMeetings.forEach(meeting => {
+                            // Supabaseの形式（meeting_name）からアプリの形式（meetingName）に変換
+                            const entityId = meeting.department || meeting.division || meeting.organization;
+                            if (!this.meetingsData[entityId]) {
+                                this.meetingsData[entityId] = [];
+                            }
+                            this.meetingsData[entityId].push({
+                                id: meeting.id,
+                                meetingName: meeting.meeting_name,
+                                organization: meeting.organization,
+                                division: meeting.division,
+                                department: meeting.department,
+                                createdBy: meeting.created_by,
+                                createdAt: meeting.created_at
+                            });
+                        });
+                        console.log('✅ Supabaseから会議データを読み込みました');
+                    } else {
+                        // localStorageのデータを使用
+                        this.meetingsData = localMeetings;
+                        console.log('✅ localStorageから会議データを読み込みました');
+                    }
+                    
+                    if (supabaseMinutes.length > 0) {
+                        // Supabaseデータを使用
+                        this.minutesData = {};
+                        supabaseMinutes.forEach(minute => {
+                            const meetingId = minute.meeting_id;
+                            if (!this.minutesData[meetingId]) {
+                                this.minutesData[meetingId] = [];
+                            }
+                            this.minutesData[meetingId].push({
+                                id: minute.id,
+                                meetingId: minute.meeting_id,
+                                date: minute.date,
+                                location: minute.location,
+                                status: minute.status,
+                                participants: minute.participants || [],
+                                agendaItems: minute.agenda_items || [],
+                                tasks: minute.tasks || [],
+                                createdBy: minute.created_by,
+                                createdAt: minute.created_at,
+                                updatedAt: minute.updated_at
+                            });
+                        });
+                        console.log('✅ Supabaseから議事録データを読み込みました');
+                    } else {
+                        // localStorageのデータを使用
+                        this.minutesData = localMinutes;
+                        console.log('✅ localStorageから議事録データを読み込みました');
+                    }
+                    
+                    console.log('✅ データ読み込み完了');
+                    console.log('  - 会議:', Object.keys(this.meetingsData).length, 'エンティティ');
+                    console.log('  - 議事録:', Object.keys(this.minutesData).length, '会議');
+                    
+                } catch (error) {
+                    console.error('❌ データ読み込みエラー:', error);
+                    // エラー時はlocalStorageから読み込み
+                    this.loadFromLocalStorage();
+                }
+            },
+            
             saveToLocalStorage() {
                 localStorage.setItem('meetingsData', JSON.stringify(this.meetingsData));
                 localStorage.setItem('minutesData', JSON.stringify(this.minutesData));
                 console.log('Saved to localStorage');
+            },
+            
+            // 💾 Supabaseへのデータ保存
+            async saveMeetingToSupabase(meetingData) {
+                console.log('💾 Supabaseに会議を保存中...', meetingData);
+                
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    
+                    const { data, error } = await supabase
+                        .from('meetings')
+                        .insert([
+                            {
+                                organization: meetingData.organization,
+                                division: meetingData.division,
+                                department: meetingData.department,
+                                meeting_name: meetingData.meetingName,
+                                created_by: user.id,
+                                created_at: new Date().toISOString()
+                            }
+                        ])
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    console.log('✅ 会議保存成功:', data[0]);
+                    return data[0];
+                    
+                } catch (error) {
+                    console.error('❌ 会議保存エラー:', error);
+                    throw error;
+                }
+            },
+            
+            async saveMinuteToSupabase(minuteData) {
+                console.log('💾 Supabaseに議事録を保存中...', minuteData);
+                
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    
+                    // 1. 議事録本体を保存
+                    const { data: minute, error: minuteError } = await supabase
+                        .from('meeting_minutes')
+                        .insert([
+                            {
+                                meeting_id: minuteData.meetingId,
+                                date: minuteData.date,
+                                location: minuteData.location,
+                                status: minuteData.status,
+                                created_by: user.id,
+                                created_at: new Date().toISOString()
+                            }
+                        ])
+                        .select();
+                    
+                    if (minuteError) throw minuteError;
+                    
+                    const minuteId = minute[0].id;
+                    
+                    // 2. 参加者を保存
+                    if (minuteData.participants?.length > 0) {
+                        const { error: participantError } = await supabase
+                            .from('participants')
+                            .insert(
+                                minuteData.participants.map(p => ({
+                                    minute_id: minuteId,
+                                    name: p.name,
+                                    role: p.role
+                                }))
+                            );
+                        
+                        if (participantError) throw participantError;
+                    }
+                    
+                    // 3. 議題を保存
+                    if (minuteData.agendaItems?.length > 0) {
+                        const { error: agendaError } = await supabase
+                            .from('agenda_items')
+                            .insert(
+                                minuteData.agendaItems.map((item, index) => ({
+                                    minute_id: minuteId,
+                                    title: item.title,
+                                    content: item.content,
+                                    order_index: index
+                                }))
+                            );
+                        
+                        if (agendaError) throw agendaError;
+                    }
+                    
+                    // 4. タスクを保存
+                    if (minuteData.tasks?.length > 0) {
+                        const { error: taskError } = await supabase
+                            .from('tasks')
+                            .insert(
+                                minuteData.tasks.map(task => ({
+                                    minute_id: minuteId,
+                                    title: task.title,
+                                    assignee: task.assignee,
+                                    due_date: task.dueDate,
+                                    status: task.status || 'pending'
+                                }))
+                            );
+                        
+                        if (taskError) throw taskError;
+                    }
+                    
+                    console.log('✅ 議事録保存成功:', minute[0]);
+                    return minute[0];
+                    
+                } catch (error) {
+                    console.error('❌ 議事録保存エラー:', error);
+                    throw error;
+                }
             },
             
             // 🔐 認証データの保存・読み込み
@@ -2553,31 +2802,88 @@
                     return;
                 }
                 
+                // エンティティIDから組織情報を取得
+                let organization = '', division = '', department = '';
+                if (entityId.startsWith('board')) {
+                    organization = 'ボード';
+                } else if (entityId.startsWith('dept')) {
+                    const dept = this.demoData.departments.find(d => d.id === entityId);
+                    if (dept) {
+                        division = dept.name;
+                    }
+                } else if (entityId.startsWith('team')) {
+                    const dept = this.demoData.departments.find(d => 
+                        d.teams.some(t => t.id === entityId)
+                    );
+                    if (dept) {
+                        division = dept.name;
+                        const team = dept.teams.find(t => t.id === entityId);
+                        if (team) {
+                            department = team.name;
+                        }
+                    }
+                }
+                
                 // 新しい会議を作成
                 const newMeeting = {
                     id: `meeting-${entityId}-${Date.now()}`,
                     entityId: entityId,
                     name: meetingName.trim(),
+                    meetingName: meetingName.trim(),
+                    organization: organization,
+                    division: division,
+                    department: department,
                     date: new Date().toISOString().split('T')[0],
                     minutesCount: 0,
                     participants: 0
                 };
                 
-                // LocalStorageに保存
-                if (!this.meetingsData[entityId]) {
-                    this.meetingsData[entityId] = [];
-                }
-                this.meetingsData[entityId].push(newMeeting);
-                this.saveToLocalStorage();
-                
-                alert(`✅ 会議「${meetingName}」を追加しました`);
-                
-                // 画面を再表示
-                if (entityId === 'board-1') {
-                    this.showBoardView();
-                } else {
-                    this.showTeamView(entityId);
-                }
+                // Supabaseに保存（非同期）
+                (async () => {
+                    try {
+                        const savedMeeting = await this.saveMeetingToSupabase(newMeeting);
+                        console.log('✅ 会議をSupabaseに保存しました:', savedMeeting);
+                        
+                        // 保存されたデータでローカルデータを更新
+                        newMeeting.id = savedMeeting.id;
+                        newMeeting.createdBy = savedMeeting.created_by;
+                        newMeeting.createdAt = savedMeeting.created_at;
+                        
+                        // LocalStorageにも保存（バックアップ）
+                        if (!this.meetingsData[entityId]) {
+                            this.meetingsData[entityId] = [];
+                        }
+                        this.meetingsData[entityId].push(newMeeting);
+                        this.saveToLocalStorage();
+                        
+                        alert(`✅ 会議「${meetingName}」を追加しました`);
+                        
+                        // 画面を再表示
+                        if (entityId === 'board-1') {
+                            this.showBoardView();
+                        } else {
+                            this.showTeamView(entityId);
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ 会議保存エラー:', error);
+                        alert(`❌ 会議の保存に失敗しました: ${error.message}\n\nローカルには保存されています。`);
+                        
+                        // エラー時もlocalStorageには保存
+                        if (!this.meetingsData[entityId]) {
+                            this.meetingsData[entityId] = [];
+                        }
+                        this.meetingsData[entityId].push(newMeeting);
+                        this.saveToLocalStorage();
+                        
+                        // 画面を再表示
+                        if (entityId === 'board-1') {
+                            this.showBoardView();
+                        } else {
+                            this.showTeamView(entityId);
+                        }
+                    }
+                })();
             },
             
             openEditMeetingModal(meetingId) {
@@ -3831,6 +4137,9 @@
                             break;
                         }
                     }
+                    this.saveToLocalStorage(); // Save to localStorage
+                    this.closeModal();
+                    this.showMeetingView(this.currentMeeting.id);
                 } else {
                     // Add new minute - 配列の先頭に追加（新しいものが上に表示される）
                     const meetingId = this.currentMeeting.id;
@@ -3843,16 +4152,61 @@
                         meetingId: meetingId,
                         ...formData,
                         archived: false,
-                        created: new Date().toISOString() // 作成日時を追加
+                        created: new Date().toISOString(), // 作成日時を追加
+                        // Supabase用の追加フィールド
+                        date: formData.meetingDate,
+                        location: '', // 場所は後で追加可能
+                        agendaItems: [], // 議題（後で追加）
+                        tasks: [] // タスク（後で追加）
                     };
                     
-                    // unshift()で配列の先頭に追加
-                    this.minutesData[meetingId].unshift(newMinute);
+                    // Supabaseに保存（非同期）
+                    (async () => {
+                        try {
+                            // 参加者をパース
+                            const participantsList = formData.participants ? 
+                                formData.participants.split('\n').filter(p => p.trim()).map(p => ({
+                                    name: p.trim(),
+                                    role: ''
+                                })) : [];
+                            
+                            const savedMinute = await this.saveMinuteToSupabase({
+                                meetingId: meetingId,
+                                date: formData.meetingDate,
+                                location: '',
+                                status: formData.status,
+                                participants: participantsList,
+                                agendaItems: [],
+                                tasks: []
+                            });
+                            
+                            console.log('✅ 議事録をSupabaseに保存しました:', savedMinute);
+                            
+                            // 保存されたデータでローカルデータを更新
+                            newMinute.id = savedMinute.id;
+                            newMinute.createdBy = savedMinute.created_by;
+                            newMinute.createdAt = savedMinute.created_at;
+                            
+                            // unshift()で配列の先頭に追加
+                            this.minutesData[meetingId].unshift(newMinute);
+                            this.saveToLocalStorage(); // Save to localStorage
+                            
+                            this.closeModal();
+                            this.showMeetingView(this.currentMeeting.id);
+                            
+                        } catch (error) {
+                            console.error('❌ 議事録保存エラー:', error);
+                            alert(`❌ 議事録の保存に失敗しました: ${error.message}\n\nローカルには保存されています。`);
+                            
+                            // エラー時もlocalStorageには保存
+                            this.minutesData[meetingId].unshift(newMinute);
+                            this.saveToLocalStorage();
+                            
+                            this.closeModal();
+                            this.showMeetingView(this.currentMeeting.id);
+                        }
+                    })();
                 }
-                
-                this.saveToLocalStorage(); // Save to localStorage
-                this.closeModal();
-                this.showMeetingView(this.currentMeeting.id);
             },
             
             submitMinuteForm() {
