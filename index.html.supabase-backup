@@ -6,10 +6,6 @@
     <title>会議議事録管理システム - Enhanced</title>
     <!-- Auth0認証ライブラリ -->
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    
-    <!-- Supabase クライアントライブラリ -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -1054,19 +1050,6 @@
     <script>
         console.log('=== Script Loading Started ===');
         
-        // Supabase設定と初期化
-        const SUPABASE_URL = 'https://kxgdolplxtnnozvzewezo.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_xmcwyNjUW4mtPLJVM1jOJw_52PXv9UW';
-        
-        // Supabaseクライアントの初期化
-        let supabase = null;
-        try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase クライアント初期化完了');
-        } catch (error) {
-            console.error('❌ Supabase 初期化エラー:', error);
-        }
-        
         // Auth0設定と認証チェック
         const AUTH0_DOMAIN = 'dev-rwf7lnc4pwl8t41e.us.auth0.com';
         const AUTH0_CLIENT_ID = 'oE00LwfFgmPxr25BIpB9DYgt0buR4ohk';
@@ -1111,40 +1094,11 @@
                 if (userNameEl) userNameEl.textContent = currentUser.email || currentUser.name;
                 if (userDeptEl) userDeptEl.textContent = 'Auth0認証済み';
                 
-                // Supabase接続テスト
-                await testSupabaseConnection();
-                
             } catch (error) {
                 console.error('❌ Auth0エラー:', error);
                 alert('認証エラーが発生しました。ページを再読み込みしてください。');
             }
         })();
-        
-        // Supabase接続テスト関数
-        async function testSupabaseConnection() {
-            try {
-                console.log('🔌 Supabase接続テスト開始...');
-                
-                // boardsテーブルからデータを取得してみる
-                const { data, error } = await supabase
-                    .from('boards')
-                    .select('*')
-                    .limit(1);
-                
-                if (error) {
-                    console.error('❌ Supabase接続エラー:', error);
-                    return false;
-                }
-                
-                console.log('✅ Supabase接続成功！');
-                console.log('📊 データベース接続確認:', data);
-                return true;
-                
-            } catch (error) {
-                console.error('❌ Supabase接続テスト失敗:', error);
-                return false;
-            }
-        }
         
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
         
