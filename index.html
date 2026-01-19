@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会議議事録管理システム - Enhanced</title>
-    <!-- Auth0認証ライブラリ -->
-    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    
     <!-- Supabase クライアントライブラリ -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -1067,56 +1064,47 @@
             console.error('❌ Supabase 初期化エラー:', error);
         }
         
-        // Auth0設定と認証チェック
-        const AUTH0_DOMAIN = 'dev-rwf7lnc4pwl8t41e.us.auth0.com';
-        const AUTH0_CLIENT_ID = 'oE00LwfFgmPxr25BIpB9DYgt0buR4ohk';
-        let auth0Client = null;
+        // ユーザー情報
         let currentUser = null;
         
-        // Auth0認証チェック（即座に実行）
+        // Supabase認証チェック（即座に実行）
         (async function checkAuth() {
             try {
-                console.log('🔐 Auth0認証チェック開始');
-                auth0Client = await window.auth0.createAuth0Client({
-                    domain: AUTH0_DOMAIN,
-                    clientId: AUTH0_CLIENT_ID,
-                    authorizationParams: {
-                        redirect_uri: window.location.origin + '/'
-                    }
-                });
+                console.log('🔐 Supabase認証チェック開始');
                 
-                // コールバック処理
-                const query = window.location.search;
-                if (query.includes('code=') && query.includes('state=')) {
-                    console.log('🔄 Auth0コールバック処理中...');
-                    await auth0Client.handleRedirectCallback();
-                    window.history.replaceState({}, document.title, '/index.html');
+                // セッション取得
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('❌ セッション取得エラー:', error);
+                    window.location.href = 'supabase-login.html';
+                    return;
                 }
                 
                 // 認証状態チェック
-                const isAuthenticated = await auth0Client.isAuthenticated();
-                if (!isAuthenticated) {
+                if (!session) {
                     console.log('❌ 未認証 - ログインページにリダイレクト');
-                    window.location.href = 'auth0-login.html';
+                    window.location.href = 'supabase-login.html';
                     return;
                 }
                 
                 // ユーザー情報取得
-                currentUser = await auth0Client.getUser();
+                currentUser = session.user;
                 console.log('✅ 認証済み:', currentUser.email);
                 
                 // ヘッダーにユーザー情報を表示
                 const userNameEl = document.getElementById('headerUserName');
                 const userDeptEl = document.getElementById('headerUserDept');
-                if (userNameEl) userNameEl.textContent = currentUser.email || currentUser.name;
-                if (userDeptEl) userDeptEl.textContent = 'Auth0認証済み';
+                if (userNameEl) userNameEl.textContent = currentUser.email;
+                if (userDeptEl) userDeptEl.textContent = 'Supabase認証済み';
                 
                 // Supabase接続テスト
                 await testSupabaseConnection();
                 
             } catch (error) {
-                console.error('❌ Auth0エラー:', error);
+                console.error('❌ 認証エラー:', error);
                 alert('認証エラーが発生しました。ページを再読み込みしてください。');
+                window.location.href = 'supabase-login.html';
             }
         })();
         
@@ -5032,11 +5020,18 @@ ${text}
         app.logout = async function() {
             try {
                 console.log('🚪 ログアウト処理開始');
-                await auth0Client.logout({
-                    logoutParams: {
-                        returnTo: window.location.origin + '/auth0-login.html'
-                    }
-                });
+                
+                const { error } = await supabase.auth.signOut();
+                
+                if (error) {
+                    console.error('❌ ログアウトエラー:', error);
+                    alert('ログアウトに失敗しました: ' + error.message);
+                    return;
+                }
+                
+                console.log('✅ ログアウト成功');
+                window.location.href = 'supabase-login.html';
+                
             } catch (error) {
                 console.error('❌ ログアウトエラー:', error);
                 alert('ログアウトに失敗しました: ' + error.message);

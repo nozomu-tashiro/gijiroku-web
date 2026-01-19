@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン - 会議議事録管理システム</title>
+    
+    <!-- Supabase クライアントライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 450px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .logo p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            margin-bottom: -2px;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .form-container {
+            display: none;
+        }
+        
+        .form-container.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .info-message {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #155724;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .warning-message {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .forgot-password {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+        
+        .forgot-password a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .domain-note {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #495057;
+        }
+        
+        .domain-note strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>会議議事録管理システム</h1>
+            <p>全社ナレッジ共有プラットフォーム</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="login">ログイン</div>
+            <div class="tab" data-tab="signup">新規登録</div>
+        </div>
+        
+        <div id="globalMessage"></div>
+        
+        <!-- ログインフォーム -->
+        <div class="form-container active" id="loginForm">
+            <form id="loginFormSubmit">
+                <div class="form-group">
+                    <label for="loginEmail">メールアドレス</label>
+                    <input type="email" id="loginEmail" placeholder="your-name@ielove-partners.jp" required>
+                    <div class="error-message" id="loginEmailError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">パスワード</label>
+                    <input type="password" id="loginPassword" placeholder="パスワードを入力" required>
+                    <div class="error-message" id="loginPasswordError"></div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="loginBtn">ログイン</button>
+                
+                <div class="forgot-password">
+                    <a href="#" id="forgotPasswordLink">パスワードをお忘れですか？</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 新規登録フォーム -->
+        <div class="form-container" id="signupForm">
+            <div class="info-message">
+                <strong>⚠️ 重要：</strong> 新規登録は <strong>@ielove-partners.jp</strong> のメールアドレスのみ可能です。
+            </div>
+            
+            <div class="success-message" id="signupSuccess">
+                ✅ 登録完了！確認メールを送信しました。<br>
+                メールに記載されたリンクをクリックして、メールアドレスを確認してください。
+            </div>
+            
+            <form id="signupFormSubmit">
+                <div class="form-group">
+                    <label for="signupEmail">メールアドレス</label>
+                    <input type="email" id="signupEmail" placeholder="your-name@ielove-partners.jp" required>
+                    <div class="error-message" id="signupEmailError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPassword">パスワード</label>
+                    <input type="password" id="signupPassword" placeholder="8文字以上のパスワード" required>
+                    <div class="error-message" id="signupPasswordError"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="signupPasswordConfirm">パスワード（確認）</label>
+                    <input type="password" id="signupPasswordConfirm" placeholder="パスワードを再入力" required>
+                    <div class="error-message" id="signupPasswordConfirmError"></div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="signupBtn">新規登録</button>
+            </form>
+            
+            <div class="domain-note">
+                <strong>ℹ️ ドメイン制限について：</strong><br>
+                このシステムは社内専用です。<strong>@ielove-partners.jp</strong> ドメインのメールアドレスのみ登録できます。
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">処理中...</p>
+        </div>
+    </div>
+    
+    <script>
+        console.log('=== Supabase Login Page Loaded ===');
+        
+        // Supabase設定
+        const SUPABASE_URL = 'https://kxgdolplxtnnozvzewezo.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_xmcwyNjUW4mtPLJVM1jOJw_52PXv9UW';
+        
+        // Supabaseクライアント初期化
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase クライアント初期化完了');
+        
+        // 許可されたドメイン
+        const ALLOWED_DOMAIN = 'ielove-partners.jp';
+        
+        // タブ切り替え
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                // タブのアクティブ状態を切り替え
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // フォームの表示切り替え
+                document.querySelectorAll('.form-container').forEach(form => form.classList.remove('active'));
+                if (targetTab === 'login') {
+                    document.getElementById('loginForm').classList.add('active');
+                } else {
+                    document.getElementById('signupForm').classList.add('active');
+                }
+                
+                // エラーメッセージをクリア
+                clearAllErrors();
+            });
+        });
+        
+        // メールドメインチェック
+        function checkEmailDomain(email) {
+            const domain = email.split('@')[1];
+            return domain === ALLOWED_DOMAIN;
+        }
+        
+        // エラー表示
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            const inputEl = errorEl.previousElementSibling;
+            
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            inputEl.classList.add('error');
+        }
+        
+        // エラークリア
+        function clearError(elementId) {
+            const errorEl = document.getElementById(elementId);
+            const inputEl = errorEl.previousElementSibling;
+            
+            errorEl.textContent = '';
+            errorEl.classList.remove('show');
+            inputEl.classList.remove('error');
+        }
+        
+        // すべてのエラーをクリア
+        function clearAllErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.textContent = '';
+                el.classList.remove('show');
+            });
+            document.querySelectorAll('input').forEach(el => {
+                el.classList.remove('error');
+            });
+            document.getElementById('globalMessage').innerHTML = '';
+        }
+        
+        // グローバルメッセージ表示
+        function showGlobalMessage(message, type = 'error') {
+            const colors = {
+                error: { bg: '#fff3cd', border: '#ffc107', text: '#856404' },
+                success: { bg: '#d4edda', border: '#28a745', text: '#155724' }
+            };
+            
+            const color = colors[type];
+            document.getElementById('globalMessage').innerHTML = `
+                <div style="background: ${color.bg}; border-left: 4px solid ${color.border}; padding: 12px 15px; margin-bottom: 20px; border-radius: 5px; font-size: 13px; color: ${color.text};">
+                    ${message}
+                </div>
+            `;
+        }
+        
+        // ローディング表示
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+        
+        // ログイン処理
+        document.getElementById('loginFormSubmit').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAllErrors();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            // バリデーション
+            if (!email) {
+                showError('loginEmailError', 'メールアドレスを入力してください');
+                return;
+            }
+            
+            if (!checkEmailDomain(email)) {
+                showError('loginEmailError', `❌ @${ALLOWED_DOMAIN} のメールアドレスのみ使用できます`);
+                return;
+            }
+            
+            if (!password) {
+                showError('loginPasswordError', 'パスワードを入力してください');
+                return;
+            }
+            
+            showLoading(true);
+            document.getElementById('loginBtn').disabled = true;
+            
+            try {
+                console.log('🔐 ログイン試行:', email);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('❌ ログインエラー:', error);
+                    
+                    if (error.message.includes('Invalid login credentials')) {
+                        showGlobalMessage('❌ メールアドレスまたはパスワードが正しくありません', 'error');
+                    } else if (error.message.includes('Email not confirmed')) {
+                        showGlobalMessage('❌ メールアドレスが確認されていません。確認メールをご確認ください。', 'error');
+                    } else {
+                        showGlobalMessage(`❌ ログインエラー: ${error.message}`, 'error');
+                    }
+                    
+                    showLoading(false);
+                    document.getElementById('loginBtn').disabled = false;
+                    return;
+                }
+                
+                console.log('✅ ログイン成功:', data.user.email);
+                showGlobalMessage('✅ ログイン成功！リダイレクトしています...', 'success');
+                
+                // index.htmlにリダイレクト
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ ログイン処理エラー:', error);
+                showGlobalMessage('❌ ログイン処理中にエラーが発生しました', 'error');
+                showLoading(false);
+                document.getElementById('loginBtn').disabled = false;
+            }
+        });
+        
+        // 新規登録処理
+        document.getElementById('signupFormSubmit').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAllErrors();
+            
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+            
+            // バリデーション
+            if (!email) {
+                showError('signupEmailError', 'メールアドレスを入力してください');
+                return;
+            }
+            
+            if (!checkEmailDomain(email)) {
+                showError('signupEmailError', `❌ @${ALLOWED_DOMAIN} のメールアドレスのみ登録できます`);
+                return;
+            }
+            
+            if (!password) {
+                showError('signupPasswordError', 'パスワードを入力してください');
+                return;
+            }
+            
+            if (password.length < 8) {
+                showError('signupPasswordError', 'パスワードは8文字以上で入力してください');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showError('signupPasswordConfirmError', 'パスワードが一致しません');
+                return;
+            }
+            
+            showLoading(true);
+            document.getElementById('signupBtn').disabled = true;
+            
+            try {
+                console.log('📝 新規登録試行:', email);
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    console.error('❌ 新規登録エラー:', error);
+                    
+                    if (error.message.includes('User already registered')) {
+                        showGlobalMessage('❌ このメールアドレスは既に登録されています', 'error');
+                    } else {
+                        showGlobalMessage(`❌ 登録エラー: ${error.message}`, 'error');
+                    }
+                    
+                    showLoading(false);
+                    document.getElementById('signupBtn').disabled = false;
+                    return;
+                }
+                
+                console.log('✅ 新規登録成功:', data.user.email);
+                
+                // 成功メッセージを表示
+                document.getElementById('signupSuccess').classList.add('show');
+                document.getElementById('signupFormSubmit').style.display = 'none';
+                document.querySelector('.domain-note').style.display = 'none';
+                
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('❌ 新規登録処理エラー:', error);
+                showGlobalMessage('❌ 新規登録処理中にエラーが発生しました', 'error');
+                showLoading(false);
+                document.getElementById('signupBtn').disabled = false;
+            }
+        });
+        
+        // パスワードリセット
+        document.getElementById('forgotPasswordLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const email = prompt('パスワードリセット用のメールアドレスを入力してください：');
+            
+            if (!email) return;
+            
+            if (!checkEmailDomain(email)) {
+                alert(`❌ @${ALLOWED_DOMAIN} のメールアドレスのみ使用できます`);
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/index.html'
+                });
+                
+                if (error) {
+                    alert(`❌ エラー: ${error.message}`);
+                } else {
+                    alert('✅ パスワードリセット用のメールを送信しました。メールをご確認ください。');
+                }
+            } catch (error) {
+                alert('❌ パスワードリセット処理中にエラーが発生しました');
+            }
+            
+            showLoading(false);
+        });
+        
+        // ページ読み込み時：既にログイン済みかチェック
+        (async function checkAuthOnLoad() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (session) {
+                    console.log('✅ 既にログイン済み:', session.user.email);
+                    showGlobalMessage('✅ 既にログイン済みです。リダイレクトしています...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('❌ セッションチェックエラー:', error);
+            }
+        })();
+        
+    </script>
+</body>
+</html>
