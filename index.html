@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>会議議事録管理システム - Enhanced</title>
+    <!-- Auth0認証ライブラリ -->
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -1047,6 +1049,57 @@
 
     <script>
         console.log('=== Script Loading Started ===');
+        
+        // Auth0設定と認証チェック
+        const AUTH0_DOMAIN = 'dev-rwf7lnc4pwl8t41e.us.auth0.com';
+        const AUTH0_CLIENT_ID = 'oE00LwfFgmPxr25BIpB9DYgt0buR4ohk';
+        let auth0Client = null;
+        let currentUser = null;
+        
+        // Auth0認証チェック（即座に実行）
+        (async function checkAuth() {
+            try {
+                console.log('🔐 Auth0認証チェック開始');
+                auth0Client = await window.auth0.createAuth0Client({
+                    domain: AUTH0_DOMAIN,
+                    clientId: AUTH0_CLIENT_ID,
+                    authorizationParams: {
+                        redirect_uri: window.location.origin + '/index.html'
+                    }
+                });
+                
+                // コールバック処理
+                const query = window.location.search;
+                if (query.includes('code=') && query.includes('state=')) {
+                    console.log('🔄 Auth0コールバック処理中...');
+                    await auth0Client.handleRedirectCallback();
+                    window.history.replaceState({}, document.title, '/index.html');
+                }
+                
+                // 認証状態チェック
+                const isAuthenticated = await auth0Client.isAuthenticated();
+                if (!isAuthenticated) {
+                    console.log('❌ 未認証 - ログインページにリダイレクト');
+                    window.location.href = 'auth0-login.html';
+                    return;
+                }
+                
+                // ユーザー情報取得
+                currentUser = await auth0Client.getUser();
+                console.log('✅ 認証済み:', currentUser.email);
+                
+                // ヘッダーにユーザー情報を表示
+                const userNameEl = document.getElementById('headerUserName');
+                const userDeptEl = document.getElementById('headerUserDept');
+                if (userNameEl) userNameEl.textContent = currentUser.email || currentUser.name;
+                if (userDeptEl) userDeptEl.textContent = 'Auth0認証済み';
+                
+            } catch (error) {
+                console.error('❌ Auth0エラー:', error);
+                alert('認証エラーが発生しました。ページを再読み込みしてください。');
+            }
+        })();
+        
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
         
         const app = {
@@ -4928,6 +4981,21 @@ ${text}
         window.app = app;
         console.log('window.app is now:', window.app);
         console.log('window.app.showMeetingView:', typeof window.app.showMeetingView);
+        
+        // Auth0ログアウト機能
+        app.logout = async function() {
+            try {
+                console.log('🚪 ログアウト処理開始');
+                await auth0Client.logout({
+                    logoutParams: {
+                        returnTo: window.location.origin + '/auth0-login.html'
+                    }
+                });
+            } catch (error) {
+                console.error('❌ ログアウトエラー:', error);
+                alert('ログアウトに失敗しました: ' + error.message);
+            }
+        };
         
         // Initialize app
         console.log('=== Initializing app ===');
