@@ -1056,13 +1056,8 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_xmcwyNjUW4mtPLJVM1jOJw_52PXv9UW';
         
         // Supabaseクライアントの初期化
-        let supabase = null;
-        try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('✅ Supabase クライアント初期化完了');
-        } catch (error) {
-            console.error('❌ Supabase 初期化エラー:', error);
-        }
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase クライアント初期化完了');
         
         // ユーザー情報
         let currentUser = null;
