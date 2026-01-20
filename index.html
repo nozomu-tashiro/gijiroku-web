@@ -1131,6 +1131,15 @@
         
         const API_BASE_URL = 'https://3000-iyibqicmi9poa0s21x8jw-c81df28e.sandbox.novita.ai/api';
         
+        // UUID v4 を生成する関数
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, 
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
         const app = {
             currentUser: null,
             currentView: 'organization',
@@ -2826,7 +2835,7 @@
                 
                 // 新しい会議を作成
                 const newMeeting = {
-                    id: `meeting-${entityId}-${Date.now()}`,
+                    id: generateUUID(),
                     entityId: entityId,
                     name: meetingName.trim(),
                     meetingName: meetingName.trim(),
