@@ -2585,46 +2585,80 @@
                 }
             },
             
-            showMeetingView(meetingId) {
+            async showMeetingView(meetingId) {
                 console.log('showMeetingView called with:', meetingId);
                 
-                // Find meeting
+                // Find meeting from Supabase first, then fallback to local data
                 let meeting = null;
                 
-                // Check if it's a board meeting (format: meeting-board-1-0)
-                if (meetingId.includes('board')) {
-                    console.log('Detected board meeting');
-                    const meetings = this.demoData.generateMeetings('board-1');
-                    meeting = meetings.find(m => m.id === meetingId);
+                // 🔄 Try loading from Supabase
+                console.log('🔍 Searching for meeting in Supabase...');
+                try {
+                    const { data, error } = await supabase
+                        .from('meetings')
+                        .select('*')
+                        .eq('id', meetingId)
+                        .single();
                     
-                    if (meeting) {
-                        this.currentBoard = this.demoData.boards[0]; // 最初のボードを使用
-                        this.currentDepartment = null;
-                        this.currentTeam = null;
+                    if (data && !error) {
+                        meeting = {
+                            id: data.id,
+                            name: data.meeting_name || data.title,
+                            meetingName: data.meeting_name || data.title,
+                            date: data.meeting_date || data.created_at?.split('T')[0],
+                            entityId: data.entity_id,
+                            entityType: data.entity_type,
+                            organization: data.organization,
+                            division: data.division,
+                            department: data.department,
+                            participants: data.participants || 0,
+                            minutesCount: 0
+                        };
+                        console.log('✅ Meeting found in Supabase:', meeting);
                     }
-                } else {
-                    // Find team from meetingId
-                    console.log('Searching for team meeting');
-                    let foundTeam = null;
-                    for (const dept of this.demoData.departments) {
-                        const team = dept.teams.find(t => meetingId.includes(t.id));
-                        if (team) {
-                            foundTeam = team;
-                            this.currentTeam = team;
-                            this.currentDepartment = dept;
-                            this.currentBoard = null;
-                            break;
-                        }
-                    }
+                } catch (error) {
+                    console.warn('⚠️ Supabase query error:', error);
+                }
+                
+                // 📦 Fallback: Check localStorage and demoData
+                if (!meeting) {
+                    console.log('🔍 Fallback: Searching in localStorage and demoData...');
                     
-                    if (foundTeam) {
-                        const meetings = this.demoData.generateMeetings(foundTeam.id);
+                    // Check if it's a board meeting (format: meeting-board-1-0)
+                    if (meetingId.includes('board')) {
+                        console.log('Detected board meeting');
+                        const meetings = this.demoData.generateMeetings('board-1');
                         meeting = meetings.find(m => m.id === meetingId);
+                        
+                        if (meeting) {
+                            this.currentBoard = this.demoData.boards[0]; // 最初のボードを使用
+                            this.currentDepartment = null;
+                            this.currentTeam = null;
+                        }
+                    } else {
+                        // Find team from meetingId
+                        console.log('Searching for team meeting');
+                        let foundTeam = null;
+                        for (const dept of this.demoData.departments) {
+                            const team = dept.teams.find(t => meetingId.includes(t.id));
+                            if (team) {
+                                foundTeam = team;
+                                this.currentTeam = team;
+                                this.currentDepartment = dept;
+                                this.currentBoard = null;
+                                break;
+                            }
+                        }
+                        
+                        if (foundTeam) {
+                            const meetings = this.demoData.generateMeetings(foundTeam.id);
+                            meeting = meetings.find(m => m.id === meetingId);
+                        }
                     }
                 }
                 
                 if (!meeting) {
-                    console.error('Meeting not found:', meetingId);
+                    console.error('❌ Meeting not found:', meetingId);
                     alert('会議が見つかりません: ' + meetingId);
                     return;
                 }
