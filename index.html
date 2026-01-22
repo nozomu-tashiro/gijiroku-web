@@ -2509,30 +2509,48 @@
                 setTimeout(() => {
                     // 詳細ボタン
                     const detailButtons = content.querySelectorAll('.detail-btn');
-                    console.log(`Found ${detailButtons.length} detail buttons`);
+                    console.log(`🔍 Found ${detailButtons.length} detail buttons`);
+                    console.log('🔍 Detail buttons:', detailButtons);
                     
-                    detailButtons.forEach(button => {
-                        button.addEventListener('click', () => {
-                            const meetingId = button.getAttribute('data-meeting-id');
-                            console.log('Detail button clicked:', meetingId);
+                    detailButtons.forEach((button, index) => {
+                        const meetingId = button.getAttribute('data-meeting-id');
+                        console.log(`🔍 Button ${index}: meetingId =`, meetingId);
+                        
+                        button.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🔘 Detail button clicked:', meetingId);
+                            console.log('🔘 Meeting data:', this.meetingsData);
                             this.showMeetingView(meetingId);
                         });
                     });
                     
                     // 編集ボタン
                     const editButtons = content.querySelectorAll('.edit-meeting-btn');
-                    editButtons.forEach(button => {
-                        button.addEventListener('click', () => {
-                            const meetingId = button.getAttribute('data-meeting-id');
+                    console.log(`🔍 Found ${editButtons.length} edit buttons`);
+                    editButtons.forEach((button, index) => {
+                        const meetingId = button.getAttribute('data-meeting-id');
+                        console.log(`🔍 Edit button ${index}: meetingId =`, meetingId);
+                        
+                        button.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('✏️ Edit button clicked:', meetingId);
                             this.openEditMeetingModal(meetingId);
                         });
                     });
                     
                     // 削除ボタン
                     const deleteButtons = content.querySelectorAll('.delete-meeting-btn');
-                    deleteButtons.forEach(button => {
-                        button.addEventListener('click', () => {
-                            const meetingId = button.getAttribute('data-meeting-id');
+                    console.log(`🔍 Found ${deleteButtons.length} delete buttons`);
+                    deleteButtons.forEach((button, index) => {
+                        const meetingId = button.getAttribute('data-meeting-id');
+                        console.log(`🔍 Delete button ${index}: meetingId =`, meetingId);
+                        
+                        button.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('🗑️ Delete button clicked:', meetingId);
                             this.deleteMeeting(meetingId);
                         });
                     });
