@@ -4608,6 +4608,7 @@
                                             <th style="padding: 12px; text-align: left; border: 1px solid #2c3e50;">部署</th>
                                             <th style="padding: 12px; text-align: left; border: 1px solid #2c3e50;">チーム</th>
                                             <th style="padding: 12px; text-align: center; border: 1px solid #2c3e50;">登録日</th>
+                                            <th style="padding: 12px; text-align: center; border: 1px solid #2c3e50; width: 100px;">操作</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -4648,6 +4649,16 @@
                                     <td style="padding: 12px; border: 1px solid #dee2e6;">${user.user_department || '-'}</td>
                                     <td style="padding: 12px; border: 1px solid #dee2e6;">${user.user_team || '-'}</td>
                                     <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center;">${new Date(user.created_at).toLocaleDateString('ja-JP')}</td>
+                                    <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
+                                        <button 
+                                            onclick="app.deleteUserFromSupabase('${user.id}', '${user.email}')"
+                                            style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;"
+                                            onmouseover="this.style.background='#c0392b'"
+                                            onmouseout="this.style.background='#e74c3c'"
+                                        >
+                                            🗑️ 削除
+                                        </button>
+                                    </td>
                                 </tr>
                             `;
                         });
@@ -4732,6 +4743,51 @@
                     
                     // エラー時は画面をリロード
                     this.showUserManagement();
+                }
+            },
+            
+            // 🗑️ ユーザーを削除
+            async deleteUserFromSupabase(userId, userEmail) {
+                console.log(`🗑️ ユーザー削除: ${userId} (${userEmail})`);
+                
+                // 自分自身を削除しようとしている場合は警告
+                if (userId === this.currentUser?.id) {
+                    alert('❌ 自分自身を削除することはできません');
+                    return;
+                }
+                
+                // 確認ダイアログ
+                const confirmMessage = `本当に以下のユーザーを削除しますか？\n\nメールアドレス: ${userEmail}\n\n⚠️ この操作は取り消せません。\n⚠️ ユーザーは再度新規登録が必要になります。`;
+                
+                if (!confirm(confirmMessage)) {
+                    console.log('❌ ユーザー削除をキャンセルしました');
+                    return;
+                }
+                
+                try {
+                    // public.users テーブルから削除
+                    const { error: deleteError } = await supabase
+                        .from('users')
+                        .delete()
+                        .eq('id', userId);
+                    
+                    if (deleteError) throw deleteError;
+                    
+                    console.log('✅ public.users からユーザーを削除しました');
+                    
+                    // auth.users からも削除するには Supabase Admin API が必要
+                    // 現在はフロントエンドから auth.users を直接削除できないため、
+                    // public.users のみ削除します。
+                    // auth.users の削除は Supabase ダッシュボードから手動で行う必要があります。
+                    
+                    alert(`✅ ユーザー「${userEmail}」を削除しました\n\n⚠️ 注意: 認証情報 (auth.users) は残っています。\n完全に削除するには、Supabase ダッシュボードから手動で削除してください。`);
+                    
+                    // ユーザー管理画面を再読み込み
+                    await this.showUserManagement();
+                    
+                } catch (error) {
+                    console.error('❌ ユーザー削除エラー:', error);
+                    alert(`❌ ユーザーの削除に失敗しました: ${error.message}`);
                 }
             },
             
