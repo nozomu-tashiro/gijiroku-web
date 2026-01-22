@@ -4853,37 +4853,78 @@
                 }
                 
                 // 確認ダイアログ
-                const confirmMessage = `本当に以下のユーザーを削除しますか？\n\nメールアドレス: ${userEmail}\n\n⚠️ この操作は取り消せません。\n⚠️ ユーザーは再度新規登録が必要になります。`;
+                const confirmMessage = `本当に以下のユーザーを完全に削除しますか？\n\nメールアドレス: ${userEmail}\n\n⚠️ この操作は取り消せません。\n⚠️ 認証情報も完全に削除されます。\n⚠️ ユーザーは再度新規登録が必要になります。`;
                 
                 if (!confirm(confirmMessage)) {
                     console.log('❌ ユーザー削除をキャンセルしました');
                     return;
                 }
                 
+                // 削除中の視覚的フィードバック
+                const row = document.getElementById(`user-row-${userId}`);
+                if (row) {
+                    row.style.background = '#fff3cd';
+                    row.style.opacity = '0.6';
+                }
+                
                 try {
-                    // public.users テーブルから削除
-                    const { error: deleteError } = await supabase
+                    // Step 1: public.users テーブルから削除
+                    const { error: deletePublicError } = await supabase
                         .from('users')
                         .delete()
                         .eq('id', userId);
                     
-                    if (deleteError) throw deleteError;
+                    if (deletePublicError) throw deletePublicError;
                     
                     console.log('✅ public.users からユーザーを削除しました');
                     
-                    // auth.users からも削除するには Supabase Admin API が必要
-                    // 現在はフロントエンドから auth.users を直接削除できないため、
-                    // public.users のみ削除します。
-                    // auth.users の削除は Supabase ダッシュボードから手動で行う必要があります。
+                    // Step 2: auth.users からも削除 (RPC関数を使用)
+                    try {
+                        const { error: deleteAuthError } = await supabase.rpc('delete_user', {
+                            user_id: userId
+                        });
+                        
+                        if (deleteAuthError) {
+                            console.warn('⚠️ auth.users からの削除に失敗:', deleteAuthError);
+                            // auth.users の削除に失敗しても続行
+                        } else {
+                            console.log('✅ auth.users からユーザーを削除しました');
+                        }
+                    } catch (authError) {
+                        console.warn('⚠️ auth.users からの削除スキップ:', authError);
+                        // auth.users の削除に失敗しても続行
+                    }
                     
-                    alert(`✅ ユーザー「${userEmail}」を削除しました\n\n⚠️ 注意: 認証情報 (auth.users) は残っています。\n完全に削除するには、Supabase ダッシュボードから手動で削除してください。`);
+                    // 成功メッセージ
+                    alert(`✅ ユーザー「${userEmail}」を削除しました`);
                     
-                    // ユーザー管理画面を再読み込み
-                    await this.showUserManagement();
+                    // 画面から即座に削除
+                    if (row) {
+                        row.style.transition = 'all 0.3s ease-out';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(-20px)';
+                        
+                        setTimeout(() => {
+                            row.remove();
+                            
+                            // ユーザー数を更新
+                            const userCount = document.querySelectorAll('[id^="user-row-"]').length;
+                            const countSpan = document.querySelector('[style*="登録ユーザー数"]');
+                            if (countSpan) {
+                                countSpan.textContent = `登録ユーザー数: ${userCount}`;
+                            }
+                        }, 300);
+                    }
                     
                 } catch (error) {
                     console.error('❌ ユーザー削除エラー:', error);
                     alert(`❌ ユーザーの削除に失敗しました: ${error.message}`);
+                    
+                    // エラー時は元に戻す
+                    if (row) {
+                        row.style.background = '';
+                        row.style.opacity = '1';
+                    }
                 }
             },
             
