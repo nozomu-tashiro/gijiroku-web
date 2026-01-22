@@ -4631,9 +4631,19 @@
                             }[user.role] || user.role;
                             
                             html += `
-                                <tr style="background: ${bgColor};">
+                                <tr style="background: ${bgColor};" id="user-row-${user.id}">
                                     <td style="padding: 12px; border: 1px solid #dee2e6;">${user.email}</td>
-                                    <td style="padding: 12px; border: 1px solid #dee2e6;">${user.name || '-'}</td>
+                                    <td style="padding: 12px; border: 1px solid #dee2e6;">
+                                        <div 
+                                            class="editable-field" 
+                                            data-user-id="${user.id}" 
+                                            data-field="name"
+                                            contenteditable="true"
+                                            style="min-width: 100px; padding: 4px; border-radius: 3px; cursor: text; transition: all 0.2s;"
+                                            onblur="app.saveUserField('${user.id}', 'name', this.textContent)"
+                                            onfocus="this.style.background='#fff3cd'; this.style.border='2px solid #ffc107';"
+                                        >${user.name || '-'}</div>
+                                    </td>
                                     <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
                                         <select 
                                             id="role-${user.id}" 
@@ -4646,8 +4656,28 @@
                                             <option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
                                         </select>
                                     </td>
-                                    <td style="padding: 12px; border: 1px solid #dee2e6;">${user.user_department || '-'}</td>
-                                    <td style="padding: 12px; border: 1px solid #dee2e6;">${user.user_team || '-'}</td>
+                                    <td style="padding: 12px; border: 1px solid #dee2e6;">
+                                        <div 
+                                            class="editable-field" 
+                                            data-user-id="${user.id}" 
+                                            data-field="user_department"
+                                            contenteditable="true"
+                                            style="min-width: 80px; padding: 4px; border-radius: 3px; cursor: text; transition: all 0.2s;"
+                                            onblur="app.saveUserField('${user.id}', 'user_department', this.textContent)"
+                                            onfocus="this.style.background='#fff3cd'; this.style.border='2px solid #ffc107';"
+                                        >${user.user_department || '-'}</div>
+                                    </td>
+                                    <td style="padding: 12px; border: 1px solid #dee2e6;">
+                                        <div 
+                                            class="editable-field" 
+                                            data-user-id="${user.id}" 
+                                            data-field="user_team"
+                                            contenteditable="true"
+                                            style="min-width: 80px; padding: 4px; border-radius: 3px; cursor: text; transition: all 0.2s;"
+                                            onblur="app.saveUserField('${user.id}', 'user_team', this.textContent)"
+                                            onfocus="this.style.background='#fff3cd'; this.style.border='2px solid #ffc107';"
+                                        >${user.user_team || '-'}</div>
+                                    </td>
                                     <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center;">${new Date(user.created_at).toLocaleDateString('ja-JP')}</td>
                                     <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center;">
                                         <button 
@@ -4743,6 +4773,72 @@
                     
                     // エラー時は画面をリロード
                     this.showUserManagement();
+                }
+            },
+            
+            // 💾 ユーザーフィールドを保存
+            async saveUserField(userId, fieldName, newValue) {
+                console.log(`💾 ユーザーフィールドを保存: ${userId}, ${fieldName} = ${newValue}`);
+                
+                // 値が '-' の場合は null に変換
+                const valueToSave = (newValue === '-' || newValue.trim() === '') ? null : newValue.trim();
+                
+                // 保存中の視覚的フィードバック
+                const element = document.querySelector(`.editable-field[data-user-id="${userId}"][data-field="${fieldName}"]`);
+                if (element) {
+                    element.style.background = '#e3f2fd';
+                    element.style.border = '2px solid #2196f3';
+                    element.textContent = '保存中...';
+                }
+                
+                try {
+                    const updateData = {};
+                    updateData[fieldName] = valueToSave;
+                    
+                    const { data, error } = await supabase
+                        .from('users')
+                        .update(updateData)
+                        .eq('id', userId)
+                        .select();
+                    
+                    if (error) throw error;
+                    
+                    console.log('✅ フィールド保存成功:', data);
+                    
+                    // 保存成功の視覚的フィードバック
+                    if (element) {
+                        element.style.background = '#d1f2eb';
+                        element.style.border = '2px solid #27ae60';
+                        element.textContent = valueToSave || '-';
+                        
+                        // 一時的に「✅ 保存しました」を表示
+                        const originalContent = element.textContent;
+                        element.textContent = '✅ 保存完了';
+                        
+                        setTimeout(() => {
+                            element.style.background = '';
+                            element.style.border = '';
+                            element.textContent = originalContent;
+                        }, 1500);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ フィールド保存エラー:', error);
+                    
+                    // エラーの視覚的フィードバック
+                    if (element) {
+                        element.style.background = '#f8d7da';
+                        element.style.border = '2px solid #e74c3c';
+                        element.textContent = '❌ 保存失敗';
+                        
+                        setTimeout(() => {
+                            element.style.background = '';
+                            element.style.border = '';
+                            element.textContent = newValue || '-';
+                        }, 2000);
+                    }
+                    
+                    alert(`❌ 保存に失敗しました: ${error.message}`);
                 }
             },
             
