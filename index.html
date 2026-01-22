@@ -1314,22 +1314,32 @@
                         // Supabaseデータを使用
                         this.meetingsData = {};
                         supabaseMeetings.forEach(meeting => {
-                            // Supabaseの形式（meeting_name）からアプリの形式（meetingName）に変換
-                            const entityId = meeting.department || meeting.division || meeting.organization;
+                            // entity_id を使用（'board-1', 'dept-1', 'team-1-1' など）
+                            const entityId = meeting.entity_id;
+                            
+                            // entity_id が存在しない場合はスキップ
+                            if (!entityId) {
+                                console.warn('⚠️ entity_id がありません:', meeting);
+                                return;
+                            }
+                            
                             if (!this.meetingsData[entityId]) {
                                 this.meetingsData[entityId] = [];
                             }
                             this.meetingsData[entityId].push({
                                 id: meeting.id,
-                                meetingName: meeting.meeting_name,
+                                entityId: meeting.entity_id,
+                                meetingName: meeting.meeting_name || meeting.title,
+                                name: meeting.meeting_name || meeting.title,
                                 organization: meeting.organization,
                                 division: meeting.division,
                                 department: meeting.department,
+                                date: meeting.meeting_date,
                                 createdBy: meeting.created_by,
                                 createdAt: meeting.created_at
                             });
                         });
-                        console.log('✅ Supabaseから会議データを読み込みました');
+                        console.log('✅ Supabaseから会議データを読み込みました:', Object.keys(this.meetingsData));
                     } else {
                         // localStorageのデータを使用
                         this.meetingsData = localMeetings;
