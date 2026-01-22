@@ -1142,6 +1142,7 @@
         
         const app = {
             currentUser: null,
+            currentUserRole: null, // 🔐 現在のユーザー権限
             currentView: 'organization',
             currentBoard: null,
             currentDepartment: null,
@@ -1181,6 +1182,9 @@
             init() {
                 // デモデータ（組織構造）は常に読み込む
                 this.loadDemoData();
+                
+                // 🔐 現在のユーザー権限を取得
+                this.loadCurrentUserRole();
                 
                 // Supabase + localStorageから会議・議事録データを読み込む
                 this.loadAllData();
@@ -1373,6 +1377,79 @@
                 localStorage.setItem('meetingsData', JSON.stringify(this.meetingsData));
                 localStorage.setItem('minutesData', JSON.stringify(this.minutesData));
                 console.log('Saved to localStorage');
+            },
+            
+            // 🔐 現在のユーザー権限を取得
+            async loadCurrentUserRole() {
+                console.log('🔐 現在のユーザー権限を取得中...');
+                
+                try {
+                    // 現在のユーザーを取得
+                    const { data: { user }, error: authError } = await supabase.auth.getUser();
+                    
+                    if (authError || !user) {
+                        console.warn('⚠️ 認証されていません');
+                        this.currentUserRole = null;
+                        return null;
+                    }
+                    
+                    console.log('👤 現在のユーザー:', user.email);
+                    
+                    // users テーブルから権限情報を取得
+                    const { data: userData, error: userError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (userError) {
+                        console.error('❌ ユーザー情報取得エラー:', userError);
+                        this.currentUserRole = 'viewer'; // デフォルトは閲覧のみ
+                        return 'viewer';
+                    }
+                    
+                    if (userData) {
+                        this.currentUserRole = userData.role;
+                        console.log('✅ ユーザー権限:', userData.role);
+                        console.log('📊 ユーザー情報:', userData);
+                        return userData.role;
+                    } else {
+                        console.warn('⚠️ users テーブルにユーザー情報が見つかりません');
+                        this.currentUserRole = 'viewer'; // デフォルトは閲覧のみ
+                        return 'viewer';
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 権限取得エラー:', error);
+                    this.currentUserRole = 'viewer'; // エラー時はデフォルト
+                    return 'viewer';
+                }
+            },
+            
+            // 🔐 権限チェック関数
+            canInsert() {
+                // viewer 以外は追加可能
+                return this.currentUserRole && ['admin', 'editor_a', 'editor_b'].includes(this.currentUserRole);
+            },
+            
+            canUpdate() {
+                // viewer 以外は編集可能
+                return this.currentUserRole && ['admin', 'editor_a', 'editor_b'].includes(this.currentUserRole);
+            },
+            
+            canDelete() {
+                // admin と editor_a のみ削除可能
+                return this.currentUserRole && ['admin', 'editor_a'].includes(this.currentUserRole);
+            },
+            
+            canResetData() {
+                // admin のみデータリセット可能
+                return this.currentUserRole === 'admin';
+            },
+            
+            canManageUsers() {
+                // admin のみユーザー管理可能
+                return this.currentUserRole === 'admin';
             },
             
             // 💾 Supabaseへのデータ保存
