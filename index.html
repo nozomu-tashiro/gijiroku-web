@@ -2450,7 +2450,7 @@
                         <span style="font-size: 18px;">📅</span>
                         <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${this.currentBoard.name} の会議一覧</span>
                     </div>
-                    <button class="btn btn-sm" onclick="app.openAddMeetingModal('board-1')" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>
+                    ${this.canInsert() ? `<button class="btn btn-sm" onclick="app.openAddMeetingModal('board-1')" style="padding: 6px 14px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>` : ''}
                 </div>`;
                 
                 // テーブル行風に表示
@@ -2479,8 +2479,8 @@
                                 </div>
                                 <div style="display: flex; gap: 6px; justify-content: flex-end;">
                                     <button class="detail-btn" data-meeting-id="${meeting.id}" style="padding: 6px 16px; font-size: 12px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
-                                    <button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
-                                    <button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                    ${this.canUpdate() ? `<button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>` : ''}
+                                    ${this.canDelete() ? `<button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -2621,7 +2621,7 @@
                         <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${team.name} の会議一覧</span>
                         <span style="color: #a8e6cf; font-size: 12px; margin-left: 8px;">${this.currentDepartment.name}</span>
                     </div>
-                    <button class="btn btn-sm" onclick="app.openAddMeetingModal('${teamId}')" style="padding: 6px 14px; font-size: 12px; background: #2ecc71; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>
+                    ${this.canInsert() ? `<button class="btn btn-sm" onclick="app.openAddMeetingModal('${teamId}')" style="padding: 6px 14px; font-size: 12px; background: #2ecc71; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 会議追加</button>` : ''}
                 </div>`;
                 
                 html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
@@ -2649,8 +2649,8 @@
                                 </div>
                                 <div style="display: flex; gap: 6px; justify-content: flex-end;">
                                     <button class="detail-btn" data-meeting-id="${meeting.id}" style="padding: 6px 16px; font-size: 12px; background: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
-                                    <button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>
-                                    <button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                    ${this.canUpdate() ? `<button class="edit-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #7f8c8d; border: 1px solid #ddd; border-radius: 3px; cursor: pointer;">編集</button>` : ''}
+                                    ${this.canDelete() ? `<button class="delete-meeting-btn" data-meeting-id="${meeting.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -2810,7 +2810,7 @@
                         <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${meeting.name} の議事録一覧</span>
                         <span style="color: rgba(255,255,255,0.7); font-size: 12px; margin-left: 8px;">開催日: ${meeting.date}</span>
                     </div>
-                    <button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>
+                    ${this.canInsert() ? `<button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>` : ''}
                 </div>`;
                 
                 html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
@@ -2882,24 +2882,23 @@
                                 transition: background 0.2s;
                             " onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='${bgColor}'">
                                 <div style="display: flex; align-items: center; gap: 6px; position: relative;">
-                                    <span style="font-size: 16px; cursor: pointer; user-select: none;" onclick="app.showDatePicker('${minute.id}')" title="カレンダーから日付を選択">📅</span>
-                                    <div class="inline-edit" data-field="meetingDate" style="font-size: 13px; color: #2c3e50; font-weight: 600; cursor: text; padding: 4px; border-radius: 3px; flex: 1;" contenteditable="true">${minute.meetingDate || '-'}</div>
+                                    <span style="font-size: 16px; ${this.canUpdate() ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.5;'} user-select: none;" ${this.canUpdate() ? `onclick="app.showDatePicker('${minute.id}')"` : ''} title="${this.canUpdate() ? 'カレンダーから日付を選択' : '編集権限がありません'}">📅</span>
+                                    <div class="inline-edit" data-field="meetingDate" style="font-size: 13px; color: #2c3e50; font-weight: 600; ${this.canUpdate() ? 'cursor: text;' : 'cursor: not-allowed;'} padding: 4px; border-radius: 3px; flex: 1;" contenteditable="${this.canUpdate()}">${minute.meetingDate || '-'}</div>
                                     <input type="date" id="datePicker-${minute.id}" style="position: absolute; left: 0; top: 0; opacity: 0; width: 1px; height: 1px; pointer-events: none;" onchange="app.updateMeetingDate('${minute.id}', this.value)">
                                 </div>
-                                <div class="inline-edit" data-field="subtitle" style="font-size: 14px; font-weight: 700; color: #2c3e50; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.subtitle || minute.meetingName || '議事録'}</div>
-                                <div class="inline-edit" data-field="participants" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.participants || ''}">${participantsDisplay}</div>
-                                <div class="inline-edit" data-field="facilitator" style="font-size: 12px; color: #7f8c8d; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true">${minute.facilitator || '-'}</div>
-                                <div class="inline-edit" data-field="notes" style="font-size: 11px; color: #95a5a6; cursor: text; padding: 4px; border-radius: 3px;" contenteditable="true" title="${minute.notes || ''}">${minute.notes || '-'}</div>
+                                <div class="inline-edit" data-field="subtitle" style="font-size: 14px; font-weight: 700; color: #2c3e50; ${this.canUpdate() ? 'cursor: text;' : 'cursor: not-allowed;'} padding: 4px; border-radius: 3px;" contenteditable="${this.canUpdate()}">${minute.subtitle || minute.meetingName || '議事録'}</div>
+                                <div class="inline-edit" data-field="participants" style="font-size: 12px; color: #7f8c8d; ${this.canUpdate() ? 'cursor: text;' : 'cursor: not-allowed;'} padding: 4px; border-radius: 3px;" contenteditable="${this.canUpdate()}" title="${minute.participants || ''}">${participantsDisplay}</div>
+                                <div class="inline-edit" data-field="facilitator" style="font-size: 12px; color: #7f8c8d; ${this.canUpdate() ? 'cursor: text;' : 'cursor: not-allowed;'} padding: 4px; border-radius: 3px;" contenteditable="${this.canUpdate()}">${minute.facilitator || '-'}</div>
+                                <div class="inline-edit" data-field="notes" style="font-size: 11px; color: #95a5a6; ${this.canUpdate() ? 'cursor: text;' : 'cursor: not-allowed;'} padding: 4px; border-radius: 3px;" contenteditable="${this.canUpdate()}" title="${minute.notes || ''}">${minute.notes || '-'}</div>
                                 <div style="text-align: center;">
-                                    <select class="status-dropdown" data-field="status" 
-                                        style="background: ${status.color}; color: white; padding: 6px 24px 6px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; cursor: pointer; appearance: none; 
+                                    <select class="status-dropdown" data-field="status" ${this.canUpdate() ? '' : 'disabled'}
+                                        style="background: ${status.color}; color: white; padding: 6px 24px 6px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: none; ${this.canUpdate() ? 'cursor: pointer;' : 'cursor: not-allowed; opacity: 0.6;'} appearance: none; 
                                         background-image: url('data:image/svg+xml;utf8,<svg fill=\"white\" height=\"20\" viewBox=\"0 0 24 24\" width=\"20\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>'); 
                                         background-repeat: no-repeat; 
                                         background-position: right 4px center; 
                                         background-size: 16px; 
                                         transition: all 0.2s ease;"
-                                        onmouseover="this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';"
-                                        onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';">
+                                        ${this.canUpdate() ? `onmouseover="this.style.transform = 'scale(1.05)'; this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';" onmouseout="this.style.transform = 'scale(1)'; this.style.boxShadow = 'none';"` : ''}>
                                         <option value="not-held" ${minute.status === 'not-held' ? 'selected' : ''}>会議未実施</option>
                                         <option value="completed-with-tasks" ${minute.status === 'completed-with-tasks' ? 'selected' : ''}>会議終了（残タスクあり）</option>
                                         <option value="completed-no-tasks" ${minute.status === 'completed-no-tasks' ? 'selected' : ''}>会議終了（残タスクなし）</option>
@@ -2907,7 +2906,7 @@
                                 </div>
                                 <div style="display: flex; gap: 6px; justify-content: flex-end; padding-right: 0;">
                                     <button class="detail-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 16px; font-size: 12px; background: ${headerColor}; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">詳細</button>
-                                    <button class="delete-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>
+                                    ${this.canDelete() ? `<button class="delete-minute-btn" data-minute-id="${minute.id}" style="padding: 6px 12px; font-size: 11px; background: white; color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">削除</button>` : ''}
                                 </div>
                             </div>
                         `;
