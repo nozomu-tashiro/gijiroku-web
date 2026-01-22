@@ -1491,11 +1491,16 @@
                         .from('meetings')
                         .insert([
                             {
+                                id: meetingData.id,  // UUID を明示的に指定
+                                entity_id: meetingData.entityId,
+                                entity_type: meetingData.entityId.startsWith('board') ? 'board' : 
+                                            meetingData.entityId.startsWith('dept') ? 'department' : 'team',
                                 organization: meetingData.organization,
                                 division: meetingData.division,
                                 department: meetingData.department,
-                                meeting_name: meetingData.meetingName,
-                                created_by: user.id,
+                                meeting_name: meetingData.meetingName || meetingData.name,
+                                meeting_date: meetingData.date,
+                                created_by: user?.id || null,
                                 created_at: new Date().toISOString()
                             }
                         ])
