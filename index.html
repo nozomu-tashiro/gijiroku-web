@@ -1190,7 +1190,8 @@
                 this.updateUIForRole();
                 
                 // Supabase + localStorageから会議・議事録データを読み込む
-                this.loadAllData();
+                // ⚠️ await で待機してからUIを表示する
+                await this.loadAllData();
                 
                 // 🔐 認証データを読み込む
                 this.loadAuthData();
