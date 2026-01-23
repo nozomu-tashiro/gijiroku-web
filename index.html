@@ -3116,7 +3116,9 @@
                 }
             },
             
-            deleteMeeting(meetingId) {
+            async deleteMeeting(meetingId) {
+                console.log('🗑️ 会議削除開始:', meetingId);
+                
                 // 議事録があるかチェック
                 if (this.minutesData[meetingId]) {
                     const minutes = this.minutesData[meetingId].filter(m => !m.archived);
@@ -3126,7 +3128,7 @@
                     }
                 }
                 
-                // 会議を検索して削除
+                // 会議を検索
                 let meeting = null;
                 let entityId = null;
                 
@@ -3135,24 +3137,57 @@
                     if (index !== -1) {
                         meeting = meetings[index];
                         entityId = key;
-                        
-                        if (confirm(`会議「${meeting.name}」を削除しますか？`)) {
-                            meetings.splice(index, 1);
-                            this.saveToLocalStorage();
-                            alert(`✅ 会議「${meeting.name}」を削除しました`);
-                            
-                            // 画面を再表示
-                            if (this.currentBoard) {
-                                this.showBoardView();
-                            } else if (this.currentTeam) {
-                                this.showTeamView(this.currentTeam.id);
-                            }
-                        }
-                        return;
+                        break;
                     }
                 }
                 
-                alert('❌ 会議が見つかりません');
+                if (!meeting) {
+                    alert('❌ 会議が見つかりません');
+                    return;
+                }
+                
+                if (!confirm(`会議「${meeting.name || meeting.meetingName}」を削除しますか？`)) {
+                    return;
+                }
+                
+                try {
+                    // 1. Supabase から削除
+                    console.log('📥 Supabase から削除中...', meetingId);
+                    const { error } = await supabase
+                        .from('meetings')
+                        .delete()
+                        .eq('id', meetingId);
+                    
+                    if (error) {
+                        console.error('❌ Supabase削除エラー:', error);
+                        throw error;
+                    }
+                    
+                    console.log('✅ Supabase から削除完了');
+                    
+                    // 2. localStorage から削除
+                    for (const [key, meetings] of Object.entries(this.meetingsData)) {
+                        const index = meetings.findIndex(m => m.id === meetingId);
+                        if (index !== -1) {
+                            meetings.splice(index, 1);
+                            break;
+                        }
+                    }
+                    this.saveToLocalStorage();
+                    
+                    alert(`✅ 会議「${meeting.name || meeting.meetingName}」を削除しました`);
+                    
+                    // 3. 画面を再表示
+                    if (this.currentBoard) {
+                        this.showBoardView();
+                    } else if (this.currentTeam) {
+                        this.showTeamView(this.currentTeam.id);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 会議削除エラー:', error);
+                    alert(`❌ 会議の削除に失敗しました: ${error.message}`);
+                }
             },
             
             // ========== Board Management ==========
