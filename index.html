@@ -2896,8 +2896,15 @@
                         const bgColor = index % 2 === 0 ? '#f8f9fa' : '#ffffff';
                         const status = statusMap[minute.status] || statusMap['not-held'];
                         
-                        // 参加者の表示（改行またはカンマ区切り）
-                        const participantsList = (minute.participants || '').split(/[\n,]/).map(p => p.trim()).filter(p => p).join(', ');
+                        // 参加者の表示（配列または文字列対応）
+                        let participantsList = '';
+                        if (Array.isArray(minute.participants)) {
+                            // 配列の場合: そのまま結合
+                            participantsList = minute.participants.map(p => typeof p === 'string' ? p.trim() : (p.name || '')).filter(p => p).join(', ');
+                        } else if (typeof minute.participants === 'string') {
+                            // 文字列の場合: 改行またはカンマで分割
+                            participantsList = minute.participants.split(/[\n,]/).map(p => p.trim()).filter(p => p).join(', ');
+                        }
                         const participantsDisplay = participantsList.length > 60 ? participantsList.substring(0, 60) + '...' : participantsList || '-';
                         
                         // 備考の表示
