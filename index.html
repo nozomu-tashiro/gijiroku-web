@@ -3082,7 +3082,9 @@
                 })();
             },
             
-            openEditMeetingModal(meetingId) {
+            async openEditMeetingModal(meetingId) {
+                console.log('✏️ 会議編集開始:', meetingId);
+                
                 // 会議を検索
                 let meeting = null;
                 let entityId = null;
@@ -3100,20 +3102,46 @@
                     return;
                 }
                 
-                const newName = prompt('会議名称を編集してください：', meeting.name);
+                const newName = prompt('会議名称を編集してください：', meeting.name || meeting.meetingName);
                 if (!newName || newName.trim() === '') {
                     return;
                 }
                 
-                meeting.name = newName.trim();
-                this.saveToLocalStorage();
-                alert(`✅ 会議名称を「${newName}」に変更しました`);
-                
-                // 画面を再表示
-                if (this.currentBoard) {
-                    this.showBoardView();
-                } else if (this.currentTeam) {
-                    this.showTeamView(this.currentTeam.id);
+                try {
+                    // 1. Supabase を更新
+                    console.log('📥 Supabase を更新中...', meetingId);
+                    const { error } = await supabase
+                        .from('meetings')
+                        .update({ 
+                            meeting_name: newName.trim(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', meetingId);
+                    
+                    if (error) {
+                        console.error('❌ Supabase更新エラー:', error);
+                        throw error;
+                    }
+                    
+                    console.log('✅ Supabase 更新完了');
+                    
+                    // 2. localStorage を更新
+                    meeting.name = newName.trim();
+                    meeting.meetingName = newName.trim();
+                    this.saveToLocalStorage();
+                    
+                    alert(`✅ 会議名称を「${newName}」に変更しました`);
+                    
+                    // 3. 画面を再表示
+                    if (this.currentBoard) {
+                        this.showBoardView();
+                    } else if (this.currentTeam) {
+                        this.showTeamView(this.currentTeam.id);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 会議編集エラー:', error);
+                    alert(`❌ 会議名称の変更に失敗しました: ${error.message}`);
                 }
             },
             
