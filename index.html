@@ -6230,7 +6230,7 @@ ${text}
                     const arrayBuffer = await webmBlob.arrayBuffer();
                     const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
                     
-                    const wavBuffer = this.audioBufferToWav(audioBuffer);
+                    const wavBuffer = await this.audioBufferToWav(audioBuffer);
                     return new Blob([wavBuffer], { type: 'audio/wav' });
                 } catch (error) {
                     console.error('WAV変換エラー:', error);
@@ -6239,14 +6239,14 @@ ${text}
             }
             
             // 🎵 AudioBuffer → WAV変換
-            audioBufferToWav(buffer) {
+            async audioBufferToWav(buffer) {
                 const numChannels = 1; // モノラル
                 const sampleRate = 16000; // Google推奨
                 const format = 1; // PCM
                 const bitDepth = 16;
                 
-                // リサンプリング
-                const samples = this.resampleAudio(buffer, sampleRate);
+                // リサンプリング（awaitが必要）
+                const samples = await this.resampleAudio(buffer, sampleRate);
                 
                 const bytesPerSample = bitDepth / 8;
                 const blockAlign = numChannels * bytesPerSample;
