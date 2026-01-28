@@ -919,6 +919,7 @@
                     <div id="headerUserDept"></div>
                 </div>
                 <button id="adminMenuBtn" class="btn" onclick="app.showUserManagement()" style="margin-right: 10px; padding: 8px 16px; background: #9c27b0; color: white; border: none; border-radius: 4px; cursor: pointer; display: none;">👥 ユーザー管理</button>
+                <button class="btn" onclick="showApiKeySettings()" style="margin-right: 10px; padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">⚙️ 設定</button>
                 <button class="btn btn-warning" onclick="app.resetAllData()" style="margin-right: 10px; padding: 8px 16px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 データリセット</button>
                 <button class="logout-btn" onclick="app.logout()">ログアウト</button>
             </div>
@@ -2844,7 +2845,14 @@
                         <span style="color: white; font-size: 15px; font-weight: 700; letter-spacing: 0.5px;">${meeting.name} の議事録一覧</span>
                         <span style="color: rgba(255,255,255,0.7); font-size: 12px; margin-left: 8px;">開催日: ${meeting.date}</span>
                     </div>
-                    ${this.canInsert() ? `<button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>` : ''}
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        ${this.canInsert() ? `
+                            <button id="btn-start-recording" onclick="window.transcriptionSystem.startRecording()" style="padding: 6px 14px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">🎙️ 録音開始</button>
+                            <button id="btn-stop-recording" onclick="window.transcriptionSystem.stopRecording('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: #c0392b; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer; display: none;">⏹️ 録音停止</button>
+                            <div id="transcription-status" style="color: white; font-size: 12px; display: none; padding: 6px 14px; background: rgba(0,0,0,0.3); border-radius: 3px;"></div>
+                            <button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>
+                        ` : ''}
+                    </div>
                 </div>`;
                 
                 html += '<div style="background: white; border: 1px solid #ddd; border-top: none;">';
@@ -6031,6 +6039,607 @@ ${text}
         // Immediate check
         console.log('=== Script Loading Completed ===');
         console.log('You can now use window.app from console');
+    </script>
+
+    <!-- ============================================ -->
+    <!-- Google Cloud 音声文字起こし機能 -->
+    <!-- ============================================ -->
+    <script>
+        // =============================================
+        // Google Cloud Speech-to-Text + Gemini
+        // 音声文字起こし & AI要約システム
+        // =============================================
+        
+        class GoogleTranscriptionSystem {
+            constructor() {
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.isRecording = false;
+                this.audioContext = null;
+                // APIキーは後で設定画面から入力
+                this.GOOGLE_API_KEY = localStorage.getItem('google_api_key') || '';
+            }
+            
+            // 🔑 APIキーを設定
+            setApiKey(apiKey) {
+                this.GOOGLE_API_KEY = apiKey;
+                localStorage.setItem('google_api_key', apiKey);
+                console.log('✅ Google API キー設定完了');
+            }
+            
+            // 🔑 APIキーが設定されているか確認
+            checkApiKey() {
+                if (!this.GOOGLE_API_KEY) {
+                    alert('❌ Google API キーが設定されていません。\n\n設定手順：\n1. 画面右上の「設定」をクリック\n2. Google API キーを入力\n3. 保存');
+                    return false;
+                }
+                return true;
+            }
+            
+            // 🎙️ 録音開始
+            async startRecording() {
+                if (!this.checkApiKey()) return;
+                
+                try {
+                    console.log('🎙️ マイク許可をリクエスト中...');
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            channelCount: 1,
+                            sampleRate: 48000,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    });
+                    
+                    this.mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'audio/webm;codecs=opus'
+                    });
+                    
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            this.audioChunks.push(e.data);
+                        }
+                    };
+                    
+                    this.mediaRecorder.start(1000); // 1秒ごとにデータ取得
+                    this.isRecording = true;
+                    
+                    this.updateRecordingUI('recording');
+                    console.log('🎙️ 録音開始');
+                    
+                } catch (error) {
+                    console.error('❌ マイクエラー:', error);
+                    alert('マイクへのアクセスを許可してください。\n\nブラウザの設定を確認してください。');
+                }
+            }
+            
+            // ⏹️ 録音停止
+            async stopRecording(meetingId) {
+                if (!this.mediaRecorder || !this.isRecording) {
+                    alert('録音が開始されていません');
+                    return;
+                }
+                
+                return new Promise((resolve) => {
+                    this.mediaRecorder.onstop = async () => {
+                        try {
+                            const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                            console.log(`⏹️ 録音停止。サイズ: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
+                            
+                            this.isRecording = false;
+                            this.updateRecordingUI('processing');
+                            
+                            // 音声処理を開始
+                            await this.processAudio(audioBlob, meetingId);
+                            
+                            resolve();
+                        } catch (error) {
+                            console.error('❌ 録音停止エラー:', error);
+                            alert('録音の処理に失敗しました: ' + error.message);
+                            this.updateRecordingUI('error');
+                            resolve();
+                        }
+                    };
+                    
+                    this.mediaRecorder.stop();
+                    
+                    // ストリームを停止
+                    this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                });
+            }
+            
+            // 🎯 音声処理の全体フロー
+            async processAudio(audioBlob, meetingId) {
+                try {
+                    console.log('📤 音声処理開始...');
+                    
+                    // 1. Supabase に音声ファイルをアップロード
+                    this.updateRecordingUI('uploading');
+                    const audioUrl = await this.uploadToSupabase(audioBlob, meetingId);
+                    console.log('✅ Supabase アップロード完了:', audioUrl);
+                    
+                    // 2. WAV形式に変換
+                    this.updateRecordingUI('converting');
+                    const wavBlob = await this.convertToWav(audioBlob);
+                    console.log('✅ WAV変換完了');
+                    
+                    // 3. Base64エンコード
+                    const audioBase64 = await this.blobToBase64(wavBlob);
+                    console.log('✅ Base64エンコード完了');
+                    
+                    // 4. Google Speech-to-Text で文字起こし
+                    this.updateRecordingUI('transcribing');
+                    const transcript = await this.transcribeWithGoogle(audioBase64);
+                    console.log('✅ 文字起こし完了');
+                    
+                    // 5. Gemini で要約
+                    this.updateRecordingUI('summarizing');
+                    const summary = await this.summarizeWithGemini(transcript.fullText);
+                    console.log('✅ 要約完了');
+                    
+                    // 6. Supabase に保存
+                    this.updateRecordingUI('saving');
+                    await this.saveTranscript(meetingId, transcript, summary, audioUrl);
+                    console.log('✅ 保存完了');
+                    
+                    // 7. 完了
+                    this.updateRecordingUI('completed');
+                    alert('✅ 文字起こしが完了しました！\n\n議事録に反映されています。');
+                    
+                    // 8. 画面を更新
+                    if (window.app && window.app.showMeetingView) {
+                        window.app.showMeetingView(meetingId);
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ 音声処理エラー:', error);
+                    this.updateRecordingUI('error');
+                    alert('❌ エラーが発生しました:\n\n' + error.message);
+                }
+            }
+            
+            // 📤 Supabase にアップロード
+            async uploadToSupabase(audioBlob, meetingId) {
+                const fileName = `${meetingId}_${Date.now()}.webm`;
+                
+                const { data, error } = await supabase.storage
+                    .from('meeting-recordings')
+                    .upload(fileName, audioBlob, {
+                        contentType: 'audio/webm',
+                        upsert: false
+                    });
+                
+                if (error) {
+                    console.error('Supabase アップロードエラー:', error);
+                    throw new Error('音声ファイルのアップロードに失敗しました: ' + error.message);
+                }
+                
+                const { data: { publicUrl } } = supabase.storage
+                    .from('meeting-recordings')
+                    .getPublicUrl(fileName);
+                
+                return publicUrl;
+            }
+            
+            // 🔄 WAV形式に変換
+            async convertToWav(webmBlob) {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const arrayBuffer = await webmBlob.arrayBuffer();
+                    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    
+                    const wavBuffer = this.audioBufferToWav(audioBuffer);
+                    return new Blob([wavBuffer], { type: 'audio/wav' });
+                } catch (error) {
+                    console.error('WAV変換エラー:', error);
+                    throw new Error('音声形式の変換に失敗しました');
+                }
+            }
+            
+            // 🎵 AudioBuffer → WAV変換
+            audioBufferToWav(buffer) {
+                const numChannels = 1; // モノラル
+                const sampleRate = 16000; // Google推奨
+                const format = 1; // PCM
+                const bitDepth = 16;
+                
+                // リサンプリング
+                const samples = this.resampleAudio(buffer, sampleRate);
+                
+                const bytesPerSample = bitDepth / 8;
+                const blockAlign = numChannels * bytesPerSample;
+                const dataLength = samples.length * bytesPerSample;
+                const bufferLength = 44 + dataLength;
+                
+                const arrayBuffer = new ArrayBuffer(bufferLength);
+                const view = new DataView(arrayBuffer);
+                
+                // WAVヘッダー
+                this.writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + dataLength, true);
+                this.writeString(view, 8, 'WAVE');
+                this.writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, format, true);
+                view.setUint16(22, numChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * blockAlign, true);
+                view.setUint16(32, blockAlign, true);
+                view.setUint16(34, bitDepth, true);
+                this.writeString(view, 36, 'data');
+                view.setUint32(40, dataLength, true);
+                
+                // 音声データ
+                let offset = 44;
+                for (let i = 0; i < samples.length; i++) {
+                    const sample = Math.max(-1, Math.min(1, samples[i]));
+                    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                    offset += 2;
+                }
+                
+                return arrayBuffer;
+            }
+            
+            // 🔁 リサンプリング
+            resampleAudio(buffer, targetSampleRate) {
+                const channels = buffer.numberOfChannels;
+                const sourceSampleRate = buffer.sampleRate;
+                const sourceLength = buffer.length;
+                const targetLength = Math.round(sourceLength * targetSampleRate / sourceSampleRate);
+                
+                const offlineContext = new OfflineAudioContext(1, targetLength, targetSampleRate);
+                const source = offlineContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(offlineContext.destination);
+                source.start(0);
+                
+                return offlineContext.startRendering().then(renderedBuffer => {
+                    return renderedBuffer.getChannelData(0);
+                });
+            }
+            
+            writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+            
+            // 📦 Base64エンコード
+            async blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
+            
+            // 🗣️ Google Speech-to-Text で文字起こし
+            async transcribeWithGoogle(audioBase64) {
+                const url = `https://speech.googleapis.com/v1/speech:recognize?key=${this.GOOGLE_API_KEY}`;
+                
+                const requestBody = {
+                    config: {
+                        encoding: 'LINEAR16',
+                        sampleRateHertz: 16000,
+                        languageCode: 'ja-JP',
+                        enableAutomaticPunctuation: true,
+                        enableWordTimeOffsets: false,
+                        enableSpeakerDiarization: true,
+                        diarizationConfig: {
+                            enableSpeakerDiarization: true,
+                            minSpeakerCount: 2,
+                            maxSpeakerCount: 10
+                        },
+                        model: 'default',
+                        useEnhanced: true
+                    },
+                    audio: {
+                        content: audioBase64
+                    }
+                };
+                
+                console.log('🗣️ Google Speech-to-Text リクエスト送信中...');
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Google Speech API エラー:', errorText);
+                    throw new Error(`文字起こしAPIエラー: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Google Speech-to-Text レスポンス:', result);
+                
+                if (!result.results || result.results.length === 0) {
+                    throw new Error('音声を認識できませんでした。もう一度録音してください。');
+                }
+                
+                // 話者ごとに整理
+                const speakers = [];
+                const words = result.results[0]?.alternatives[0]?.words || [];
+                
+                let currentSpeaker = null;
+                let currentText = '';
+                
+                for (const word of words) {
+                    const speakerTag = word.speakerTag || 1;
+                    
+                    if (speakerTag !== currentSpeaker && currentText) {
+                        speakers.push({
+                            speaker: `話者${currentSpeaker}`,
+                            text: currentText.trim()
+                        });
+                        currentText = '';
+                    }
+                    
+                    currentSpeaker = speakerTag;
+                    currentText += (word.word || '') + ' ';
+                }
+                
+                if (currentText) {
+                    speakers.push({
+                        speaker: `話者${currentSpeaker}`,
+                        text: currentText.trim()
+                    });
+                }
+                
+                const fullText = result.results
+                    .map(r => r.alternatives[0].transcript)
+                    .join('\n');
+                
+                return { fullText, speakers };
+            }
+            
+            // 📝 Gemini で要約
+            async summarizeWithGemini(transcript) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.GOOGLE_API_KEY}`;
+                
+                const prompt = `以下の会議の文字起こしを、日本のビジネス会議形式で要約してください。
+
+【要約形式】
+## 会議の目的
+（会議の主な目的を1-2文で）
+
+## 主な議論内容
+- 議題1: 内容の要約
+- 議題2: 内容の要約
+- 議題3: 内容の要約
+
+## 決定事項
+1. 決定内容1
+2. 決定内容2
+
+## アクションアイテム
+| タスク | 担当者 | 期限 |
+|--------|--------|------|
+| XXXの作成 | 〇〇 | YYYY-MM-DD |
+| YYYの確認 | △△ | YYYY-MM-DD |
+
+## 次回の予定
+（次回会議の予定があれば記載）
+
+【文字起こし】
+${transcript}`;
+                
+                console.log('📝 Gemini 要約リクエスト送信中...');
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.2,
+                            maxOutputTokens: 2048
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Gemini API エラー:', errorText);
+                    throw new Error(`要約APIエラー: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                console.log('Gemini レスポンス:', result);
+                
+                if (!result.candidates || result.candidates.length === 0) {
+                    throw new Error('要約の生成に失敗しました');
+                }
+                
+                const summary = result.candidates[0].content.parts[0].text;
+                return summary;
+            }
+            
+            // 💾 Supabase に保存
+            async saveTranscript(meetingId, transcript, summary, audioUrl) {
+                const user = await supabase.auth.getUser();
+                
+                const { data, error } = await supabase
+                    .from('meeting_transcripts')
+                    .insert({
+                        meeting_id: meetingId,
+                        audio_url: audioUrl,
+                        full_text: transcript.fullText,
+                        speakers: transcript.speakers,
+                        summary: summary,
+                        created_by: user.data.user?.id,
+                        created_at: new Date().toISOString()
+                    })
+                    .select();
+                
+                if (error) {
+                    console.error('保存エラー:', error);
+                    throw new Error('議事録への保存に失敗しました: ' + error.message);
+                }
+                
+                console.log('💾 議事録保存完了:', data);
+                return data;
+            }
+            
+            // 🎨 UIの更新
+            updateRecordingUI(status) {
+                const statusMessages = {
+                    recording: '🎙️ 録音中...',
+                    processing: '⚙️ 処理中...',
+                    uploading: '📤 アップロード中...',
+                    converting: '🔄 変換中...',
+                    transcribing: '🤖 AI文字起こし中（1-2分）...',
+                    summarizing: '📝 AI要約中...',
+                    saving: '💾 保存中...',
+                    completed: '✅ 完了！',
+                    error: '❌ エラーが発生しました'
+                };
+                
+                const statusEl = document.getElementById('transcription-status');
+                if (statusEl) {
+                    statusEl.textContent = statusMessages[status] || '';
+                    statusEl.style.display = status ? 'block' : 'none';
+                }
+                
+                const recordBtn = document.getElementById('btn-start-recording');
+                const stopBtn = document.getElementById('btn-stop-recording');
+                
+                if (status === 'recording') {
+                    if (recordBtn) recordBtn.style.display = 'none';
+                    if (stopBtn) stopBtn.style.display = 'inline-block';
+                } else if (status === 'completed' || status === 'error' || !status) {
+                    if (recordBtn) recordBtn.style.display = 'inline-block';
+                    if (stopBtn) stopBtn.style.display = 'none';
+                }
+            }
+        }
+        
+        // グローバルインスタンス
+        window.transcriptionSystem = new GoogleTranscriptionSystem();
+        console.log('✅ Google Transcription System 初期化完了');
+        
+        // =============================================
+        // APIキー設定機能
+        // =============================================
+        
+        function showApiKeySettings() {
+            const currentKey = localStorage.getItem('google_api_key') || '';
+            const maskedKey = currentKey ? currentKey.substring(0, 10) + '...' : '未設定';
+            
+            const modal = document.createElement('div');
+            modal.id = 'apiKeyModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%;">
+                    <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #2c3e50;">⚙️ Google Cloud API 設定</h2>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #7f8c8d;">
+                            現在のAPIキー: <strong>${maskedKey}</strong>
+                        </p>
+                        <p style="margin: 0; font-size: 12px; color: #95a5a6;">
+                            ※ APIキーは安全にブラウザに保存されます
+                        </p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">Google Cloud APIキー</label>
+                        <input 
+                            type="password" 
+                            id="apiKeyInput" 
+                            placeholder="AIzaSy..." 
+                            value="${currentKey}"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;"
+                        >
+                        <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                            Google Cloud Console で取得したAPIキーを入力してください
+                        </small>
+                    </div>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #27ae60;">📘 APIキー取得方法</h4>
+                        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #555;">
+                            <li>Google Cloud Console にアクセス</li>
+                            <li>「APIとサービス」→「認証情報」</li>
+                            <li>「+ 認証情報を作成」→「APIキー」</li>
+                            <li>生成されたAPIキーをコピー</li>
+                            <li>このフォームに貼り付け</li>
+                        </ol>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button 
+                            onclick="closeApiKeyModal()" 
+                            style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;"
+                        >
+                            キャンセル
+                        </button>
+                        <button 
+                            onclick="saveApiKey()" 
+                            style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600;"
+                        >
+                            保存
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            const apiKey = input.value.trim();
+            
+            if (!apiKey) {
+                alert('❌ APIキーを入力してください');
+                return;
+            }
+            
+            if (!apiKey.startsWith('AIza')) {
+                if (!confirm('⚠️ Google Cloud APIキーは通常「AIza」で始まります。\n\nこのまま保存しますか？')) {
+                    return;
+                }
+            }
+            
+            window.transcriptionSystem.setApiKey(apiKey);
+            alert('✅ APIキーを保存しました！\n\n音声文字起こし機能が利用可能になりました。');
+            closeApiKeyModal();
+        }
+        
+        function closeApiKeyModal() {
+            const modal = document.getElementById('apiKeyModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // グローバルに公開
+        window.showApiKeySettings = showApiKeySettings;
+        window.saveApiKey = saveApiKey;
+        window.closeApiKeyModal = closeApiKeyModal;
     </script>
 </body>
 </html>
