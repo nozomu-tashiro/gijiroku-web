@@ -6057,19 +6057,22 @@ ${text}
                 this.isRecording = false;
                 this.audioContext = null;
                 // APIキーは後で設定画面から入力
-                this.GOOGLE_API_KEY = localStorage.getItem('google_api_key') || '';
+                this.GOOGLE_CLOUD_API_KEY = localStorage.getItem('google_cloud_api_key') || '';
+                this.GEMINI_API_KEY = localStorage.getItem('gemini_api_key') || '';
             }
             
             // 🔑 APIキーを設定
-            setApiKey(apiKey) {
-                this.GOOGLE_API_KEY = apiKey;
-                localStorage.setItem('google_api_key', apiKey);
+            setApiKey(cloudApiKey, geminiApiKey) {
+                this.GOOGLE_CLOUD_API_KEY = cloudApiKey;
+                this.GEMINI_API_KEY = geminiApiKey || cloudApiKey; // Geminiキーが空なら共通キーを使用
+                localStorage.setItem('google_cloud_api_key', cloudApiKey);
+                localStorage.setItem('gemini_api_key', geminiApiKey || cloudApiKey);
                 console.log('✅ Google API キー設定完了');
             }
             
             // 🔑 APIキーが設定されているか確認
             checkApiKey() {
-                if (!this.GOOGLE_API_KEY) {
+                if (!this.GOOGLE_CLOUD_API_KEY) {
                     alert('❌ Google API キーが設定されていません。\n\n設定手順：\n1. 画面右上の「設定」をクリック\n2. Google API キーを入力\n3. 保存');
                     return false;
                 }
@@ -6327,7 +6330,7 @@ ${text}
             
             // 🗣️ Google Speech-to-Text で文字起こし
             async transcribeWithGoogle(audioBase64) {
-                const url = `https://speech.googleapis.com/v1/speech:recognize?key=${this.GOOGLE_API_KEY}`;
+                const url = `https://speech.googleapis.com/v1/speech:recognize?key=${this.GOOGLE_CLOUD_API_KEY}`;
                 
                 const requestBody = {
                     config: {
@@ -6423,7 +6426,7 @@ ${text}
             
             // 📝 Gemini で要約
             async summarizeWithGemini(transcript) {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.GOOGLE_API_KEY}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.GEMINI_API_KEY}`;
                 
                 const prompt = `以下の会議の文字起こしを、日本のビジネス会議形式で要約してください。
 
@@ -6553,8 +6556,10 @@ ${transcript}`;
         // =============================================
         
         function showApiKeySettings() {
-            const currentKey = localStorage.getItem('google_api_key') || '';
-            const maskedKey = currentKey ? currentKey.substring(0, 10) + '...' : '未設定';
+            const cloudKey = localStorage.getItem('google_cloud_api_key') || '';
+            const geminiKey = localStorage.getItem('gemini_api_key') || '';
+            const maskedCloudKey = cloudKey ? cloudKey.substring(0, 10) + '...' : '未設定';
+            const maskedGeminiKey = geminiKey ? geminiKey.substring(0, 10) + '...' : '未設定';
             
             const modal = document.createElement('div');
             modal.id = 'apiKeyModal';
@@ -6572,41 +6577,75 @@ ${transcript}`;
             `;
             
             modal.innerHTML = `
-                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%;">
+                <div style="background: white; padding: 30px; border-radius: 8px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;">
                     <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #2c3e50;">⚙️ Google Cloud API 設定</h2>
                     
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #7f8c8d;">
-                            現在のAPIキー: <strong>${maskedKey}</strong>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+                        <p style="margin: 0; font-size: 13px; color: #856404;">
+                            <strong>⚠️ 重要:</strong> Speech-to-Text API と Gemini API には<strong>異なるAPIキー</strong>が必要です。
                         </p>
-                        <p style="margin: 0; font-size: 12px; color: #95a5a6;">
-                            ※ APIキーは安全にブラウザに保存されます
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 5px 0; font-size: 14px; color: #7f8c8d;">
+                            現在の設定:
+                        </p>
+                        <p style="margin: 5px 0; font-size: 13px;">
+                            🔹 Google Cloud APIキー: <strong>${maskedCloudKey}</strong>
+                        </p>
+                        <p style="margin: 5px 0; font-size: 13px;">
+                            🔹 Gemini APIキー: <strong>${maskedGeminiKey}</strong>
                         </p>
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">Google Cloud APIキー</label>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">
+                            1️⃣ Google Cloud APIキー (Speech-to-Text 用)
+                        </label>
                         <input 
                             type="password" 
-                            id="apiKeyInput" 
-                            placeholder="AIzaSy..." 
-                            value="${currentKey}"
+                            id="cloudApiKeyInput" 
+                            placeholder="AIzaSy... (Google Cloud Console で作成)" 
+                            value="${cloudKey}"
                             style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;"
                         >
                         <small style="display: block; margin-top: 8px; color: #7f8c8d;">
-                            Google Cloud Console で取得したAPIキーを入力してください
+                            Google Cloud Console で作成したAPIキー (gijiroku-transcription プロジェクト)
+                        </small>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #34495e;">
+                            2️⃣ Gemini APIキー (AI要約用)
+                        </label>
+                        <input 
+                            type="password" 
+                            id="geminiApiKeyInput" 
+                            placeholder="AIzaSy... (AI Studio で作成)" 
+                            value="${geminiKey}"
+                            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;"
+                        >
+                        <small style="display: block; margin-top: 8px; color: #7f8c8d;">
+                            AI Studio で作成したAPIキー (https://aistudio.google.com/app/apikey)
                         </small>
                     </div>
                     
                     <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60; margin-bottom: 20px;">
                         <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #27ae60;">📘 APIキー取得方法</h4>
-                        <ol style="margin: 0; padding-left: 20px; font-size: 13px; color: #555;">
-                            <li>Google Cloud Console にアクセス</li>
-                            <li>「APIとサービス」→「認証情報」</li>
-                            <li>「+ 認証情報を作成」→「APIキー」</li>
-                            <li>生成されたAPIキーをコピー</li>
-                            <li>このフォームに貼り付け</li>
-                        </ol>
+                        <div style="font-size: 13px; color: #555;">
+                            <p style="margin: 0 0 10px 0; font-weight: 600;">Google Cloud APIキー:</p>
+                            <ol style="margin: 0 0 15px 0; padding-left: 20px;">
+                                <li>Google Cloud Console にアクセス</li>
+                                <li>「APIとサービス」→「認証情報」</li>
+                                <li>既存のAPIキーを使用</li>
+                            </ol>
+                            <p style="margin: 0 0 10px 0; font-weight: 600;">Gemini APIキー:</p>
+                            <ol style="margin: 0; padding-left: 20px;">
+                                <li>https://aistudio.google.com/app/apikey にアクセス</li>
+                                <li>「Get API key」をクリック</li>
+                                <li>作成したAPIキー (例: ...jLu0) をコピー</li>
+                            </ol>
+                        </div>
                     </div>
                     
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
@@ -6630,21 +6669,28 @@ ${transcript}`;
         }
         
         function saveApiKey() {
-            const input = document.getElementById('apiKeyInput');
-            const apiKey = input.value.trim();
+            const cloudInput = document.getElementById('cloudApiKeyInput');
+            const geminiInput = document.getElementById('geminiApiKeyInput');
+            const cloudKey = cloudInput.value.trim();
+            const geminiKey = geminiInput.value.trim();
             
-            if (!apiKey) {
-                alert('❌ APIキーを入力してください');
+            if (!cloudKey) {
+                alert('❌ Google Cloud APIキーを入力してください');
                 return;
             }
             
-            if (!apiKey.startsWith('AIza')) {
-                if (!confirm('⚠️ Google Cloud APIキーは通常「AIza」で始まります。\n\nこのまま保存しますか？')) {
+            if (!geminiKey) {
+                alert('❌ Gemini APIキーを入力してください');
+                return;
+            }
+            
+            if (!cloudKey.startsWith('AIza') || !geminiKey.startsWith('AIza')) {
+                if (!confirm('⚠️ Google APIキーは通常「AIza」で始まります。\n\nこのまま保存しますか？')) {
                     return;
                 }
             }
             
-            window.transcriptionSystem.setApiKey(apiKey);
+            window.transcriptionSystem.setApiKey(cloudKey, geminiKey);
             alert('✅ APIキーを保存しました！\n\n音声文字起こし機能が利用可能になりました。');
             closeApiKeyModal();
         }
