@@ -6565,13 +6565,6 @@ ${transcript}`;
                                 <div id="text-view-${transcript.id}" style="margin: 0; font-size: 14px; line-height: 1.8; color: #2c3e50; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${transcript.full_text || '（テキストなし）'}</div>
                                 <textarea id="text-edit-${transcript.id}" style="display: none; width: 100%; min-height: 150px; font-size: 14px; line-height: 1.8; color: #2c3e50; border: 2px solid #3498db; border-radius: 4px; padding: 10px; font-family: inherit;">${transcript.full_text || ''}</textarea>
                             </div>
-                            ${transcript.summary ? `
-                                <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60;">
-                                    <h5 style="margin: 0 0 10px 0; font-size: 14px; color: #27ae60; font-weight: 600;">📝 要約</h5>
-                                    <div id="summary-view-${transcript.id}" style="margin: 0; font-size: 13px; line-height: 1.8; color: #2c3e50; white-space: pre-wrap;">${transcript.summary}</div>
-                                    <textarea id="summary-edit-${transcript.id}" style="display: none; width: 100%; min-height: 100px; font-size: 13px; line-height: 1.8; color: #2c3e50; border: 2px solid #27ae60; border-radius: 4px; padding: 10px; font-family: inherit;">${transcript.summary || ''}</textarea>
-                                </div>
-                            ` : ''}
                             <div id="edit-actions-${transcript.id}" style="display: none; margin-top: 15px; text-align: right;">
                                 <button onclick="window.transcriptionSystem.cancelEdit('${transcript.id}')" style="padding: 8px 16px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: 8px;">キャンセル</button>
                                 <button onclick="window.transcriptionSystem.saveEdit('${transcript.id}')" style="padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">💾 保存</button>
@@ -6607,14 +6600,10 @@ ${transcript}`;
             editTranscription(transcriptId) {
                 const textView = document.getElementById(`text-view-${transcriptId}`);
                 const textEdit = document.getElementById(`text-edit-${transcriptId}`);
-                const summaryView = document.getElementById(`summary-view-${transcriptId}`);
-                const summaryEdit = document.getElementById(`summary-edit-${transcriptId}`);
                 const editActions = document.getElementById(`edit-actions-${transcriptId}`);
                 
                 if (textView) textView.style.display = 'none';
                 if (textEdit) textEdit.style.display = 'block';
-                if (summaryView) summaryView.style.display = 'none';
-                if (summaryEdit) summaryEdit.style.display = 'block';
                 if (editActions) editActions.style.display = 'block';
             }
             
@@ -6622,29 +6611,22 @@ ${transcript}`;
             cancelEdit(transcriptId) {
                 const textView = document.getElementById(`text-view-${transcriptId}`);
                 const textEdit = document.getElementById(`text-edit-${transcriptId}`);
-                const summaryView = document.getElementById(`summary-view-${transcriptId}`);
-                const summaryEdit = document.getElementById(`summary-edit-${transcriptId}`);
                 const editActions = document.getElementById(`edit-actions-${transcriptId}`);
                 
                 if (textView) textView.style.display = 'block';
                 if (textEdit) textEdit.style.display = 'none';
-                if (summaryView) summaryView.style.display = 'block';
-                if (summaryEdit) summaryEdit.style.display = 'none';
                 if (editActions) editActions.style.display = 'none';
             }
             
             // 💾 編集を保存
             async saveEdit(transcriptId) {
                 const textEdit = document.getElementById(`text-edit-${transcriptId}`);
-                const summaryEdit = document.getElementById(`summary-edit-${transcriptId}`);
                 
                 const updatedText = textEdit ? textEdit.value : null;
-                const updatedSummary = summaryEdit ? summaryEdit.value : null;
                 
                 try {
                     const updateData = {};
                     if (updatedText !== null) updateData.full_text = updatedText;
-                    if (updatedSummary !== null) updateData.summary = updatedSummary;
                     
                     const { error } = await supabase
                         .from('meeting_transcripts')
@@ -6659,10 +6641,8 @@ ${transcript}`;
                     
                     // 表示を更新
                     const textView = document.getElementById(`text-view-${transcriptId}`);
-                    const summaryView = document.getElementById(`summary-view-${transcriptId}`);
                     
                     if (textView && updatedText !== null) textView.textContent = updatedText;
-                    if (summaryView && updatedSummary !== null) summaryView.textContent = updatedSummary;
                     
                     this.cancelEdit(transcriptId);
                     alert('✅ 保存しました！');
@@ -6985,7 +6965,7 @@ ${transcript.full_text || '（テキストなし）'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${transcript.summary ? '【要約】\n' + transcript.summary : ''}`;
+`;
                 
                 // Blob を作成
                 const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
