@@ -2850,6 +2850,7 @@
                             <button id="btn-start-recording" onclick="window.transcriptionSystem.startRecording()" style="padding: 6px 14px; font-size: 12px; background: #e74c3c; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">🎙️ 録音開始</button>
                             <button id="btn-stop-recording" onclick="window.transcriptionSystem.stopRecording('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: #c0392b; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer; display: none;">⏹️ 録音停止</button>
                             <div id="transcription-status" style="color: white; font-size: 12px; display: none; padding: 6px 14px; background: rgba(0,0,0,0.3); border-radius: 3px;"></div>
+                            <button onclick="app.showTranscriptions('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: #9b59b6; color: white; border: none; border-radius: 3px; font-weight: 600; cursor: pointer;">📝 文字起こし一覧</button>
                             <button class="btn btn-sm" onclick="app.openAddMinuteModal('${meetingId}')" style="padding: 6px 14px; font-size: 12px; background: ${borderColor}; color: white; border: none; border-radius: 3px; font-weight: 600;">+ 議事録追加</button>
                         ` : ''}
                     </div>
@@ -6544,11 +6545,71 @@ ${transcript}`;
                     if (stopBtn) stopBtn.style.display = 'none';
                 }
             }
+            
+            // 📝 文字起こし一覧を表示
+            async showTranscriptions(meetingId) {
+                try {
+                    const { data: transcriptions, error } = await supabase
+                        .from('meeting_transcripts')
+                        .select('*')
+                        .eq('meeting_id', meetingId)
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) {
+                        console.error('文字起こしデータ取得エラー:', error);
+                        alert('❌ 文字起こしデータの取得に失敗しました');
+                        return;
+                    }
+                    
+                    if (!transcriptions || transcriptions.length === 0) {
+                        alert('📝 この会議の文字起こしデータはまだありません。\n\n「🎙️ 録音開始」ボタンから録音を開始してください。');
+                        return;
+                    }
+                    
+                    this.displayTranscriptionModal(transcriptions);
+                    
+                } catch (error) {
+                    console.error('文字起こし一覧表示エラー:', error);
+                    alert('❌ エラーが発生しました: ' + error.message);
+                }
+            }
+            
+            // 📋 文字起こしモーダルを表示
+            displayTranscriptionModal(transcriptions) {
+                const modal = document.createElement('div');
+                modal.id = 'transcriptionModal';
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.7); display: flex;
+                    justify-content: center; align-items: center;
+                    z-index: 10000; overflow-y: auto;
+                `;
+                
+                let transcriptionsHtml = '';
+                transcriptions.forEach((transcript, index) => {
+                    const date = new Date(transcript.created_at).toLocaleString('ja-JP');
+                    const duration = transcript.duration ? transcript.duration + '秒' : '-';
+                    const confidence = transcript.confidence ? (transcript.confidence * 100).toFixed(1) + '%' : '-';
+                    
+                    transcriptionsHtml += `<div style="background: ${index % 2 === 0 ? '#f8f9fa' : '#ffffff'}; padding: 20px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><div><h4 style="margin: 0 0 5px 0; font-size: 16px; color: #2c3e50;">📝 文字起こし ${index + 1}</h4><p style="margin: 0; font-size: 13px; color: #7f8c8d;">作成日時: ${date} | 録音時間: ${duration} | 認識精度: ${confidence}</p></div>${transcript.audio_url ? '<a href="' + transcript.audio_url + '" target="_blank" style="padding: 6px 12px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">🔊 音声を聞く</a>' : ''}</div><div style="background: white; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db; margin-bottom: 15px;"><h5 style="margin: 0 0 10px 0; font-size: 14px; color: #34495e; font-weight: 600;">📄 文字起こしテキスト</h5><p style="margin: 0; font-size: 14px; line-height: 1.8; color: #2c3e50; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${transcript.full_text || '（テキストなし）'}</p></div>${transcript.summary ? '<div style="background: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60;"><h5 style="margin: 0 0 10px 0; font-size: 14px; color: #27ae60; font-weight: 600;">📝 要約</h5><p style="margin: 0; font-size: 13px; line-height: 1.8; color: #2c3e50; white-space: pre-wrap;">' + transcript.summary + '</p></div>' : ''}</div>`;
+                });
+                
+                modal.innerHTML = `<div style="background: white; padding: 30px; border-radius: 12px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #3498db; padding-bottom: 15px;"><h2 style="margin: 0; font-size: 24px; color: #2c3e50; display: flex; align-items: center; gap: 10px;"><span style="font-size: 28px;">📝</span>文字起こし一覧</h2><button onclick="document.getElementById('transcriptionModal').remove()" style="background: #e74c3c; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700;">✕</button></div><div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;"><p style="margin: 0; font-size: 13px; color: #856404;"><strong>💡 ヒント:</strong> 文字起こしテキストは自動的に保存されています。音声ファイルも「🔊 音声を聞く」ボタンからいつでも再生できます。</p></div>${transcriptionsHtml}<div style="display: flex; justify-content: flex-end; margin-top: 20px;"><button onclick="document.getElementById('transcriptionModal').remove()" style="padding: 10px 24px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">閉じる</button></div></div>`;
+                
+                document.body.appendChild(modal);
+            }
         }
         
         // グローバルインスタンス
         window.transcriptionSystem = new GoogleTranscriptionSystem();
         console.log('✅ Google Transcription System 初期化完了');
+        
+        // App インスタンスに showTranscriptions メソッドを追加
+        if (window.app) {
+            window.app.showTranscriptions = function(meetingId) {
+                return window.transcriptionSystem.showTranscriptions(meetingId);
+            };
+        }
         
         // =============================================
         // APIキー設定機能
