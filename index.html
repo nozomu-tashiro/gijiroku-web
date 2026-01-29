@@ -6184,9 +6184,17 @@ ${text}
                     const transcript = await this.transcribeWithGoogle(audioBase64);
                     console.log('✅ 文字起こし完了');
                     
-                    // 5. 要約（一時的にスキップ）
-                    let summary = '※ AI要約機能は現在調整中です。\n\n文字起こしテキストは以下の通りです：\n\n' + transcript.fullText;
-                    console.log('⚠️ 要約をスキップしました（文字起こしテキストを使用）');
+                    // 5. Gemini で要約
+                    this.updateRecordingUI('summarizing');
+                    let summary = '';
+                    try {
+                        summary = await this.summarizeWithGemini(transcript.fullText);
+                        console.log('✅ Gemini 要約完了');
+                    } catch (error) {
+                        console.error('⚠️ 要約エラー:', error);
+                        console.log('⚠️ 要約をスキップして文字起こしテキストを使用します');
+                        summary = '※ AI要約の生成に失敗しました。\n\n文字起こしテキストは以下の通りです：\n\n' + transcript.fullText;
+                    }
                     
                     // 6. Supabase に保存
                     this.updateRecordingUI('saving');
@@ -6426,7 +6434,8 @@ ${text}
             
             // 📝 Gemini で要約
             async summarizeWithGemini(transcript) {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${this.GEMINI_API_KEY}`;
+                // Gemini 1.5 Flash を使用（より安定）
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.GEMINI_API_KEY}`;
                 
                 const prompt = `以下の会議の文字起こしを、日本のビジネス会議形式で要約してください。
 
