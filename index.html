@@ -6555,6 +6555,7 @@ ${transcript}`;
                                 </div>
                                 <div style="display: flex; gap: 8px;">
                                     ${transcript.audio_url ? '<a href="' + transcript.audio_url + '" target="_blank" style="padding: 6px 12px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 600;">🔊 音声を聞く</a>' : ''}
+                                    <button onclick="window.transcriptionSystem.saveAsTextFile('${transcript.id}', '${transcript.meeting_id}')" style="padding: 6px 12px; background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">💾 テキストを保存</button>
                                     <button onclick="window.transcriptionSystem.editTranscription('${transcript.id}')" style="padding: 6px 12px; background: #f39c12; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">✏️ 編集</button>
                                     <button onclick="window.transcriptionSystem.deleteTranscription('${transcript.id}')" style="padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">🗑️ 削除</button>
                                 </div>
@@ -6704,6 +6705,101 @@ ${transcript}`;
                 } catch (error) {
                     console.error('削除エラー:', error);
                     alert('❌ 削除に失敗しました: ' + error.message);
+                }
+            }
+            
+            // 💾 テキストファイルとして保存（議事録の添付ファイルに追加）
+            async saveAsTextFile(transcriptId, meetingId) {
+                try {
+                    // 文字起こしデータを取得
+                    const { data: transcript, error } = await supabase
+                        .from('meeting_transcripts')
+                        .select('*')
+                        .eq('id', transcriptId)
+                        .single();
+                    
+                    if (error || !transcript) {
+                        alert('❌ 文字起こしデータの取得に失敗しました');
+                        return;
+                    }
+                    
+                    // テキストファイルを作成
+                    const fileName = `文字起こし_${new Date(transcript.created_at).toLocaleString('ja-JP').replace(/[/:]/g, '-')}.txt`;
+                    const textContent = `文字起こしテキスト
+作成日時: ${new Date(transcript.created_at).toLocaleString('ja-JP')}
+録音時間: ${transcript.duration || '-'}秒
+認識精度: ${transcript.confidence ? (transcript.confidence * 100).toFixed(1) + '%' : '-'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${transcript.full_text || '（テキストなし）'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${transcript.summary ? '【要約】\n' + transcript.summary : ''}`;
+                    
+                    // Blob を作成
+                    const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
+                    
+                    // 議事録を検索
+                    if (!window.app || !window.app.minutesData) {
+                        alert('❌ 議事録データが見つかりません');
+                        return;
+                    }
+                    
+                    let targetMinute = null;
+                    for (const mid in window.app.minutesData) {
+                        const minutes = window.app.minutesData[mid];
+                        if (minutes && minutes.length > 0) {
+                            targetMinute = minutes[0]; // 最新の議事録を取得
+                            break;
+                        }
+                    }
+                    
+                    if (!targetMinute) {
+                        alert('❌ 議事録が見つかりません');
+                        return;
+                    }
+                    
+                    // FileReader で Data URL に変換
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        // attachedFiles に追加
+                        if (!targetMinute.attachedFiles) {
+                            targetMinute.attachedFiles = [];
+                        }
+                        
+                        targetMinute.attachedFiles.push({
+                            name: fileName,
+                            size: blob.size,
+                            type: 'text/plain',
+                            url: e.target.result,
+                            uploadDate: new Date().toISOString()
+                        });
+                        
+                        // localStorage に保存
+                        window.app.saveToLocalStorage();
+                        
+                        // 画面を更新
+                        if (window.app.currentMinute && window.app.currentMinute.id === targetMinute.id) {
+                            const filesContainer = document.getElementById(`attachedFiles-${targetMinute.id}`);
+                            if (filesContainer) {
+                                filesContainer.innerHTML = window.app.renderAttachedFiles(targetMinute);
+                            }
+                        }
+                        
+                        alert(`✅ テキストファイルを議事録に保存しました！\n\nファイル名: ${fileName}`);
+                    };
+                    
+                    reader.onerror = () => {
+                        alert('❌ ファイルの作成に失敗しました');
+                    };
+                    
+                    reader.readAsDataURL(blob);
+                    
+                } catch (error) {
+                    console.error('テキスト保存エラー:', error);
+                    alert('❌ エラーが発生しました: ' + error.message);
                 }
             }
         }
