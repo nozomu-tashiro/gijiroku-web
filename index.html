@@ -6170,28 +6170,18 @@ ${text}
                     const wavBlob = await this.convertToWav(audioBlob);
                     console.log('✅ WAV変換完了。サイズ:', (wavBlob.size / 1024 / 1024).toFixed(2), 'MB');
                     
-                    // 3. WAVファイルをSupabaseにアップロード（Long Running API用）
-                    const wavFileName = `${meetingId}_${Date.now()}.wav`;
-                    const { data: wavData, error: wavError } = await supabase.storage
-                        .from('meeting-recordings')
-                        .upload(wavFileName, wavBlob, {
-                            contentType: 'audio/wav',
-                            upsert: false
-                        });
-                    
-                    if (wavError) {
-                        throw new Error('WAVファイルのアップロードに失敗しました: ' + wavError.message);
+                    // サイズチェック（10MB制限）
+                    if (wavBlob.size > 10 * 1024 * 1024) {
+                        throw new Error('音声データが大きすぎます（最大10MB、約10分）。録音時間を短くしてください。');
                     }
                     
-                    const { data: { publicUrl: wavUrl } } = supabase.storage
-                        .from('meeting-recordings')
-                        .getPublicUrl(wavFileName);
-                    
-                    console.log('✅ WAVアップロード完了:', wavUrl);
+                    // 3. Base64エンコード
+                    const audioBase64 = await this.blobToBase64(wavBlob);
+                    console.log('✅ Base64エンコード完了。長さ:', audioBase64.length, '文字');
                     
                     // 4. Google Speech-to-Text Long Running API で文字起こし
                     this.updateRecordingUI('transcribing');
-                    const transcript = await this.transcribeWithGoogleLongRunning(wavUrl);
+                    const transcript = await this.transcribeWithGoogleLongRunning(audioBase64);
                     console.log('✅ 文字起こし完了');
                     
                     // 5. Gemini で要約
@@ -6346,8 +6336,8 @@ ${text}
                 });
             }
             
-            // 🗣️ Google Speech-to-Text Long Running API で文字起こし（最大3時間対応）
-            async transcribeWithGoogleLongRunning(audioUrl) {
+            // 🗣️ Google Speech-to-Text Long Running API で文字起こし（最大10分対応）
+            async transcribeWithGoogleLongRunning(audioBase64) {
                 const url = `https://speech.googleapis.com/v1/speech:longrunningrecognize?key=${this.GOOGLE_CLOUD_API_KEY}`;
                 
                 const requestBody = {
@@ -6366,12 +6356,12 @@ ${text}
                         useEnhanced: true
                     },
                     audio: {
-                        uri: audioUrl
+                        content: audioBase64
                     }
                 };
                 
                 console.log('🗣️ Google Speech-to-Text Long Running API リクエスト送信中...');
-                console.log('📊 音声URL:', audioUrl);
+                console.log('📊 リクエストボディサイズ:', JSON.stringify(requestBody).length, '文字');
                 
                 const response = await fetch(url, {
                     method: 'POST',
