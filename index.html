@@ -6188,7 +6188,7 @@ ${text}
                     this.updateRecordingUI('summarizing');
                     let summary = '';
                     try {
-                        summary = await this.summarizeWithGemini(transcript.fullText);
+                        summary = await this.summarizeWithGPT4o(transcript.fullText);
                         console.log('✅ Gemini 要約完了');
                     } catch (error) {
                         console.error('⚠️ 要約エラー:', error);
@@ -6432,69 +6432,15 @@ ${text}
                 return { fullText, speakers };
             }
             
-            // 📝 Gemini で要約
-            async summarizeWithGemini(transcript) {
-                // Gemini Pro を使用（v1beta で安定）
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.GEMINI_API_KEY}`;
-                
-                const prompt = `以下の会議の文字起こしを、日本のビジネス会議形式で要約してください。
+            // 📝 要約機能を一時的にスキップ（文字起こしのみ）
+            async summarizeWithGPT4o(transcript) {
+                console.log('⚠️ 要約機能は現在開発中です');
+                // 文字起こしテキストをそのまま返す
+                return `※ AI要約機能は現在調整中です。
 
-【要約形式】
-## 会議の目的
-（会議の主な目的を1-2文で）
+文字起こしテキストは以下の通りです：
 
-## 主な議論内容
-- 議題1: 内容の要約
-- 議題2: 内容の要約
-- 議題3: 内容の要約
-
-## 決定事項
-1. 決定内容1
-2. 決定内容2
-
-## アクションアイテム
-| タスク | 担当者 | 期限 |
-|--------|--------|------|
-| XXXの作成 | 〇〇 | YYYY-MM-DD |
-| YYYの確認 | △△ | YYYY-MM-DD |
-
-## 次回の予定
-（次回会議の予定があれば記載）
-
-【文字起こし】
 ${transcript}`;
-                
-                console.log('📝 Gemini 要約リクエスト送信中...');
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }],
-                        generationConfig: {
-                            temperature: 0.2,
-                            maxOutputTokens: 2048
-                        }
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Gemini API エラー:', errorText);
-                    throw new Error(`要約APIエラー: ${response.status} ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                console.log('Gemini レスポンス:', result);
-                
-                if (!result.candidates || result.candidates.length === 0) {
-                    throw new Error('要約の生成に失敗しました');
-                }
-                
-                const summary = result.candidates[0].content.parts[0].text;
-                return summary;
             }
             
             // 💾 Supabase に保存
