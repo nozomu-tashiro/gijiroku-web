@@ -6183,10 +6183,9 @@ ${text}
                     const transcript = await this.transcribeWithGoogle(audioBase64);
                     console.log('✅ 文字起こし完了');
                     
-                    // 5. Gemini で要約
-                    this.updateRecordingUI('summarizing');
-                    const summary = await this.summarizeWithGemini(transcript.fullText);
-                    console.log('✅ 要約完了');
+                    // 5. 要約（一時的にスキップ）
+                    let summary = '※ AI要約機能は現在調整中です。\n\n文字起こしテキストは以下の通りです：\n\n' + transcript.fullText;
+                    console.log('⚠️ 要約をスキップしました（文字起こしテキストを使用）');
                     
                     // 6. Supabase に保存
                     this.updateRecordingUI('saving');
