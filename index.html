@@ -6170,18 +6170,28 @@ ${text}
                     const wavBlob = await this.convertToWav(audioBlob);
                     console.log('✅ WAV変換完了。サイズ:', (wavBlob.size / 1024 / 1024).toFixed(2), 'MB');
                     
-                    // サイズチェック（Google の制限：10MB）
-                    if (wavBlob.size > 10 * 1024 * 1024) {
-                        throw new Error('音声データが大きすぎます（最大10MB）。録音時間を短くしてください。');
+                    // 3. WAVファイルをSupabaseにアップロード（Long Running API用）
+                    const wavFileName = `${meetingId}_${Date.now()}.wav`;
+                    const { data: wavData, error: wavError } = await supabase.storage
+                        .from('meeting-recordings')
+                        .upload(wavFileName, wavBlob, {
+                            contentType: 'audio/wav',
+                            upsert: false
+                        });
+                    
+                    if (wavError) {
+                        throw new Error('WAVファイルのアップロードに失敗しました: ' + wavError.message);
                     }
                     
-                    // 3. Base64エンコード
-                    const audioBase64 = await this.blobToBase64(wavBlob);
-                    console.log('✅ Base64エンコード完了。長さ:', audioBase64.length, '文字');
+                    const { data: { publicUrl: wavUrl } } = supabase.storage
+                        .from('meeting-recordings')
+                        .getPublicUrl(wavFileName);
                     
-                    // 4. Google Speech-to-Text で文字起こし
+                    console.log('✅ WAVアップロード完了:', wavUrl);
+                    
+                    // 4. Google Speech-to-Text Long Running API で文字起こし
                     this.updateRecordingUI('transcribing');
-                    const transcript = await this.transcribeWithGoogle(audioBase64);
+                    const transcript = await this.transcribeWithGoogleLongRunning(wavUrl);
                     console.log('✅ 文字起こし完了');
                     
                     // 5. Gemini で要約
@@ -6336,9 +6346,9 @@ ${text}
                 });
             }
             
-            // 🗣️ Google Speech-to-Text で文字起こし
-            async transcribeWithGoogle(audioBase64) {
-                const url = `https://speech.googleapis.com/v1/speech:recognize?key=${this.GOOGLE_CLOUD_API_KEY}`;
+            // 🗣️ Google Speech-to-Text Long Running API で文字起こし（最大3時間対応）
+            async transcribeWithGoogleLongRunning(audioUrl) {
+                const url = `https://speech.googleapis.com/v1/speech:longrunningrecognize?key=${this.GOOGLE_CLOUD_API_KEY}`;
                 
                 const requestBody = {
                     config: {
@@ -6346,7 +6356,7 @@ ${text}
                         sampleRateHertz: 16000,
                         languageCode: 'ja-JP',
                         enableAutomaticPunctuation: true,
-                        enableWordTimeOffsets: false,
+                        enableWordTimeOffsets: true,
                         diarizationConfig: {
                             enableSpeakerDiarization: true,
                             minSpeakerCount: 2,
@@ -6356,12 +6366,12 @@ ${text}
                         useEnhanced: true
                     },
                     audio: {
-                        content: audioBase64
+                        uri: audioUrl
                     }
                 };
                 
-                console.log('🗣️ Google Speech-to-Text リクエスト送信中...');
-                console.log('📊 リクエストボディサイズ:', JSON.stringify(requestBody).length, '文字');
+                console.log('🗣️ Google Speech-to-Text Long Running API リクエスト送信中...');
+                console.log('📊 音声URL:', audioUrl);
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -6389,8 +6399,11 @@ ${text}
                     throw new Error(errorMessage);
                 }
                 
-                const result = await response.json();
-                console.log('Google Speech-to-Text レスポンス:', result);
+                const operation = await response.json();
+                console.log('✅ Long Running Operation 開始:', operation);
+                
+                // オペレーションの完了を待つ
+                const result = await this.pollLongRunningOperation(operation.name);
                 
                 if (!result.results || result.results.length === 0) {
                     throw new Error('音声を認識できませんでした。もう一度録音してください。');
@@ -6430,6 +6443,48 @@ ${text}
                     .join('\n');
                 
                 return { fullText, speakers };
+            }
+            
+            // 🔄 Long Running Operation のポーリング
+            async pollLongRunningOperation(operationName) {
+                const url = `https://speech.googleapis.com/v1/operations/${operationName.split('/').pop()}?key=${this.GOOGLE_CLOUD_API_KEY}`;
+                
+                let attempt = 0;
+                const maxAttempts = 360; // 最大30分（5秒 × 360回）
+                
+                while (attempt < maxAttempts) {
+                    attempt++;
+                    
+                    console.log(`📊 文字起こし進行状況を確認中... (${attempt}/${maxAttempts})`);
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('❌ Operation ポーリングエラー:', errorText);
+                        throw new Error('文字起こし状況の確認に失敗しました');
+                    }
+                    
+                    const operation = await response.json();
+                    
+                    if (operation.done) {
+                        console.log('✅ 文字起こし完了！');
+                        
+                        if (operation.error) {
+                            throw new Error('文字起こしエラー: ' + operation.error.message);
+                        }
+                        
+                        return operation.response;
+                    }
+                    
+                    // 5秒待機
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+                
+                throw new Error('文字起こしがタイムアウトしました（30分以上）');
             }
             
             // 📝 要約機能を一時的にスキップ（文字起こしのみ）
