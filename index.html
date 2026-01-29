@@ -6723,9 +6723,258 @@ ${transcript}`;
                         return;
                     }
                     
-                    // テキストファイルを作成
-                    const fileName = `文字起こし_${new Date(transcript.created_at).toLocaleString('ja-JP').replace(/[/:]/g, '-')}.txt`;
-                    const textContent = `文字起こしテキスト
+                    // この会議の議事録を取得
+                    const minutes = window.app.minutesData[meetingId] || [];
+                    
+                    // 議事録が0件の場合は、直接新規作成フォームを表示
+                    if (minutes.length === 0) {
+                        this.showCreateNewMinuteForm(transcript, meetingId);
+                        return;
+                    }
+                    
+                    // 選択ダイアログを表示
+                    this.showMinuteSelectionDialog(transcript, meetingId, minutes);
+                    
+                } catch (error) {
+                    console.error('テキスト保存エラー:', error);
+                    alert('❌ エラーが発生しました: ' + error.message);
+                }
+            }
+            
+            // 📋 議事録選択ダイアログを表示
+            showMinuteSelectionDialog(transcript, meetingId, minutes) {
+                // 既存のダイアログを削除
+                const existingDialog = document.getElementById('minuteSelectionDialog');
+                if (existingDialog) existingDialog.remove();
+                
+                // 最新順にソート
+                const sortedMinutes = [...minutes].sort((a, b) => {
+                    const dateA = new Date(a.meetingDate || a.created || 0);
+                    const dateB = new Date(b.meetingDate || b.created || 0);
+                    return dateB - dateA;
+                });
+                
+                // ダイアログを作成
+                const dialog = document.createElement('div');
+                dialog.id = 'minuteSelectionDialog';
+                dialog.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.7); display: flex;
+                    justify-content: center; align-items: center;
+                    z-index: 10001;
+                `;
+                
+                // 議事録リストのHTML
+                let minutesListHtml = '';
+                sortedMinutes.forEach((minute, index) => {
+                    const date = minute.meetingDate || '-';
+                    const subtitle = minute.subtitle || '（サブタイトルなし）';
+                    const facilitator = minute.facilitator || '（未設定）';
+                    const isLatest = index === 0;
+                    
+                    minutesListHtml += `
+                        <label style="display: block; padding: 15px; margin-bottom: 10px; background: white; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='#3498db'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" onmouseout="this.style.borderColor='#ddd'; this.style.boxShadow='none'">
+                            <input type="radio" name="minuteSelection" value="${minute.id}" ${isLatest ? 'checked' : ''} style="margin-right: 10px;">
+                            <strong style="font-size: 15px; color: #2c3e50;">📋 ${subtitle}</strong>
+                            ${isLatest ? '<span style="color: #27ae60; font-weight: 600; margin-left: 8px;">← 最新（推奨）</span>' : ''}
+                            <div style="margin-top: 8px; font-size: 13px; color: #7f8c8d; line-height: 1.6;">
+                                <div>📅 会議日: ${date}</div>
+                                <div>👤 ファシリテーター: ${facilitator}</div>
+                            </div>
+                        </label>
+                    `;
+                });
+                
+                dialog.innerHTML = `
+                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 15px;">
+                            <h2 style="margin: 0; font-size: 20px; color: #2c3e50;">💾 文字起こしテキストの保存先を選択</h2>
+                            <button onclick="document.getElementById('minuteSelectionDialog').remove()" style="background: #e74c3c; color: white; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; font-weight: 700;">✕</button>
+                        </div>
+                        
+                        <div style="background: #e3f2fd; padding: 12px; border-radius: 8px; border-left: 4px solid #2196f3; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                                📊 この会議には <strong>${minutes.length}件の議事録</strong>があります
+                            </p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; padding: 15px; margin-bottom: 15px; background: #e8f5e9; border: 2px solid #27ae60; border-radius: 8px; cursor: pointer;">
+                                <input type="radio" name="minuteSelection" value="new" style="margin-right: 10px;">
+                                <strong style="font-size: 15px; color: #27ae60;">📝 新規議事録を作成して保存</strong>
+                                <div style="margin-top: 5px; font-size: 12px; color: #2e7d32;">新しい議事録を作成し、そこに保存します</div>
+                            </label>
+                            
+                            <div style="margin-bottom: 10px; font-size: 14px; font-weight: 600; color: #34495e;">📋 既存の議事録から選択:</div>
+                            <div style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                                ${minutesListHtml}
+                            </div>
+                        </div>
+                        
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 12px; color: #856404;">
+                                💡 最新の議事録が推奨されます。必要に応じて新規作成を選択してください。
+                            </p>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button onclick="document.getElementById('minuteSelectionDialog').remove()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">キャンセル</button>
+                            <button onclick="window.transcriptionSystem.saveToSelectedMinute('${transcript.id}', '${meetingId}')" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">💾 保存</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(dialog);
+            }
+            
+            // 💾 選択した議事録に保存
+            async saveToSelectedMinute(transcriptId, meetingId) {
+                const selected = document.querySelector('input[name="minuteSelection"]:checked');
+                if (!selected) {
+                    alert('❌ 保存先を選択してください');
+                    return;
+                }
+                
+                // 文字起こしデータを取得
+                const { data: transcript, error } = await supabase
+                    .from('meeting_transcripts')
+                    .select('*')
+                    .eq('id', transcriptId)
+                    .single();
+                
+                if (error || !transcript) {
+                    alert('❌ 文字起こしデータの取得に失敗しました');
+                    return;
+                }
+                
+                if (selected.value === 'new') {
+                    // 新規作成
+                    document.getElementById('minuteSelectionDialog').remove();
+                    this.showCreateNewMinuteForm(transcript, meetingId);
+                } else {
+                    // 既存の議事録に保存
+                    const minuteId = selected.value;
+                    const minutes = window.app.minutesData[meetingId] || [];
+                    const targetMinute = minutes.find(m => m.id === minuteId);
+                    
+                    if (!targetMinute) {
+                        alert('❌ 議事録が見つかりません');
+                        return;
+                    }
+                    
+                    await this.saveTextFileToMinute(transcript, targetMinute);
+                    document.getElementById('minuteSelectionDialog').remove();
+                }
+            }
+            
+            // 📝 新規議事録作成フォームを表示
+            showCreateNewMinuteForm(transcript, meetingId) {
+                // 既存のダイアログを削除
+                const existingDialog = document.getElementById('createMinuteDialog');
+                if (existingDialog) existingDialog.remove();
+                
+                const dialog = document.createElement('div');
+                dialog.id = 'createMinuteDialog';
+                dialog.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.7); display: flex;
+                    justify-content: center; align-items: center;
+                    z-index: 10001;
+                `;
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                dialog.innerHTML = `
+                    <div style="background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #27ae60; padding-bottom: 15px;">
+                            <h2 style="margin: 0; font-size: 20px; color: #2c3e50;">📝 新規議事録を作成</h2>
+                            <button onclick="document.getElementById('createMinuteDialog').remove()" style="background: #e74c3c; color: white; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 18px; cursor: pointer; font-weight: 700;">✕</button>
+                        </div>
+                        
+                        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 13px; color: #2e7d32;">
+                                💡 議事録を作成し、文字起こしテキストを添付します
+                            </p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: #2c3e50;">
+                                📅 会議日 <span style="color: #e74c3c;">*</span>
+                            </label>
+                            <input type="date" id="newMinuteMeetingDate" value="${today}" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
+                            <button onclick="document.getElementById('createMinuteDialog').remove()" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">キャンセル</button>
+                            <button onclick="window.transcriptionSystem.createMinuteAndSave('${transcript.id}', '${meetingId}')" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">作成して保存</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(dialog);
+            }
+            
+            // 📝 議事録を作成して保存
+            async createMinuteAndSave(transcriptId, meetingId) {
+                const meetingDate = document.getElementById('newMinuteMeetingDate').value;
+                
+                if (!meetingDate) {
+                    alert('❌ 会議日を入力してください');
+                    return;
+                }
+                
+                // 文字起こしデータを取得
+                const { data: transcript, error } = await supabase
+                    .from('meeting_transcripts')
+                    .select('*')
+                    .eq('id', transcriptId)
+                    .single();
+                
+                if (error || !transcript) {
+                    alert('❌ 文字起こしデータの取得に失敗しました');
+                    return;
+                }
+                
+                // 新規議事録を作成
+                const newMinute = {
+                    id: 'minute-' + Date.now(),
+                    meetingDate: meetingDate,
+                    subtitle: '文字起こしから作成',
+                    facilitator: '',
+                    participants: '',
+                    remarks: '',
+                    status: 'pending',
+                    detailRows: [],
+                    attachedFiles: [],
+                    created: new Date().toISOString()
+                };
+                
+                // minutesData に追加
+                if (!window.app.minutesData[meetingId]) {
+                    window.app.minutesData[meetingId] = [];
+                }
+                window.app.minutesData[meetingId].push(newMinute);
+                
+                // テキストファイルを保存
+                await this.saveTextFileToMinute(transcript, newMinute);
+                
+                // localStorage に保存
+                window.app.saveToLocalStorage();
+                
+                // ダイアログを閉じる
+                document.getElementById('createMinuteDialog').remove();
+                
+                // 画面を更新
+                if (window.app.showMeetingView) {
+                    window.app.showMeetingView(meetingId);
+                }
+            }
+            
+            // 💾 テキストファイルを議事録に保存（共通処理）
+            async saveTextFileToMinute(transcript, targetMinute) {
+                // テキストファイルを作成
+                const fileName = `文字起こし_${new Date(transcript.created_at).toLocaleString('ja-JP').replace(/[/:]/g, '-')}.txt`;
+                const textContent = `文字起こしテキスト
 作成日時: ${new Date(transcript.created_at).toLocaleString('ja-JP')}
 録音時間: ${transcript.duration || '-'}秒
 認識精度: ${transcript.confidence ? (transcript.confidence * 100).toFixed(1) + '%' : '-'}
@@ -6737,31 +6986,12 @@ ${transcript.full_text || '（テキストなし）'}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${transcript.summary ? '【要約】\n' + transcript.summary : ''}`;
-                    
-                    // Blob を作成
-                    const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
-                    
-                    // 議事録を検索
-                    if (!window.app || !window.app.minutesData) {
-                        alert('❌ 議事録データが見つかりません');
-                        return;
-                    }
-                    
-                    let targetMinute = null;
-                    for (const mid in window.app.minutesData) {
-                        const minutes = window.app.minutesData[mid];
-                        if (minutes && minutes.length > 0) {
-                            targetMinute = minutes[0]; // 最新の議事録を取得
-                            break;
-                        }
-                    }
-                    
-                    if (!targetMinute) {
-                        alert('❌ 議事録が見つかりません');
-                        return;
-                    }
-                    
-                    // FileReader で Data URL に変換
+                
+                // Blob を作成
+                const blob = new Blob([textContent], { type: 'text/plain; charset=utf-8' });
+                
+                // FileReader で Data URL に変換
+                return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         // attachedFiles に追加
@@ -6788,19 +7018,26 @@ ${transcript.summary ? '【要約】\n' + transcript.summary : ''}`;
                             }
                         }
                         
-                        alert(`✅ テキストファイルを議事録に保存しました！\n\nファイル名: ${fileName}`);
+                        alert(`✅ テキストファイルを議事録に保存しました！
+
+📋 保存先議事録:
+  議事録名: ${targetMinute.subtitle || '（サブタイトルなし）'}
+  会議日: ${targetMinute.meetingDate || '-'}
+
+📄 ファイル名: ${fileName}
+
+💡 議事録詳細画面の「📎 添付ファイル」欄で確認できます。`);
+                        
+                        resolve();
                     };
                     
                     reader.onerror = () => {
                         alert('❌ ファイルの作成に失敗しました');
+                        reject();
                     };
                     
                     reader.readAsDataURL(blob);
-                    
-                } catch (error) {
-                    console.error('テキスト保存エラー:', error);
-                    alert('❌ エラーが発生しました: ' + error.message);
-                }
+                });
             }
         }
         
