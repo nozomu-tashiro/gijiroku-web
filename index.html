@@ -6434,8 +6434,8 @@ ${text}
             
             // 📝 Gemini で要約
             async summarizeWithGemini(transcript) {
-                // Gemini 1.5 Flash を使用（より安定）
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.GEMINI_API_KEY}`;
+                // Gemini Pro を使用（v1beta で安定）
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.GEMINI_API_KEY}`;
                 
                 const prompt = `以下の会議の文字起こしを、日本のビジネス会議形式で要約してください。
 
